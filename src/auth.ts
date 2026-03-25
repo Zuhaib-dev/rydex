@@ -35,13 +35,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw Error("Incorrect Password");
         }
         return {
-            id:user._id,
-            email:user.email,
-            name:user.name,
-            role:user.role
-
-        }
+          id: user._id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        };
       },
     }),
   ],
+  callbacks: {
+    async jwt({ token, user }) {
+      ((token.name = user.name),
+        (token.id = user.id),
+        (token.email = user.email),
+        (token.role = user.role));
+      return token;
+    },
+    async session({token,session}){
+        if(session.user){
+            session.user.name = token.name,
+        session.user.id = token.id as string,
+        session.user.email = token.email as string,
+        session.user.role = token.role as string
+        }
+        return session
+
+
+    }
+  },
 });
