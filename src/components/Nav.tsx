@@ -5,8 +5,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 function Nav() {
-    const Nav_Items = ["Home","Bookings","About Us","Contact"]
-    const pathName = usePathname()
+  const Nav_Items = ["Home", "Bookings", "About Us", "Contact"];
+  const pathName = usePathname();
   return (
     <motion.div
       initial={{ y: -60, opacity: 0 }}
@@ -15,15 +15,28 @@ function Nav() {
     >
       <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between ">
         <Image src={"/logo.png"} alt="logo" width={44} height={44} priority />
-        <div>
-        {Nav_Items.map((i,index)=>{
-            const href = `/${i.toLowerCase()}`
-            const isActive = href == pathName
-            return <Link href={href} key={index} className={`text-sm font-medium transition pl-3 ${isActive ?"text-white ":"text-gray-400 hover:text-white" }`} >{i}</Link>
-        })}
+        <div className="hidden md:flex items-center gap-10">
+          {Nav_Items.map((i, index) => {
+            let href;
+            if (i == "Home") {
+              href = "/";
+            } else {
+              href = `/${i.toLowerCase()}`;
+            }
+            const isActive = href == pathName;
+            return (
+              <Link
+                href={href}
+                key={index}
+                className={`text-sm font-medium transition  ${isActive ? "text-white " : "text-gray-400 hover:text-white"}`}
+              >
+                {i}
+              </Link>
+            );
+          })}
+        </div>
+        <button className="px-4 py-1.5 rounded-full bg-white text-black text-sm">Login</button>
       </div>
-      </div>
-      
     </motion.div>
   );
 }
