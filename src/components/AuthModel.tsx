@@ -11,18 +11,19 @@ type propType = {
 };
 type stepType = "login" | "signup" | "otp";
 function AuthModel({ open, onClose }: propType) {
-  const session = useSession()
+  const session = useSession();
   console.log(session);
-  
+
   const [step, setStep] = useState<stepType>("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const {data} = useSession()
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const { data } = useSession();
   console.log(data);
-  
+
   const handleSingUp = async () => {
     setLoading(true);
     try {
@@ -31,32 +32,65 @@ function AuthModel({ open, onClose }: propType) {
         email,
         password,
       });
-      console.log(data);
       setLoading(false);
+      setStep("otp");
     } catch (error: any) {
       setLoading(false);
       setErr(error.response.data.message ?? "Something Went Worng");
     }
   };
+  const handleVerifyEmail = async () => {
+    const otpString = otp.join("");
+    console.log("Sending verify:", { email, otp: otpString, otpLength: otpString.length });
+    if (otpString.length < 6) {
+      setErr("Please enter all 6 digits");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { data } = await axios.post("/api/auth/verify-email", {
+        email,
+        otp: otpString,
+      });
+      console.log(data);
+      setLoading(false);
+      setStep("login");
+    } catch (error: any) {
+      setLoading(false);
+      setErr(error.response.data.message ?? "Something Went Wrong");
+    }
+  };
   const handleLogin = async () => {
-  setLoading(true);
-  const res = await signIn("credentials", {
-    email,
-    password,
-    redirect: false,
-  });
-  setLoading(false);
+    setLoading(true);
+    const res = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+    setLoading(false);
 
-  if (res?.error) {
-    setErr("Invalid email or password"); // show error to user
-  } else if (res?.ok) {
-    onClose(); // close the modal on success ✅
-  }
-};
-const handleGoogleLogin = async ()=>{
-  await signIn("google")
-
-}
+    if (res?.error) {
+      setErr("Invalid email or password"); 
+    } else if (res?.ok) {
+      onClose(); 
+    }
+  };
+  const handleGoogleLogin = async () => {
+    await signIn("google");
+  };
+  const handleChangeOtp = (index: number, value: string) => {
+    const lastChar = value.slice(-1); 
+    if (lastChar && !/^[0-9]$/.test(lastChar)) return;
+    const newOtp = [...otp];
+    newOtp[index] = lastChar; 
+    setOtp(newOtp);
+    if (lastChar && index < otp.length - 1) {
+      document.getElementById(`otp-${index + 1}`)?.focus();
+    }
+    if (!lastChar && index > 0) {
+      document.getElementById(`otp-${index - 1}`)?.focus();
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -90,8 +124,9 @@ const handleGoogleLogin = async ()=>{
                     Premium Vehcile Booking
                   </p>
                 </div>
-                <button className="w-full h-11 rounded-xl border border-black/20 flex items-center justify-center gap-3 text-sm font-semibold hover:bg-black hover:text-white transition" 
-                onClick={handleGoogleLogin}
+                <button
+                  className="w-full h-11 rounded-xl border border-black/20 flex items-center justify-center gap-3 text-sm font-semibold hover:bg-black hover:text-white transition"
+                  onClick={handleGoogleLogin}
                 >
                   <Image
                     src={"/google.png"}
@@ -136,9 +171,13 @@ const handleGoogleLogin = async ()=>{
                         </div>
                         <button
                           onClick={handleLogin}
-                          className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition"
+                          className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center "
                         >
-                          {!loading?"Login":<CircleDashed size={18} className="animate-spin" />}
+                          {!loading ? (
+                            "Login"
+                          ) : (
+                            <CircleDashed size={18} className="animate-spin" />
+                          )}
                         </button>
                       </div>
                       <p className="mt-6 text-center text-sm text-gray-500 ">
@@ -196,7 +235,7 @@ const handleGoogleLogin = async ()=>{
                           onClick={handleSingUp}
                         >
                           {!loading ? (
-                            "Sign Up"
+                            "Send OTP"
                           ) : (
                             <CircleDashed
                               size={18}
@@ -215,6 +254,45 @@ const handleGoogleLogin = async ()=>{
                           Log In
                         </div>
                       </p>
+                    </motion.div>
+                  )}
+                  {step == "otp" && (
+                    <motion.div
+                      key="otp"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      className=""
+                    >
+                      <h2 className="text-xl font-semibold">Verify Email</h2>
+                      <div className="flex mt-6 justify-between gap-2">
+                        {otp.map((digit, i) => (
+                          <input
+                            placeholder=""
+                            key={i}
+                            id={`otp-${i}`}
+                            value={digit}
+                            maxLength={1}
+                            className="w-10 h-12 sm:w-12 text-center text-lg rounded-xl font-semibold bg-white border border-black/20 outline-none"
+                            onChange={(e) => handleChangeOtp(i, e.target.value)}
+                          />
+                        ))}
+                      </div>
+                      {err && <p className="text-red-500">*{err}</p>}
+                      <button
+                        className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center mt-5 "
+                        onClick={handleVerifyEmail}
+                      >
+                        {!loading ? (
+                          "Verify"
+                        ) : (
+                          <CircleDashed
+                            size={18}
+                            color="white"
+                            className="animate-spin"
+                          />
+                        )}
+                      </button>
                     </motion.div>
                   )}
                 </div>
