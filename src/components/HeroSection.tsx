@@ -2,7 +2,7 @@
 
 import { Bike, Bus, Car, Truck } from "lucide-react";
 import { motion } from "motion/react";
-function HeroSection() {
+function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <div
@@ -39,12 +39,13 @@ function HeroSection() {
           <Truck size={30} />
         </motion.div>
         <motion.button
-        whileHover={{scale:1.05}}
-        whileTap={{scale:0.95}}
-        initial={{opacity:0}}
-        animate={{opacity:1}}
-        transition={{delay:0.5}}
-        className="mt-12 px-10 py-4 bg-white text-black rounded-full shadow-xl font-semibold"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5 }}
+          className="mt-12 px-10 py-4 bg-white text-black rounded-full shadow-xl font-semibold"
+          onClick={onAuthRequired}
         >
           Book Now
         </motion.button>
