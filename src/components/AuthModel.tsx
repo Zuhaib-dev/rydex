@@ -12,7 +12,7 @@ type propType = {
 type stepType = "login" | "signup" | "otp";
 function AuthModel({ open, onClose }: propType) {
   const session = useSession();
-  console.log(session);
+  // console.log(session);
 
   const [step, setStep] = useState<stepType>("login");
   const [name, setName] = useState("");
@@ -22,7 +22,7 @@ function AuthModel({ open, onClose }: propType) {
   const [err, setErr] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const { data } = useSession();
-  console.log(data);
+  // console.log(data);
 
   const handleSingUp = async () => {
     setLoading(true);
@@ -41,7 +41,7 @@ function AuthModel({ open, onClose }: propType) {
   };
   const handleVerifyEmail = async () => {
     const otpString = otp.join("");
-    console.log("Sending verify:", { email, otp: otpString, otpLength: otpString.length });
+    // console.log("Sending verify:", { email, otp: otpString, otpLength: otpString.length });
     if (otpString.length < 6) {
       setErr("Please enter all 6 digits");
       return;
@@ -52,7 +52,7 @@ function AuthModel({ open, onClose }: propType) {
         email,
         otp: otpString,
       });
-      console.log(data);
+      // console.log(data);
       setLoading(false);
       setStep("login");
     } catch (error: any) {
