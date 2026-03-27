@@ -12,13 +12,16 @@ import {
   Car,
   ChevronRight,
   LogOutIcon,
+  MenuIcon,
   Truck,
+  X,
 } from "lucide-react";
 
 function Nav() {
   const [authOpen, setAuthOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const Nav_Items = ["Home", "Bookings", "About Us", "Contact"];
+  const [menuOpen, setMenuOpen] = useState(false);
   const pathName = usePathname();
 
   const { data: session, status } = useSession();
@@ -121,9 +124,103 @@ function Nav() {
                 </>
               )}
             </div>
+            {/* for mobile */}
+            <div className="md:hidden">
+              {!user ? (
+                <button
+                  onClick={() => setAuthOpen(true)}
+                  className="px-4 py-1.5 rounded-full bg-white text-black text-sm"
+                >
+                  Login
+                </button>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3">
+                    <button
+                      className="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center font-semibold"
+                      onClick={() => setProfileOpen((p) => !p)}
+                    >
+                      {user?.name?.[0]?.toUpperCase() || "?"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+            <button
+              className="md:hidden text-white"
+              onClick={() => setMenuOpen((p) => !p)}
+            >
+              {menuOpen ? <X size={26} /> : <MenuIcon size={26} />}
+            </button>
           </div>
         </div>
       </motion.div>
+      <AnimatePresence>
+        {menuOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMenuOpen(false)}
+              className="inset-0 fixed bg-black z-30 md:hidden"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+              className="fixed top-[85px] left-1/2 -translate-x-1/2 w-[92%] bg-[#0B0B0B] rounded-2xl shadow-2xl z-40 md:hidden overflow-hidden"
+            >
+              <div className="flex flex-col divide-y divide-white/10 ">
+                {Nav_Items.map((i, index) => {
+                  const href = i === "Home" ? "/" : `/${i.toLowerCase()}`;
+                  const isActive = href === pathName;
+                  return (
+                    <Link
+                      href={href}
+                      key={index}
+                      onClick={() => setMenuOpen(false)}
+                      className={`flex items-center justify-between px-5 py-4 text-sm font-medium transition-colors ${
+                        isActive
+                          ? "text-white bg-white/5"
+                          : "text-gray-400 hover:text-white hover:bg-white/5"
+                      }`}
+                    >
+                      {i}
+                      {isActive && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {profileOpen && user && (
+          <>
+          <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.4 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMenuOpen(false)}
+              className="inset-0 fixed bg-black z-30 md:hidden"
+            />
+            <motion.div
+            initial={{}}
+            animate={{}}
+            transition={{}}
+            exit={{}}
+            className=""
+            >
+
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <AuthModel open={authOpen} onClose={() => setAuthOpen(false)} />
     </>
