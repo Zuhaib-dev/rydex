@@ -107,7 +107,7 @@ function Nav() {
                           className="absolute top-12 right-0 w-[280px] bg-white text-black rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
                         >
                           {/* Card header */}
-                          <div className="bg-gradient-to-br from-gray-900 to-gray-800 px-5 pt-5 pb-6">
+                          <div className="bg-linear-to-br from-gray-900 to-gray-800 px-5 pt-5 pb-6">
                             <div className="w-11 h-11 rounded-full bg-white text-black flex items-center justify-center font-bold text-base mb-3 shadow">
                               {user?.name?.[0]?.toUpperCase() || "?"}
                             </div>
@@ -268,7 +268,7 @@ function Nav() {
               </div>
 
               {/* Sheet header */}
-              <div className="px-5 pt-3 pb-5 bg-gradient-to-br from-gray-900 to-gray-800 mx-4 mt-2 rounded-2xl">
+              <div className="px-5 pt-3 pb-5 bg-linear-to-br from-gray-900 to-gray-800 mx-4 mt-2 rounded-2xl">
                 <div className="w-12 h-12 rounded-full bg-white text-black flex items-center justify-center font-bold text-lg mb-3 shadow">
                   {user?.name?.[0]?.toUpperCase() || "?"}
                 </div>
