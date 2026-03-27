@@ -177,6 +177,7 @@ export default function VehiclePage() {
           <motion.button
             whileTap={{ scale: 0.98 }}
             disabled={!canContinue}
+            onClick={() => router.push("/partner/onboarding/documents")}
             className={`w-full py-4 rounded-2xl text-sm font-bold tracking-wide flex items-center justify-center gap-2 transition-all duration-200 ${
               canContinue
                 ? "bg-zinc-900 text-white shadow-lg shadow-zinc-900/20 hover:bg-zinc-800"

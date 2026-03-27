@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./auth";
 
 const PUBLIC_ROUTES = ["/"];
-const PUBLIC_API = ["/api/auth"];
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (
@@ -15,7 +14,7 @@ export async function proxy(req: NextRequest) {
   if (PUBLIC_ROUTES.includes(pathname)) {
     return NextResponse.next();
   }
-  if (PUBLIC_API.includes(pathname)) {
+  if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
   const session = await auth();
