@@ -11,7 +11,6 @@ import {
   Bike,
   Car,
   ChevronRight,
-  LogOut,
   LogOutIcon,
   Truck,
 } from "lucide-react";
