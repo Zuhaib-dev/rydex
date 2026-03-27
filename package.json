@@ -12,6 +12,7 @@
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
+    "cloudinary": "^2.9.0",
     "lucide-react": "^1.6.0",
     "mongoose": "^9.3.2",
     "motion": "^12.38.0",
