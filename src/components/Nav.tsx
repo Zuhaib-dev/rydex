@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, spring } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
-import { redirect, usePathname } from "next/navigation";
+import { redirect, usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthModel from "./AuthModel";
 import { useSession, signOut } from "next-auth/react";
@@ -26,6 +26,7 @@ function Nav() {
 
   const { data: session, status } = useSession();
   const user = session?.user;
+  const router  = useRouter()
 
   if (status === "loading") return null;
 
@@ -120,9 +121,9 @@ function Nav() {
                             )}
                           </div>
 
-                          <div className="p-3 space-y-1">
+                          <div  className="p-3 space-y-1">
                             {user.role !== "partner" && (
-                              <button className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors text-sm font-medium text-gray-800">
+                              <button onClick={()=>router.push('/partner/onboarding/vehicle')}  className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors text-sm font-medium text-gray-800">
                                 <div className="flex items-center shrink-0">
                                   <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center ring-2 ring-white z-30">
                                     <Bike size={13} />
@@ -284,7 +285,7 @@ function Nav() {
               {/* Actions */}
               <div className="p-4 space-y-1">
                 {user.role !== "partner" && (
-                  <button className="w-full flex items-center gap-3 px-4 py-4 bg-gray-50 hover:bg-gray-100 text-gray-800 rounded-xl transition-colors text-sm font-medium">
+                  <button onClick={()=>router.push('/partner/onboarding/vehicle')}  className="w-full flex items-center gap-3 px-4 py-4 bg-gray-50 hover:bg-gray-100 text-gray-800 rounded-xl transition-colors text-sm font-medium">
                     <div className="flex items-center shrink-0">
                       <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center ring-2 ring-white z-30">
                         <Bike size={13} />
