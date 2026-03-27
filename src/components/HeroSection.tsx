@@ -3,6 +3,7 @@
 import { Bike, Bus, Car, Truck } from "lucide-react";
 import { motion } from "motion/react";
 function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
+
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <div
