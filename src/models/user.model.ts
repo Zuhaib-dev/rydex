@@ -9,6 +9,7 @@ export interface IUser extends Document {
   otpExpiryAt?:Date
   createdAt: Date;
   updatedAt: Date;
+  partnerOnboardingSteps:number
 }
 const userSchema = new mongoose.Schema<IUser>(
   {
@@ -40,6 +41,12 @@ const userSchema = new mongoose.Schema<IUser>(
     otpExpiryAt:{
       type:Date,
       
+    },
+    partnerOnboardingSteps:{
+      type:Number,
+      min:0,
+      max:8,
+      default:0
     }
   },
   { timestamps: true },
