@@ -16,9 +16,58 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const BASE_URL = "https://rydexx.netlify.app"; 
+
 export const metadata: Metadata = {
-  title: "Rydexx ",
-  description: "Book Your Vehcile in just a go ",
+  metadataBase: new URL(BASE_URL),
+  title: {
+    default: "Rydex — Book Your Ride in a Go",
+    template: "%s | Rydex",
+  },
+  description:
+    "Rydex lets you book bikes, cars, and trucks instantly. Fast, affordable, and reliable vehicle booking at your fingertips.",
+  keywords: [
+    "rydex",
+    "vehicle booking",
+    "rent a car",
+    "bike rental",
+    "truck rental",
+    "ride booking app",
+  ],
+  authors: [{ name: "Rydex" }],
+  creator: "Rydex",
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  openGraph: {
+    type: "website",
+    url: BASE_URL,
+    siteName: "Rydex",
+    title: "Rydex — Book Your Ride in a Go",
+    description:
+      "Rydex lets you book bikes, cars, and trucks instantly. Fast, affordable, and reliable vehicle booking at your fingertips.",
+    images: [
+      {
+        url: "/heroImage.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Rydex — Book Your Ride",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Rydex — Book Your Ride in a Go",
+    description:
+      "Rydex lets you book bikes, cars, and trucks instantly. Fast, affordable, and reliable vehicle booking at your fingertips.",
+    images: ["/heroImage.jpg"],
+  },
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({
