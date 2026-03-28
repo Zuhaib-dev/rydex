@@ -38,7 +38,7 @@ export async function proxy(req: NextRequest) {
     }
     return NextResponse.next();
   }
-  if (pathname.startsWith("/api")) {
+  if (pathname.startsWith("/api") || pathname.startsWith("/zego")) {
     return NextResponse.next();
   }
   return NextResponse.redirect(new URL("/", req.url));
