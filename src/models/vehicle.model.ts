@@ -1,70 +1,73 @@
 import mongoose from "mongoose";
-type vehcileType = "bike" | "car" | "truck" | "loading" | "auto";
+type VehicleType = "bike" | "car" | "truck" | "loading" | "auto";
 
-interface Ivehcile {
+interface IVehicle {
   owner: mongoose.Types.ObjectId;
-  type: vehcileType;
-  vehcileModel:string,
-  vehcileNumber:string,
-  imageUrl?:string,
-  baseFare?:number,
-  perKmRate:number,
-  waitingCharge:number,
-  status:"approved"|"pending"|"rejected",
-  rejectionReason:string,
-  isActive:boolean,
-  createdAt:Date,
-  updatedAt:Date
-  
+  type: VehicleType;
+  vehicleModel: string;
+  vehicleNumber: string;
+  imageUrl?: string;
+  baseFare?: number;
+  perKmRate: number;
+  waitingCharge: number;
+  status: "approved" | "pending" | "rejected";
+  rejectionReason: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const vehcileSchema = new mongoose.Schema<Ivehcile>({
-    owner:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:'User',
-        required:true
+const vehicleSchema = new mongoose.Schema<IVehicle>(
+  {
+    owner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-    type:{
-        type:String,
-        enum:["bike","car","truck","loading","auto"],
-        required:true
+    type: {
+      type: String,
+      enum: ["bike", "car", "truck", "loading", "auto"],
+      required: true,
     },
-    vehcileModel:{
-        type:String,
-        required:true
+    vehicleModel: {
+      type: String,
+      required: true,
     },
-    vehcileNumber:{
-        type:String,
-        required:true,
-        unique:true
+    vehicleNumber: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    imageUrl:{
-        type:String,
+    imageUrl: {
+      type: String,
     },
-    baseFare:{
-        type:Number,
-        required:true
+    baseFare: {
+      type: Number,
+      required: true,
     },
-    perKmRate:{
-        type:Number,
-        required:true
+    perKmRate: {
+      type: Number,
+      required: true,
     },
-    waitingCharge:{
-        type:Number,
-        required:true
+    waitingCharge: {
+      type: Number,
+      required: true,
     },
-    status:{
-        type:String,
-        enum:["approved","pending","rejected"],
-        default:"pending"
+    status: {
+      type: String,
+      enum: ["approved", "pending", "rejected"],
+      default: "pending",
     },
-    rejectionReason:{
-        type:String,
+    rejectionReason: {
+      type: String,
     },
-    isActive:{
-        type:Boolean,
-        default:true
-    }
-}, {timestamps:true});
-const Vehcile = mongoose.models.vehcile || mongoose.model("vehcile", vehcileSchema);
-export default Vehcile;
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+  },
+  { timestamps: true },
+);
+
+const Vehicle = mongoose.models.Vehicle || mongoose.model("Vehicle", vehicleSchema);
+export default Vehicle;

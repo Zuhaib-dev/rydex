@@ -69,7 +69,7 @@ const vehicles: Vehicle[] = [
 
 const SCROLL_AMOUNT = 300;
 
-function VehcileSlider() {
+function VehicleSlider() {
   const [hovered, setHovered] = useState<number | null>(1); // "Bikes" active by default like the image
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -162,7 +162,7 @@ function VehcileSlider() {
                 onHoverEnd={() => setHovered(null)}
                 whileHover={{ y: -6 }}
                 onClick={() => setHovered(i)}
-                className="flex-shrink-0 w-[200px] sm:w-[220px] cursor-pointer"
+                className="shrink-0 w-[200px] sm:w-[220px] cursor-pointer"
               >
                 <motion.div
                   animate={{
@@ -263,4 +263,4 @@ function VehcileSlider() {
   );
 }
 
-export default VehcileSlider;
+export default VehicleSlider;

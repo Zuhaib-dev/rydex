@@ -2,7 +2,7 @@ import { auth } from "@/auth";
 import uploadOnCloudnary from "@/lib/cloudinary";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
-import Vehcile from "@/models/vehicle.model";
+import PartnerDocs from "@/models/partnerDocs.model";
 import { NextRequest } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
           { status: 500 },
         );
       }
-      updatePayload.aadhar = url;
+      updatePayload.aadharUrl = url;
     }
     if (drivingLicense) {
       const url = await uploadOnCloudnary(drivingLicense);
@@ -47,23 +47,21 @@ export async function POST(req: NextRequest) {
           { status: 500 },
         );
       }
-      updatePayload.drivingLicense = url;
+      updatePayload.licenseUrl = url;
     }
     if (rc) {
       const url = await uploadOnCloudnary(rc);
       if (!url) {
         return Response.json({ message: "rc Upload Failed" }, { status: 500 });
       }
-      updatePayload.rc = url;
+      updatePayload.rcUrl = url;
     }
-    const vehicle = await Vehcile.findOneAndUpdate(
+    
+    await PartnerDocs.findOneAndUpdate(
       { owner: session.user.id },
       updatePayload,
-      { new: true },
+      { new: true, upsert: true },
     );
-    if (!vehicle) {
-      return Response.json({ message: "Vehicle not found" }, { status: 400 });
-    }
     if (user.partnerOnboardingSteps < 2) {
       user.partnerOnboardingSteps = 2;
     }

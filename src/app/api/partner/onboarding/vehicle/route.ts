@@ -1,10 +1,10 @@
 import { auth } from "@/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
-import Vehcile from "@/models/vehicle.model";
+import Vehicle from "@/models/vehicle.model";
 import { NextRequest } from "next/server";
 
-const VEHCILE_REGEX = /^[A-Za-z]{2}[\s-]?[0-9]{2}[\s-]?[A-Za-z]{0,2}[\s-]?[0-9]{4}$/;
+const VEHICLE_REGEX = /^[A-Za-z]{2}[\s-]?[0-9]{2}[\s-]?[A-Za-z]{0,2}[\s-]?[0-9]{4}$/;
 
 export async function POST(req: Request) {
   try {
@@ -21,39 +21,41 @@ export async function POST(req: Request) {
     if(!vehicleModel||!vehicleNumber||!vehicleType){
         return Response.json({message:'All fields are required'}, {status: 400})
     }
-    if(!VEHCILE_REGEX.test(vehicleNumber)){
+    if(!VEHICLE_REGEX.test(vehicleNumber)){
         return Response.json({message:'Invalid vehicle number'},{status:400})
     }
     const number = vehicleNumber.toUpperCase().replace(/[\s-]/g, "");
-    const duplicate = await Vehcile.findOne({vehcileNumber:number})
+    const duplicate = await Vehicle.findOne({vehicleNumber:number})
     if(duplicate && duplicate.owner.toString() !== session.user.id){
         return Response.json({message:'Vehicle already exists'},{status:400})
     }
-    const vehicle  = await Vehcile.findOne({owner:session.user.id})
+    const vehicle = await Vehicle.findOne({owner:session.user.id})
     if(vehicle){
         vehicle.type = vehicleType;
-        vehicle.vehcileModel = vehicleModel;
-        vehicle.vehcileNumber = number;
+        vehicle.vehicleModel = vehicleModel;
+        vehicle.vehicleNumber = number;
         await vehicle.save()
-        return Response.json({message:'Vehicle updated successfully'})
+    } else {
+        await Vehicle.create({
+            owner:session.user.id,
+            type:vehicleType,
+            vehicleModel:vehicleModel,
+            vehicleNumber:number,
+            status:"pending",
+            baseFare:0,
+            perKmRate:0,
+            waitingCharge:0,
+            isActive:true
+        })
     }
-    await Vehcile.create({
-        owner:session.user.id,
-        type:vehicleType,
-        vehcileModel:vehicleModel,
-        vehcileNumber:number,
-        status:"pending",
-        baseFare:0,
-        perKmRate:0,
-        waitingCharge:0,
-        isActive:true
-    })
+    
     if(user.partnerOnboardingSteps<1){
         user.partnerOnboardingSteps=1
     }
     user.role = 'partner'
     await user.save()
-    return Response.json({message:'Vehicle added successfully'})
+    
+    return Response.json({message:'Vehicle details saved successfully'})
     
   } catch (error) {
     console.error(error);
@@ -72,7 +74,7 @@ export async function GET(req:NextRequest) {
         if(!user){
             return Response.json({message:'User not found'}, {status: 400})
         }
-        const vehicle = await Vehcile.findOne({owner:session.user.id})
+        const vehicle = await Vehicle.findOne({owner:session.user.id})
         if(!vehicle){
             return Response.json({message:'Vehicle not found'}, {status: 404})
         }

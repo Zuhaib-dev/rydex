@@ -1,7 +1,7 @@
 "use client";
 import React, { useState } from "react";
 import HeroSection from "./HeroSection";
-import VehcileSlider from "./VehcileSlider";
+import VehicleSlider from "./VehicleSlider";
 import AuthModel from "./AuthModel";
 
 function PublicHome() {
@@ -9,7 +9,7 @@ function PublicHome() {
   return (
     <>
       <HeroSection  onAuthRequired={()=>setAuthOpen(true)} />
-      <VehcileSlider />
+      <VehicleSlider />
       <AuthModel open={authOpen} onClose={() => setAuthOpen(false)} />
     </>
   );

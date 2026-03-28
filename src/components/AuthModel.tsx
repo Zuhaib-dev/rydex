@@ -121,7 +121,7 @@ function AuthModel({ open, onClose }: propType) {
                     Rydexx
                   </h1>
                   <p className="mt-1 text-xs text-gray-500">
-                    Premium Vehcile Booking
+                    Premium Vehicle Booking
                   </p>
                 </div>
                 <button
