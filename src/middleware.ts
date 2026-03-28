@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "./auth";
+import { getToken } from "next-auth/jwt";
 
 const PUBLIC_ROUTES = ["/"];
-export async function proxy(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   if (
     pathname.startsWith("/_next") ||
@@ -17,11 +17,13 @@ export async function proxy(req: NextRequest) {
   if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
-  const session = await auth();
-  if (!session) {
+  
+  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  
+  if (!token) {
     return NextResponse.redirect(new URL("/", req.url));
   }
-  const role = session.user?.role;
+  const role = token.role;
   if (pathname.startsWith("/admin")) {
     if (role != "admin") {
       return NextResponse.redirect(new URL("/", req.url));
