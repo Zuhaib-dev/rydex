@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import axios from "axios";
 import {
   Bike,
   Car,
@@ -11,6 +12,7 @@ import {
   ArrowLeft,
   ChevronRight,
   Tally3,
+  Loader2,
 } from "lucide-react";
 
 const VEHICLE_TYPES = [
@@ -32,8 +34,27 @@ export default function VehiclePage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const canContinue = selected && vehicleNumber.trim() && vehicleModel.trim();
+  const canContinue = selected && vehicleNumber.trim() && vehicleModel.trim() && !loading;
+
+  const handleContinue = async () => {
+    if (!canContinue) return;
+    setLoading(true);
+    try {
+      await axios.post("/api/partner/onboarding/vehicle", {
+        vehicleType: selected,
+        vehicleModel,
+        vehicleNumber,
+      });
+      router.push("/partner/onboarding/documents");
+    } catch (error) {
+      console.error("Error submitting vehicle details:", error);
+      alert("Failed to save vehicle details. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-zinc-50 flex items-start justify-center py-10 px-4">
@@ -175,17 +196,23 @@ export default function VehiclePage() {
           className="px-6 pb-8"
         >
           <motion.button
+            onClick={handleContinue}
             whileTap={{ scale: 0.98 }}
             disabled={!canContinue}
-            onClick={() => router.push("/partner/onboarding/documents")}
             className={`w-full py-4 rounded-2xl text-sm font-bold tracking-wide flex items-center justify-center gap-2 transition-all duration-200 ${
               canContinue
                 ? "bg-zinc-900 text-white shadow-lg shadow-zinc-900/20 hover:bg-zinc-800"
                 : "bg-zinc-100 text-zinc-300 cursor-not-allowed"
             }`}
           >
-            Continue
-            {canContinue && <ChevronRight size={16} strokeWidth={2.5} />}
+            {loading ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <>
+                Continue
+                {canContinue && <ChevronRight size={16} strokeWidth={2.5} />}
+              </>
+            )}
           </motion.button>
         </motion.div>
       </motion.div>

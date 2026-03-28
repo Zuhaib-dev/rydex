@@ -3,7 +3,8 @@
 import { motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useState, useRef } from "react";
-import { ArrowLeft, ChevronRight, UploadCloud, CheckCircle2, AlertCircle } from "lucide-react";
+import axios from "axios";
+import { ArrowLeft, ChevronRight, UploadCloud, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 
 interface DocumentState {
   file: File | null;
@@ -91,6 +92,7 @@ export default function DocumentsPage() {
   const [rc, setRc] = useState<DocumentState>({ file: null, status: "idle" });
   const [license, setLicense] = useState<DocumentState>({ file: null, status: "idle" });
   const [aadhar, setAadhar] = useState<DocumentState>({ file: null, status: "idle" });
+  const [loading, setLoading] = useState(false);
 
   // Refs for hidden inputs
   const rcRef = useRef<HTMLInputElement>(null);
@@ -98,9 +100,9 @@ export default function DocumentsPage() {
   const aadharRef = useRef<HTMLInputElement>(null);
 
   // Can continue if all three documents are marked "done"
-  const canContinue = rc.status === "done" && license.status === "done" && aadhar.status === "done";
+  const canContinue = rc.status === "done" && license.status === "done" && aadhar.status === "done" && !loading;
 
-  // Mock upload simulation
+  // Mock upload simulation visually
   const handleFileChange = (
     e: React.ChangeEvent<HTMLInputElement>,
     setState: React.Dispatch<React.SetStateAction<DocumentState>>
@@ -111,13 +113,33 @@ export default function DocumentsPage() {
     // 1. Set to uploading immediately
     setState({ file, status: "uploading" });
 
-    // 2. Simulate network delay then set to done
+    // 2. Simulate network delay then set to done visually
     setTimeout(() => {
       setState({ file, status: "done" });
-    }, 1200);
+    }, 800);
   };
 
+  const handleContinue = async () => {
+    if (!canContinue) return;
+    setLoading(true);
+    
+    try {
+      const formData = new FormData();
+      if (rc.file) formData.append("rc", rc.file);
+      if (license.file) formData.append("drivingLicense", license.file);
+      if (aadhar.file) formData.append("aadhar", aadhar.file);
 
+      await axios.post("/api/partner/onboarding/documents", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      router.push("/partner/onboarding/bank");
+    } catch (error) {
+      console.error("Error submitting documents:", error);
+      alert("Failed to upload documents. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center py-10 px-4">
@@ -196,17 +218,23 @@ export default function DocumentsPage() {
           className="px-6 pb-8"
         >
           <motion.button
+            onClick={handleContinue}
             whileTap={{ scale: 0.98 }}
             disabled={!canContinue}
-            onClick={() => router.push("/partner/onboarding/bank")}
             className={`w-full py-4 rounded-2xl text-sm font-bold tracking-wide flex items-center justify-center gap-2 transition-all duration-200 ${
               canContinue
                 ? "bg-zinc-900 text-white shadow-lg shadow-zinc-900/20 hover:bg-zinc-800"
                 : "bg-zinc-100 text-zinc-300 cursor-not-allowed"
             }`}
           >
-            Continue
-            {canContinue && <ChevronRight size={16} strokeWidth={2.5} />}
+            {loading ? (
+              <Loader2 size={20} className="animate-spin" />
+            ) : (
+              <>
+                Continue
+                {canContinue && <ChevronRight size={16} strokeWidth={2.5} />}
+              </>
+            )}
           </motion.button>
         </motion.div>
       </motion.div>
