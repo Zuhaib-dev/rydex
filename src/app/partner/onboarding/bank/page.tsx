@@ -49,12 +49,13 @@ export default function BankPage() {
     if (!canContinue) return;
     setLoading(true);
     try {
-      await axios.post("/api/partner/onboarding/bank", formData);
+      const response = await axios.post("/api/partner/onboarding/bank", formData);
+      console.log("Bank Save Success:", response.data);
       // Redirect to dashboard or completion interface
       router.push("/");
-    } catch (error) {
-      console.error("Error submitting bank details:", error);
-      alert("Failed to save bank details. Please check the information and try again.");
+    } catch (error: any) {
+      console.error("Error submitting bank details:", error.response?.data || error);
+      alert(error.response?.data?.message || "Failed to save bank details. Please check the information and try again.");
     } finally {
       setLoading(false);
     }

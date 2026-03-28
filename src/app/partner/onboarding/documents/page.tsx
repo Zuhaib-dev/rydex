@@ -129,13 +129,14 @@ export default function DocumentsPage() {
       if (license.file) formData.append("drivingLicense", license.file);
       if (aadhar.file) formData.append("aadhar", aadhar.file);
 
-      await axios.post("/api/partner/onboarding/documents", formData, {
+      const response = await axios.post("/api/partner/onboarding/documents", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
+      console.log("Documents Upload Success:", response.data);
       router.push("/partner/onboarding/bank");
-    } catch (error) {
-      console.error("Error submitting documents:", error);
-      alert("Failed to upload documents. Please try again.");
+    } catch (error: any) {
+      console.error("Error submitting documents:", error.response?.data || error);
+      alert(error.response?.data?.message || "Failed to upload documents. Please try again.");
     } finally {
       setLoading(false);
     }

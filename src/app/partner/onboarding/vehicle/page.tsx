@@ -42,15 +42,16 @@ export default function VehiclePage() {
     if (!canContinue) return;
     setLoading(true);
     try {
-      await axios.post("/api/partner/onboarding/vehicle", {
+      const response = await axios.post("/api/partner/onboarding/vehicle", {
         vehicleType: selected,
         vehicleModel,
         vehicleNumber,
       });
+      console.log("Vehicle Save Success:", response.data);
       router.push("/partner/onboarding/documents");
-    } catch (error) {
-      console.error("Error submitting vehicle details:", error);
-      alert("Failed to save vehicle details. Please try again.");
+    } catch (error: any) {
+      console.error("Error submitting vehicle details:", error.response?.data || error);
+      alert(error.response?.data?.message || "Failed to save vehicle details. Please try again.");
     } finally {
       setLoading(false);
     }
