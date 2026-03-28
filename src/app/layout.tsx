@@ -50,7 +50,7 @@ export const metadata: Metadata = {
       "Rydex lets you book bikes, cars, and trucks instantly. Fast, affordable, and reliable vehicle booking at your fingertips.",
     images: [
       {
-        url: "/heroImage.jpg",
+        url: "/ogimage.webp",
         width: 1200,
         height: 630,
         alt: "Rydex — Book Your Ride",
