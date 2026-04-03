@@ -11,7 +11,7 @@ function useGetMe(enabled:boolean) {
     const getMe = async () => {
       try {
         const { data } = await axios.get("/api/user/me");
-      dispatch(setUserData(data))
+      dispatch(setUserData(data.user))
       } catch (error) {
         console.log(error)
       }

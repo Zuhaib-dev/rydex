@@ -6,10 +6,9 @@ import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Lock } from "lucide-react";
 import Link from "next/link";
-import useGetMe from "@/hooks/useGetMe";
+import { useRouter } from "next/navigation";
 
 function PartnerDashboard() {
-  useGetMe(true);
   type step = {
     id: number;
     title: string;
@@ -30,6 +29,7 @@ function PartnerDashboard() {
   const TOTAL_STEPS = STEPS.length;
   const [completedSteps, setCompletedSteps] = useState(0);
   const { userData } = useSelector((state: RootState) => state.user);
+  const router = useRouter();
 
   useEffect(() => {
     if (userData?.partnerOnboardingSteps !== undefined) {
@@ -37,8 +37,14 @@ function PartnerDashboard() {
     }
   }, [userData]);
 
-  const progressPercentage = (Math.min(completedSteps, TOTAL_STEPS - 1) / (TOTAL_STEPS - 1)) * 100;
+  const progressPercentage =
+    (Math.min(completedSteps, TOTAL_STEPS - 1) / (TOTAL_STEPS - 1)) * 100;
+  const goToStep = (step: step) => {
 
+    if (step.route && step.id <= completedSteps + 1) {
+      router.push(step.route);
+    }
+  };
   return (
     <div className="min-h-screen bg-gray-50 px-4 pt-28 pb-20">
       <div className="max-w-6xl mx-auto">
@@ -57,7 +63,7 @@ function PartnerDashboard() {
           <div className="relative min-w-[800px] py-4">
             {/* Background Line */}
             <div className="absolute top-1/2 left-0 w-full h-[2px] bg-gray-100 -translate-y-[22px]" />
-            
+
             {/* Active Progress Line */}
             <motion.div
               initial={{ width: 0 }}
@@ -78,28 +84,41 @@ function PartnerDashboard() {
                     {/* Circle Indicator */}
                     <div className="relative z-10">
                       <motion.div
+                        onClick={() => goToStep(step)}
                         initial={false}
                         animate={{
                           backgroundColor: isCompleted ? "#000" : "#fff",
-                          borderColor: isCompleted ? "#000" : isLocked ? "#e5e7eb" : "#000",
+                          borderColor: isCompleted
+                            ? "#000"
+                            : isLocked
+                              ? "#e5e7eb"
+                              : "#000",
                           scale: isActive ? 1.15 : 1,
                         }}
-                        className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-colors duration-500 ${
-                          isLocked ? "bg-white" : ""
+                        className={`w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 ${
+                          isLocked
+                            ? "bg-white cursor-not-allowed"
+                            : "cursor-pointer hover:shadow-lg hover:shadow-black/5 active:scale-95"
                         }`}
                       >
                         {isCompleted ? (
                           <motion.div
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
-                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 300,
+                              damping: 20,
+                            }}
                           >
                             <Check className="text-white w-6 h-6" />
                           </motion.div>
                         ) : isLocked ? (
                           <Lock className="text-gray-300 w-5 h-5" />
                         ) : (
-                          <span className="text-lg font-semibold">{step.id}</span>
+                          <span className="text-lg font-semibold">
+                            {step.id}
+                          </span>
                         )}
                       </motion.div>
 
@@ -109,14 +128,14 @@ function PartnerDashboard() {
                           layoutId="halo"
                           className="absolute -inset-2 border-2 border-black/10 rounded-full pointer-events-none"
                           initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ 
+                          animate={{
                             opacity: [0.1, 0.3, 0.1],
                             scale: [1, 1.1, 1],
                           }}
                           transition={{
                             duration: 3,
                             repeat: Infinity,
-                            ease: "easeInOut"
+                            ease: "easeInOut",
                           }}
                         />
                       )}
@@ -158,8 +177,8 @@ function PartnerDashboard() {
           <div>
             <h3 className="text-xl font-semibold">Verification in Progress</h3>
             <p className="text-gray-400 mt-1 max-w-md">
-              Usually, accounts are reviewed within 24 hours after all steps are completed.
-              Ensure your documents are clear and valid.
+              Usually, accounts are reviewed within 24 hours after all steps are
+              completed. Ensure your documents are clear and valid.
             </p>
           </div>
         </div>
