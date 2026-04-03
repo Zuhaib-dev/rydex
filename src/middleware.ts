@@ -30,6 +30,12 @@ export async function middleware(req: NextRequest) {
     }
     return NextResponse.next();
   }
+  if (pathname.startsWith("/video-kyc")) {
+    if (role !== "admin" && role !== "partner") {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    return NextResponse.next();
+  }
   if (pathname.startsWith("/partner")) {
     if(pathname.startsWith('/partner/onboarding')){
       return NextResponse.next();

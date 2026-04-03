@@ -1,8 +1,10 @@
 "use client";
 
 import { motion } from "motion/react";
-import { ChevronRight, Video, Check } from "lucide-react";
+import { ChevronRight, Video, Check, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
+import { useState } from "react";
 
 type TabType = "partner" | "kyc" | "vehicle";
 
@@ -48,12 +50,24 @@ const EmptyState = () => (
 
 const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabType }) => {
   const router = useRouter();
+  const [kycLoadingId, setKycLoadingId] = useState<string | null>(null);
 
   const handleReviewClick = (id: string, type: TabType) => {
     if (type === "partner") {
       router.push(`/admin/reviews/partner/${id}`);
     }
-    // and for vehicle / kyc as needed ...
+  };
+
+  const initiateKycCall = async (partnerId: string) => {
+    setKycLoadingId(partnerId);
+    try {
+      const res = await axios.post(`/api/admin/video-kyc/start/${partnerId}`);
+      const { roomId } = res.data;
+      router.push(`/video-kyc/${roomId}`);
+    } catch (err) {
+      console.error("Failed to start KYC call:", err);
+      setKycLoadingId(null);
+    }
   };
 
   switch (activeTab) {
@@ -139,9 +153,22 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
                   <p className="text-gray-400 text-xs mt-0.5 tracking-tight">KYC Verification Pending</p>
                 </div>
               </div>
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5">
-                Call Now
-                <Video size={14} className="group-hover:translate-x-0.5 transition-transform" />
+              <button 
+                onClick={() => initiateKycCall(kyc._id)}
+                disabled={kycLoadingId === kyc._id}
+                className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5 disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {kycLoadingId === kyc._id ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    Call Now
+                    <Video size={14} className="group-hover:translate-x-0.5 transition-transform" />
+                  </>
+                )}
               </button>
             </motion.div>
           ))}

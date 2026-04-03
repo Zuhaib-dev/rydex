@@ -1,13 +1,15 @@
 "use client";
 
 import { RootState } from "@/redux/store";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { Check, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import StatusCard from "./StatusCard";
+import VideoKYCBanner from "./VideoKYCBanner";
+import axios from "axios";
 
 function PartnerDashboard() {
   type step = {
@@ -32,11 +34,42 @@ function PartnerDashboard() {
   const { userData } = useSelector((state: RootState) => state.user);
   const router = useRouter();
 
+  // Live KYC polling state
+  const [kycStatus, setKycStatus] = useState<string | null>(null);
+  const [kycRoomId, setKycRoomId] = useState<string | null>(null);
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
     if (userData?.partnerOnboardingSteps !== undefined) {
       setCompletedSteps(userData.partnerOnboardingSteps);
     }
+    // Seed initial KYC state from Redux
+    if (userData?.videoKycStatus) {
+      setKycStatus(userData.videoKycStatus);
+      setKycRoomId(userData.videoKycRoomId ?? null);
+    }
   }, [userData]);
+
+  // Poll /api/user/me every 8s to detect when admin starts a KYC call
+  useEffect(() => {
+    const poll = async () => {
+      try {
+        const res = await axios.get("/api/user/me");
+        const u = res.data?.user;
+        if (u) {
+          setKycStatus(u.videoKycStatus);
+          setKycRoomId(u.videoKycRoomId ?? null);
+        }
+      } catch {
+        // silently ignore poll errors
+      }
+    };
+
+    pollRef.current = setInterval(poll, 8000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
 
   const progressPercentage =
     (Math.min(completedSteps, TOTAL_STEPS - 1) / (TOTAL_STEPS - 1)) * 100;
@@ -171,6 +204,24 @@ function PartnerDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Video KYC Banner — shown when admin initiates a call */}
+        <AnimatePresence>
+          {kycStatus === "in_progress" && kycRoomId && (
+            <motion.div
+              key="kyc-banner"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              className="mt-8"
+            >
+              <VideoKYCBanner
+                roomId={kycRoomId}
+                partnerName={userData?.name}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Status Card */}
         {userData && (

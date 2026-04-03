@@ -3,7 +3,7 @@ import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
+export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
