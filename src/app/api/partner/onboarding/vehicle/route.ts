@@ -44,6 +44,7 @@ export async function POST(req: Request) {
       vehicle.type = vehicleType;
       vehicle.vehicleModel = vehicleModel;
       vehicle.vehicleNumber = number;
+      vehicle.status = "pending";
       await vehicle.save();
     } else {
       await Vehicle.create({
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
       user.partnerOnboardingSteps = 1;
     }
 
-    if (user.partnerStatus === "rejected") {
+    if (user.partnerStatus !== "pending") {
       user.partnerStatus = "pending";
     }
 
