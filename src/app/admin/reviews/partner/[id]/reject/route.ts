@@ -6,12 +6,13 @@ import User from "@/models/user.model";
 
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
+export async function POST(
   request: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
   try {
     await connectDb();
+    const { rejectionReason } = await request.json();
     const session = await auth();
     if (!session || !session.user?.email || session.user?.role !== "admin") {
       return Response.json({ message: "Unauthorized" }, { status: 400 });
@@ -28,31 +29,19 @@ export async function GET(
     if (partner.partnerStatus === "approved") {
       return NextResponse.json(
         { message: "Partner Already Approved" },
-        { status: 400 },
+        { status: 400 },    
       );
     }
-    const partnerDocs = await PartnerDocs.findOne({ owner: partner._id });
-    const partnerBank = await PartnerBank.findOne({ owner: partner._id });
-    if (!partnerDocs || !partnerBank) {
-      return NextResponse.json(
-        { message: "Partner Docs or Bank Not Found" },
-        { status: 400 },
-      );
-    }
-    partner.partnerStatus = "approved";
-    partner.partnerOnboardingSteps = 4;
+    partner.partnerStatus = "rejected";
+    partner.rejectionReason = rejectionReason;
     await partner.save();
-    partnerDocs?.set({ status: "approved" });
-    partnerBank?.set({ status: "verified" });
-    await partnerDocs?.save();
-    await partnerBank?.save();
     return NextResponse.json(
-      { message: "Partner Approved Successfully" },
+      { message: "Partner Rejected Successfully" },
       { status: 200 },
     );
   } catch (error) {
     return NextResponse.json(
-      { message: `Partner approval error: ${error}` },
+      { message: `Partner rejection error: ${error}` },
       { status: 500 },
     );
   }
