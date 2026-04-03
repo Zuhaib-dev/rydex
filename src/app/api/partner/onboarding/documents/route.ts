@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth } from "@/lib/auth";
 import uploadOnCloudnary from "@/lib/cloudinary";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       }
       updatePayload.rcUrl = url;
     }
-    
+
     await PartnerDocs.findOneAndUpdate(
       { owner: session.user.id },
       updatePayload,
@@ -71,4 +71,3 @@ export async function POST(req: NextRequest) {
     return Response.json({ message: "Internal server error" }, { status: 500 });
   }
 }
-
