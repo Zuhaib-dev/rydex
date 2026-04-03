@@ -61,6 +61,16 @@ function AdminDashboard() {
       setLoading(false);
     }
   };
+  const handleGetPendingKyc = async () => {
+    try {
+      const response = await axios.get("/api/admin/video-kyc/pending");
+      setData(response.data);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     handleGetData();
