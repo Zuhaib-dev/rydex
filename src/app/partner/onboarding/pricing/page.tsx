@@ -28,9 +28,9 @@ export default function PricingPage() {
         const { data } = await axios.get("/api/partner/onboarding/pricing");
         if (data?.pricing) {
           const p = data.pricing;
-          setBaseFare(p.baseFare?.toString() || "");
-          setPerKmRate(p.perKmRate?.toString() || "");
-          setWaitingCharge(p.waitingCharge?.toString() || "");
+          setBaseFare(p.baseFare ? p.baseFare.toString() : "");
+          setPerKmRate(p.perKmRate ? p.perKmRate.toString() : "");
+          setWaitingCharge(p.waitingCharge ? p.waitingCharge.toString() : "");
           if (p.imageUrl) setImagePreview(p.imageUrl);
         }
       } catch {
