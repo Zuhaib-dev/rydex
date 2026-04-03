@@ -65,6 +65,11 @@ export async function POST(req: NextRequest) {
     if (user.partnerOnboardingSteps < 2) {
       user.partnerOnboardingSteps = 2;
     }
+
+    if (user.partnerStatus === "rejected") {
+      user.partnerStatus = "pending";
+    }
+
     await user.save();
     return Response.json({ message: "Documents uploaded successfully" });
   } catch (error) {

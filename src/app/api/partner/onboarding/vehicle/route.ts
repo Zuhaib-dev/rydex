@@ -62,6 +62,11 @@ export async function POST(req: Request) {
     if (user.partnerOnboardingSteps < 1) {
       user.partnerOnboardingSteps = 1;
     }
+
+    if (user.partnerStatus === "rejected") {
+      user.partnerStatus = "pending";
+    }
+
     user.role = "partner";
     await user.save();
 
