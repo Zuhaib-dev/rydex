@@ -24,11 +24,23 @@ export async function GET(request: NextRequest) {
       role: "partner",
       partnerStatus: "pending",
     });
+
     const pendingPartnerUsers = await User.find({
       role: "partner",
       partnerStatus: "pending",
       partnerOnboardingSteps: 3,
     });
+
+    const pendingVehicleReviews = await Vehicle.find({
+      status: "pending",
+    }).populate("owner", "name email");
+
+    const pendingVideoKYC = await User.find({
+      role: "partner",
+      partnerStatus: "pending",
+      partnerOnboardingSteps: 4,
+    });
+
     const partnerIds = pendingPartnerUsers.map((p) => p._id);
     const partnerVehciles = await Vehicle.find({
       owner: { $in: partnerIds },
@@ -36,12 +48,14 @@ export async function GET(request: NextRequest) {
     const vehivleTypeMap = new Map(
       partnerVehciles.map((v) => [String(v.owner), v.type]),
     );
+
     const pendingPartnerReviews = pendingPartnerUsers.map((p) => ({
       _id: p._id,
       name: p.name,
       email: p.email,
       vehicleType: vehivleTypeMap.get(String(p._id)),
     }));
+
     return NextResponse.json(
       {
         totalPartners,
@@ -49,6 +63,8 @@ export async function GET(request: NextRequest) {
         totalRejectedPartners,
         totalPendingPartners,
         pendingPartnerReviews,
+        pendingVehicleReviews,
+        pendingVideoKYC,
       },
       { status: 200 },
     );
