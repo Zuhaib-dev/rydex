@@ -37,6 +37,7 @@ function PartnerDashboard() {
   // Live KYC polling state
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycRoomId, setKycRoomId] = useState<string | null>(null);
+  const [kycRejectionReason, setKycRejectionReason] = useState<string | null>(null);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -47,6 +48,7 @@ function PartnerDashboard() {
     if (userData?.videoKycStatus) {
       setKycStatus(userData.videoKycStatus);
       setKycRoomId(userData.videoKycRoomId ?? null);
+      setKycRejectionReason(userData.videoKycRejectionReason ?? null);
     }
   }, [userData]);
 
@@ -59,6 +61,7 @@ function PartnerDashboard() {
         if (u) {
           setKycStatus(u.videoKycStatus);
           setKycRoomId(u.videoKycRoomId ?? null);
+          setKycRejectionReason(u.videoKycRejectionReason ?? null);
           if (u.partnerOnboardingSteps !== undefined) {
              setCompletedSteps(u.partnerOnboardingSteps);
           }
@@ -244,21 +247,22 @@ function PartnerDashboard() {
               exit={{ opacity: 0, y: -12 }}
               className="mt-8 p-6 bg-red-50 border border-red-100 rounded-4xl"
             >
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+              <div className="flex flex-col md:flex-row items-start justify-between gap-6">
+                <div className="flex items-start gap-4 flex-1">
+                  <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-500 flex items-center justify-center shrink-0 mt-0.5">
                     <AlertCircle size={28} />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <h3 className="text-xl font-bold text-red-900">Video KYC Rejected</h3>
-                    <p className="text-red-700 text-sm mt-1 max-w-xl">
-                      {userData?.videoKycRejectionReason || "Your video verification did not pass the required checks."}
+                    <p className="text-red-600 text-xs font-semibold uppercase tracking-wider mt-1">Reason from admin</p>
+                    <p className="text-red-700 text-sm mt-1 leading-relaxed">
+                      {kycRejectionReason || "Your video verification did not pass the required checks. Please request a new session."}
                     </p>
                   </div>
                 </div>
                 <button
                   onClick={requestKycRetry}
-                  className="w-full md:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                  className="w-full md:w-auto shrink-0 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
                 >
                   <RefreshCw size={18} />
                   Request New Video KYC

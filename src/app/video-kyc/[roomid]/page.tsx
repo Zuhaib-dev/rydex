@@ -110,14 +110,21 @@ export default function VideoKYCRoom() {
 
   const handlePostCall = async (action: "approved" | "rejected") => {
     if (!partnerId) return;
+    // Reject requires a reason
+    if (action === "rejected" && !rejectionReason.trim()) {
+      setPostCallError("Please provide a reason before rejecting.");
+      return;
+    }
     setPostCallLoading(true);
     setPostCallError("");
     try {
       await axios.post(`/api/admin/video-kyc/complete/${partnerId}`, {
         action,
-        reason: rejectionReason || undefined,
+        reason: rejectionReason.trim() || undefined,
       });
       setPostCallDone(action);
+      // Redirect admin to home after a short delay so they see the verdict screen
+      setTimeout(() => router.push("/"), 2000);
     } catch {
       setPostCallError("Something went wrong. Please try again.");
     } finally {
@@ -131,7 +138,7 @@ export default function VideoKYCRoom() {
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push(isAdmin ? "/" : "/partner")}
             className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition text-white/60 hover:text-white"
           >
             <ArrowLeft size={16} />
@@ -264,14 +271,22 @@ export default function VideoKYCRoom() {
                 {/* Rejection reason textarea */}
                 <div className="space-y-2">
                   <label className="text-white/40 text-xs uppercase tracking-widest font-bold">
-                    Rejection Reason (optional)
+                    Rejection Reason
+                    <span className="text-red-400 ml-1">(required to reject)</span>
                   </label>
                   <textarea
                     value={rejectionReason}
-                    onChange={(e) => setRejectionReason(e.target.value)}
-                    placeholder="Only needed if rejecting…"
+                    onChange={(e) => {
+                      setRejectionReason(e.target.value);
+                      if (postCallError) setPostCallError("");
+                    }}
+                    placeholder="Explain why this KYC is being rejected…"
                     rows={3}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white/80 text-sm placeholder-white/20 focus:outline-none focus:border-white/20 resize-none"
+                    className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white/80 text-sm placeholder-white/20 focus:outline-none resize-none transition-colors ${
+                      postCallError && !rejectionReason.trim()
+                        ? "border-red-500/50 focus:border-red-500/70"
+                        : "border-white/10 focus:border-white/20"
+                    }`}
                   />
                 </div>
 
@@ -335,14 +350,8 @@ export default function VideoKYCRoom() {
                   KYC {postCallDone}!
                 </h2>
                 <p className="text-white/30 text-sm max-w-xs mx-auto">
-                  The partner has been notified. You can close this page.
+                  The partner has been notified. Redirecting you home…
                 </p>
-                <button
-                  onClick={() => router.push("/admin")}
-                  className="px-6 py-3 bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl transition-all mt-2"
-                >
-                  Back to Dashboard
-                </button>
               </div>
             </motion.div>
           )}
@@ -365,7 +374,7 @@ export default function VideoKYCRoom() {
                   Your KYC session is complete. The admin will review and notify you shortly.
                 </p>
                 <button
-                  onClick={() => router.push("/partner")}
+                  onClick={() => router.push("/")}
                   className="px-6 py-3 bg-white/10 hover:bg-white/15 text-white font-bold rounded-xl transition-all"
                 >
                   Back to Dashboard
