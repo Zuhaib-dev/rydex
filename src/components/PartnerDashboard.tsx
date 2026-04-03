@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Check, Lock } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import StatusCard from "./StatusCard";
 
 function PartnerDashboard() {
   type step = {
@@ -40,7 +41,6 @@ function PartnerDashboard() {
   const progressPercentage =
     (Math.min(completedSteps, TOTAL_STEPS - 1) / (TOTAL_STEPS - 1)) * 100;
   const goToStep = (step: step) => {
-
     if (step.route && step.id <= completedSteps + 1) {
       router.push(step.route);
     }
@@ -172,16 +172,15 @@ function PartnerDashboard() {
           </div>
         </div>
 
-        {/* Info Card */}
-        <div className="mt-12 bg-black rounded-3xl p-8 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-2xl shadow-black/20">
-          <div>
-            <h3 className="text-xl font-semibold">Verification in Progress</h3>
-            <p className="text-gray-400 mt-1 max-w-md">
-              Usually, accounts are reviewed within 24 hours after all steps are
-              completed. Ensure your documents are clear and valid.
-            </p>
+        {/* Status Card */}
+        {userData && (
+          <div className="mt-8">
+            <StatusCard
+              status={userData.partnerStatus}
+              reason={userData.rejectionReason}
+            />
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

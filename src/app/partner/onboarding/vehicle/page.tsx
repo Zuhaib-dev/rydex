@@ -23,6 +23,7 @@ const VEHICLE_TYPES = [
   { id: "truck", label: "Truck", sub: "Heavy transport", icon: Truck },
 ];
 
+
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
   animate: { opacity: 1, y: 0 },
@@ -63,6 +64,7 @@ export default function VehiclePage() {
       setLoading(false);
     }
   };
+
   useEffect(() => {
     const fetchVehicleData = async () => {
       try {
@@ -82,7 +84,7 @@ export default function VehiclePage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-zinc-50 flex items-start justify-center py-10 px-4">
+    <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-start py-10 px-4">
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
@@ -265,6 +267,7 @@ export default function VehiclePage() {
           </motion.button>
         </motion.div>
       </motion.div>
+      
     </div>
   );
 }

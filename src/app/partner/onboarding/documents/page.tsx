@@ -94,6 +94,7 @@ export default function DocumentsPage() {
   const [aadhar, setAadhar] = useState<DocumentState>({ file: null, status: "idle" });
   const [loading, setLoading] = useState(false);
 
+
   // Refs for hidden inputs
   const rcRef = useRef<HTMLInputElement>(null);
   const licenseRef = useRef<HTMLInputElement>(null);
@@ -239,6 +240,7 @@ export default function DocumentsPage() {
           </motion.button>
         </motion.div>
       </motion.div>
+      
     </div>
   );
 }

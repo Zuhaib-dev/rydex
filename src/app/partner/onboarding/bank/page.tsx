@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import {
   ArrowLeft,
   BadgeCheck,
@@ -306,6 +306,7 @@ export default function BankPage() {
           )}
         </motion.button>
       </motion.div>
+
     </div>
   );
 }

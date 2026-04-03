@@ -18,9 +18,20 @@ interface StatusCardProps {
 export default function StatusCard({ status, reason }: StatusCardProps) {
   const router = useRouter();
 
-  if (!status || status === "idle") return null;
+  // If status is missing, default to pending for onboarding visibility
+  const effectiveStatus = status || "pending";
 
-  const config = {
+  if (effectiveStatus === "idle") return null;
+
+  const config: Record<string, {
+    icon: React.ReactNode;
+    bg: string;
+    border: string;
+    title: string;
+    description: string;
+    accent: string;
+    sub: string;
+  }> = {
     pending: {
       icon: <Clock className="text-amber-500" size={24} />,
       bg: "bg-amber-50/50",
@@ -48,26 +59,27 @@ export default function StatusCard({ status, reason }: StatusCardProps) {
       accent: "text-red-900",
       sub: "text-red-700/70"
     }
-  }[status as keyof typeof config] || null;
+  };
 
-  if (!config) return null;
+  const currentConfig = config[effectiveStatus];
+  if (!currentConfig) return null;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`mt-6 p-5 rounded-[24px] border ${config.bg} ${config.border} flex flex-col gap-4 shadow-sm`}
+      className={`mt-6 p-5 rounded-[24px] border ${currentConfig.bg} ${currentConfig.border} flex flex-col gap-4 shadow-sm`}
     >
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center shrink-0 border border-inherit/50">
-          {config.icon}
+          {currentConfig.icon}
         </div>
         <div className="space-y-1">
-          <h3 className={`text-[15px] font-black uppercase tracking-tight ${config.accent}`}>
-            {config.title}
+          <h3 className={`text-[15px] font-black uppercase tracking-tight ${currentConfig.accent}`}>
+            {currentConfig.title}
           </h3>
-          <p className={`text-xs font-medium leading-relaxed ${config.sub}`}>
-            {config.description}
+          <p className={`text-xs font-medium leading-relaxed ${currentConfig.sub}`}>
+            {currentConfig.description}
           </p>
         </div>
       </div>
