@@ -6,16 +6,22 @@ import {
   ShieldCheck, 
   AlertTriangle, 
   RefreshCcw, 
-  ChevronRight 
+  ChevronRight,
+  Video
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface StatusCardProps {
   status: "pending" | "approved" | "rejected" | string;
   reason?: string;
+  videoKycStatus?: string;
 }
 
-export default function StatusCard({ status, reason }: StatusCardProps) {
+export default function StatusCard({ 
+  status, 
+  reason, 
+  videoKycStatus 
+}: StatusCardProps) {
   const router = useRouter();
 
   // If status is missing, default to pending for onboarding visibility
@@ -58,10 +64,23 @@ export default function StatusCard({ status, reason }: StatusCardProps) {
       description: reason || "Your application was rejected due to inconsistent information. Please review and update.",
       accent: "text-red-900",
       sub: "text-red-700/70"
+    },
+    kyc_pending: {
+      icon: <Video className="text-violet-500" size={24} />,
+      bg: "bg-violet-50/50",
+      border: "border-violet-100",
+      title: "Video KYC Step",
+      description: "You're at the Video KYC phase. Please wait for an admin to initiate a call.",
+      accent: "text-violet-900",
+      sub: "text-violet-700/70"
     }
   };
 
-  const currentConfig = config[effectiveStatus];
+  // If at KYC step but admin hasn't initiated yet, show special state
+  const isKycStep = videoKycStatus === "pending";
+  const displayStatus = (effectiveStatus === "pending" && isKycStep) ? "kyc_pending" : effectiveStatus;
+
+  const currentConfig = config[displayStatus];
   if (!currentConfig) return null;
 
   return (

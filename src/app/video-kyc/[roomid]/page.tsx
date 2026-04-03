@@ -95,13 +95,18 @@ export default function VideoKYCRoom() {
     }
   };
 
-  // Auto-start on mount
+  // Auto-start on mount + Security check
   useEffect(() => {
     if (userData) {
+      // Security check: Partner can only join THEIR assigned room
+      if (userData.role === "partner" && roomid !== userData.videoKycRoomId) {
+        router.replace("/partner");
+        return;
+      }
       startCall();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData]);
+  }, [userData, roomid]);
 
   const handlePostCall = async (action: "approved" | "rejected") => {
     if (!partnerId) return;
@@ -402,8 +407,9 @@ export default function VideoKYCRoom() {
 
             <button
               onClick={() => {
-                if (zpRef.current) {
-                  zpRef.current.leaveRoom();
+                if (isAdmin) {
+                  setCallState("ended");
+                  setShowPostCall(true);
                 } else {
                   router.back();
                 }
