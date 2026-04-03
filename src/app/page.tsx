@@ -4,15 +4,19 @@ import Nav from "@/components/Nav";
 import PartnerDashboard from "@/components/PartnerDashboard";
 import PublicHome from "@/components/PublicHome";
 import { auth } from "@/lib/auth";
+import connectDb from "@/lib/db";
+import User from "@/models/user.model";
 
 export default async function Home() {
   const session = await auth();
+  await connectDb()
+  const user = await User.findOne({email:session?.user?.email})
   return (
     <div className="w-full min-h-screen bg-white ">
       <Nav />
-      {session?.user?.role == "partner" ? (
+      {user?.role == "partner" ? (
         <PartnerDashboard />
-      ) : session?.user?.role == "admin" ? (
+      ) :user?.role == "admin" ? (
         <AdminDashboard />
       ) : (
         <PublicHome />

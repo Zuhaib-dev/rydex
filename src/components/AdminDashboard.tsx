@@ -1,8 +1,8 @@
-import React from 'react'
+"use client"
 
 function AdminDashboard() {
   return (
-    <div>AdminDashboard</div>
+    <div className="min-h-screen bg-linear-to-b from-white to-gray-200" ></div>
   )
 }
 
