@@ -126,7 +126,7 @@ export default function VideoKYCRoom() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
+    <div className="h-screen bg-[#0a0a0a] flex flex-col overflow-hidden">
       {/* Top Bar */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <div className="flex items-center gap-3">
@@ -378,8 +378,8 @@ export default function VideoKYCRoom() {
         {/* Zego Video Container */}
         <div
           ref={containerRef}
-          className={`w-full h-full min-h-[calc(100vh-64px)] transition-opacity duration-500 ${
-            callState === "live" ? "opacity-100" : "opacity-0 pointer-events-none"
+          className={`absolute inset-0 w-full h-full transition-opacity duration-500 ${
+            callState === "live" ? "opacity-100 z-10" : "opacity-0 pointer-events-none -z-10"
           }`}
         />
       </div>

@@ -14,7 +14,8 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Video
 } from "lucide-react";
 import AnimateCard from "@/components/AnimateCard";
 import { motion, AnimatePresence } from "motion/react";
@@ -25,6 +26,9 @@ interface PartnerData {
     name: string;
     email: string;
     status: "pending" | "approved" | "rejected";
+    videoKycStatus?: string;
+    videoKycRoomId?: string;
+    videoKycRejectionReason?: string;
   };
   vehicle: {
     type: string;
@@ -93,6 +97,20 @@ function Page() {
     } catch (error) {
       console.error("Error rejecting partner:", error);
       alert("Failed to reject partner. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const initiateKycCall = async () => {
+    setSubmitting(true);
+    try {
+      const res = await axios.post(`/api/admin/video-kyc/start/${id}`);
+      const { roomId } = res.data;
+      router.push(`/video-kyc/${roomId}`);
+    } catch (error) {
+      console.error("Error starting KYC call:", error);
+      alert("Failed to start KYC call");
     } finally {
       setSubmitting(false);
     }
@@ -227,6 +245,41 @@ function Page() {
                   <span className="text-gray-400 text-sm font-medium">Bank Name</span>
                   <span className="text-gray-900 font-bold">{data.bank?.bankName || "N/A"}</span>
                 </div>
+              </div>
+            </AnimateCard>
+
+            {/* Video KYC Details */}
+            <AnimateCard title="Video KYC" icon={<Video size={20} />} delay={0.35}>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                  <span className="text-gray-400 text-sm font-medium">Status</span>
+                  <span className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${
+                      data.partner.videoKycStatus === 'approved' ? 'bg-green-500' : 
+                      data.partner.videoKycStatus === 'rejected' ? 'bg-red-500' :
+                      data.partner.videoKycStatus === 'pending' ? 'bg-amber-500' :
+                      data.partner.videoKycStatus === 'in_progress' ? 'bg-indigo-500 blink' : 'bg-gray-300'
+                    }`} />
+                    <span className="text-gray-900 font-bold capitalize">
+                      {data.partner.videoKycStatus?.replace('_', ' ') || "Not Started"}
+                    </span>
+                  </span>
+                </div>
+                {data.partner.videoKycRejectionReason && (
+                   <div className="py-2 border-b border-gray-50">
+                     <span className="text-gray-400 text-sm font-medium block">Rejection Reason</span>
+                     <span className="text-red-500 font-medium text-sm mt-1 block leading-relaxed bg-red-50 p-2 rounded-lg">{data.partner.videoKycRejectionReason}</span>
+                   </div>
+                )}
+                
+                <button 
+                  onClick={initiateKycCall}
+                  disabled={submitting}
+                  className="w-full h-12 bg-indigo-50 border border-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center gap-2 text-sm font-bold hover:bg-indigo-600 hover:text-white transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  <Video size={16} />
+                  Start Video KYC Call
+                </button>
               </div>
             </AnimateCard>
 

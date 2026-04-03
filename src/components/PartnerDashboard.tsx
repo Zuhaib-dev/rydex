@@ -4,7 +4,7 @@ import { RootState } from "@/redux/store";
 import { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "motion/react";
-import { Check, Lock } from "lucide-react";
+import { Check, Lock, AlertCircle, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import StatusCard from "./StatusCard";
@@ -78,6 +78,17 @@ function PartnerDashboard() {
       router.push(step.route);
     }
   };
+
+  const requestKycRetry = async () => {
+    try {
+      await axios.post("/api/partner/video-kyc/retry");
+      setKycStatus("pending");
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to request KYC retry", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 px-4 pt-28 pb-20">
       <div className="max-w-6xl mx-auto">
@@ -219,6 +230,37 @@ function PartnerDashboard() {
                 roomId={kycRoomId}
                 partnerName={userData?.name}
               />
+            </motion.div>
+          )}
+
+          {kycStatus === "rejected" && (
+            <motion.div
+              key="kyc-rejected"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              className="mt-8 p-6 bg-red-50 border border-red-100 rounded-4xl"
+            >
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl bg-red-100 text-red-500 flex items-center justify-center shrink-0">
+                    <AlertCircle size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-red-900">Video KYC Rejected</h3>
+                    <p className="text-red-700 text-sm mt-1 max-w-xl">
+                      {userData?.videoKycRejectionReason || "Your video verification did not pass the required checks."}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={requestKycRetry}
+                  className="w-full md:w-auto px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
+                >
+                  <RefreshCw size={18} />
+                  Request New Video KYC
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

@@ -41,6 +41,9 @@ export async function POST(
     if (action === "rejected" && reason) {
       partner.videoKycRejectionReason = reason;
     }
+    if (action === "approved") {
+      partner.partnerOnboardingSteps = 6;
+    }
     await partner.save();
 
     return NextResponse.json({
