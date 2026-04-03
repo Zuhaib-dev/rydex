@@ -70,16 +70,29 @@ function Page() {
     fetchPartner();
   }, [id]);
 
-  const handleAction = async (status: "approved" | "rejected", reason?: string) => {
+  const handleApprove = async () => {
     setSubmitting(true);
     try {
-      await axios.put(`/api/admin/reviews/partner/${id}`, { status, reason });
+      await axios.get(`/api/admin/reviews/partner/${id}/approve`);
+      await fetchPartner();
+    } catch (error) {
+      console.error("Error approving partner:", error);
+      alert("Failed to approve partner. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReject = async (reason: string) => {
+    setSubmitting(true);
+    try {
+      await axios.post(`/api/admin/reviews/partner/${id}/reject`, { rejectionReason: reason });
       await fetchPartner();
       setRejectModal(false);
       setRejectReason("");
     } catch (error) {
-      console.error("Error updating status:", error);
-      alert("Failed to update status. Please try again.");
+      console.error("Error rejecting partner:", error);
+      alert("Failed to reject partner. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -224,7 +237,7 @@ function Page() {
                 
                 <button 
                   disabled={submitting || data.partner.status === "approved"}
-                  onClick={() => handleAction("approved")}
+                  onClick={() => handleApprove()}
                   className="w-full h-14 bg-black text-white rounded-2xl flex items-center justify-center gap-2 text-sm font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 shadow-2xl shadow-black/10"
                 >
                   Approve Application
@@ -277,7 +290,7 @@ function Page() {
                 <div className="w-full flex flex-col gap-3">
                   <button 
                     disabled={submitting || !rejectReason.trim()}
-                    onClick={() => handleAction("rejected", rejectReason)}
+                    onClick={() => handleReject(rejectReason)}
                     className="w-full h-14 bg-red-500 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-red-600 transition-all disabled:opacity-50 shadow-lg shadow-red-200"
                   >
                     Confirm Rejection
