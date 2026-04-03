@@ -40,6 +40,7 @@ export async function GET(
       );
     }
     partner.partnerStatus = "approved";
+    partner.videoKycStatus='pending'
     partner.partnerOnboardingSteps = 4;
     await partner.save();
     partnerDocs?.set({ status: "approved" });
