@@ -9,17 +9,23 @@ import User from "@/models/user.model";
 
 export default async function Home() {
   const session = await auth();
-  await connectDb()
-  const user = await User.findOne({email:session?.user?.email})
+  await connectDb();
+  const user = await User.findOne({ email: session?.user?.email });
   return (
     <div className="w-full min-h-screen bg-white ">
-      <Nav />
       {user?.role == "partner" ? (
-        <PartnerDashboard />
-      ) :user?.role == "admin" ? (
+        <>
+          <Nav />
+
+          <PartnerDashboard />
+        </>
+      ) : user?.role == "admin" ? (
         <AdminDashboard />
       ) : (
-        <PublicHome />
+        <>
+          <Nav />
+          <PublicHome />
+        </>
       )}
       <Footer />
     </div>
