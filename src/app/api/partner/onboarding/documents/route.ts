@@ -62,11 +62,10 @@ export async function POST(req: NextRequest) {
       updatePayload,
       { new: true, upsert: true },
     );
-    if (user.partnerOnboardingSteps < 2) {
-      user.partnerOnboardingSteps = 2;
-    }
-
-    if (user.partnerStatus !== "pending") {
+    if (user.partnerStatus === "approved" || user.partnerStatus === "rejected") {
+      user.partnerStatus = "pending";
+      user.partnerOnboardingSteps = 3;
+    } else if (user.partnerStatus !== "pending") {
       user.partnerStatus = "pending";
     }
 

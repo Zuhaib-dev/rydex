@@ -60,11 +60,10 @@ export async function POST(req: NextRequest) {
 
     await partnerBank.save();
 
-    if (user.partnerOnboardingSteps < 3) {
+    if (user.partnerStatus === "approved" || user.partnerStatus === "rejected") {
+      user.partnerStatus = "pending";
       user.partnerOnboardingSteps = 3;
-    }
-
-    if (user.partnerStatus !== "pending") {
+    } else if (user.partnerStatus !== "pending") {
       user.partnerStatus = "pending";
     }
 

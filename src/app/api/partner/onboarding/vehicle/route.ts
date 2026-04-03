@@ -60,11 +60,10 @@ export async function POST(req: Request) {
       });
     }
 
-    if (user.partnerOnboardingSteps < 1) {
-      user.partnerOnboardingSteps = 1;
-    }
-
-    if (user.partnerStatus !== "pending") {
+    if (user.partnerStatus === "approved" || user.partnerStatus === "rejected") {
+      user.partnerStatus = "pending";
+      user.partnerOnboardingSteps = 3;
+    } else if (user.partnerStatus !== "pending") {
       user.partnerStatus = "pending";
     }
 
