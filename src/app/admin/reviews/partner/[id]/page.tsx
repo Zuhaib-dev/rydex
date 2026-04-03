@@ -1,9 +1,24 @@
-import React from 'react'
+"use client";
+
+import axios from "axios";
+import { useParams } from "next/navigation";
+import { useEffect } from "react";
 
 function page() {
-  return (
-    <div>page</div>
-  )
+  const { id } = useParams();
+  const handleGetPartner = async () => {
+    try {
+      const { data } = await axios.get(`/api/admin/reviews/partner/${id}`);
+      console.log(data)
+    } catch (error) {
+        console.log(error)
+    }
+  };
+  useEffect(()=>{
+    handleGetPartner()
+  },[])
+
+  return <div>page</div>;
 }
 
-export default page
+export default page;
