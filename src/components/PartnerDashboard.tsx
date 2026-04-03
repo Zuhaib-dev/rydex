@@ -24,7 +24,7 @@ function PartnerDashboard() {
     { id: 3, title: "Bank", route: "/partner/onboarding/bank" },
     { id: 4, title: "Review" },
     { id: 5, title: "Video KYC" },
-    { id: 6, title: "Pricing" },
+    { id: 6, title: "Pricing", route: "/partner/onboarding/pricing" },
     { id: 7, title: "Final Review" },
     { id: 8, title: "Live" },
   ];
@@ -59,6 +59,9 @@ function PartnerDashboard() {
         if (u) {
           setKycStatus(u.videoKycStatus);
           setKycRoomId(u.videoKycRoomId ?? null);
+          if (u.partnerOnboardingSteps !== undefined) {
+             setCompletedSteps(u.partnerOnboardingSteps);
+          }
         }
       } catch {
         // silently ignore poll errors

@@ -42,7 +42,7 @@ export async function POST(
       partner.videoKycRejectionReason = reason;
     }
     if (action === "approved") {
-      partner.partnerOnboardingSteps = 6;
+      partner.partnerOnboardingSteps = 5;
     }
     await partner.save();
 
