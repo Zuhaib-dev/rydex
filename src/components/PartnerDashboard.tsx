@@ -38,6 +38,11 @@ function PartnerDashboard() {
   const [kycStatus, setKycStatus] = useState<string | null>(null);
   const [kycRoomId, setKycRoomId] = useState<string | null>(null);
   const [kycRejectionReason, setKycRejectionReason] = useState<string | null>(null);
+  
+  // Follow Partner Status too
+  const [partnerStatus, setPartnerStatus] = useState<string>("pending");
+  const [partnerRejectionReason, setPartnerRejectionReason] = useState<string | undefined>(undefined);
+
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -49,6 +54,10 @@ function PartnerDashboard() {
       setKycStatus(userData.videoKycStatus);
       setKycRoomId(userData.videoKycRoomId ?? null);
       setKycRejectionReason(userData.videoKycRejectionReason ?? null);
+    }
+    if (userData?.partnerStatus) {
+      setPartnerStatus(userData.partnerStatus);
+      setPartnerRejectionReason(userData.rejectionReason);
     }
   }, [userData]);
 
@@ -62,6 +71,8 @@ function PartnerDashboard() {
           setKycStatus(u.videoKycStatus);
           setKycRoomId(u.videoKycRoomId ?? null);
           setKycRejectionReason(u.videoKycRejectionReason ?? null);
+          setPartnerStatus(u.partnerStatus);
+          setPartnerRejectionReason(u.rejectionReason);
           if (u.partnerOnboardingSteps !== undefined) {
              setCompletedSteps(u.partnerOnboardingSteps);
           }
@@ -276,8 +287,9 @@ function PartnerDashboard() {
         {userData && (
           <div className="mt-8">
             <StatusCard
-              status={userData.partnerStatus}
-              reason={userData.rejectionReason}
+              status={partnerStatus}
+              reason={partnerRejectionReason}
+              step={completedSteps}
             />
           </div>
         )}
