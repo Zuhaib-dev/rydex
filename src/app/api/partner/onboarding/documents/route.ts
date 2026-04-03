@@ -62,11 +62,16 @@ export async function POST(req: NextRequest) {
       updatePayload,
       { new: true, upsert: true },
     );
-    if (user.partnerStatus === "approved" || user.partnerStatus === "rejected") {
+    // If partner has already progressed past step 2 (documents), reset back to step 2
+    // so bank, review, KYC, and pricing all require re-completion
+    if (user.partnerOnboardingSteps >= 2) {
+      user.partnerOnboardingSteps = 2;
       user.partnerStatus = "pending";
-      user.partnerOnboardingSteps = 3;
-    } else if (user.partnerStatus !== "pending") {
-      user.partnerStatus = "pending";
+      // Revoke KYC approval if they had one
+      if (user.videoKycStatus === "approved") {
+        user.videoKycStatus = "not_required";
+        user.videoKycRoomId = undefined;
+      }
     }
 
     await user.save();

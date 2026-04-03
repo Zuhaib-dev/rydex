@@ -60,11 +60,16 @@ export async function POST(req: NextRequest) {
 
     await partnerBank.save();
 
-    if (user.partnerStatus === "approved" || user.partnerStatus === "rejected") {
-      user.partnerStatus = "pending";
+    // If partner has already progressed past step 3 (bank), reset back to step 3
+    // so review, KYC, and pricing all require re-completion
+    if (user.partnerOnboardingSteps >= 3) {
       user.partnerOnboardingSteps = 3;
-    } else if (user.partnerStatus !== "pending") {
       user.partnerStatus = "pending";
+      // Revoke KYC approval if they had one
+      if (user.videoKycStatus === "approved") {
+        user.videoKycStatus = "not_required";
+        user.videoKycRoomId = undefined;
+      }
     }
 
     await user.save();

@@ -60,11 +60,16 @@ export async function POST(req: Request) {
       });
     }
 
-    if (user.partnerStatus === "approved" || user.partnerStatus === "rejected") {
+    // If partner has already progressed past step 1 (vehicle), reset back to step 1
+    // so all downstream steps (docs, bank, review, KYC, pricing) require re-completion
+    if (user.partnerOnboardingSteps >= 1) {
+      user.partnerOnboardingSteps = 1;
       user.partnerStatus = "pending";
-      user.partnerOnboardingSteps = 3;
-    } else if (user.partnerStatus !== "pending") {
-      user.partnerStatus = "pending";
+      // If they were already KYC-approved, revoke it so they need a fresh KYC
+      if (user.videoKycStatus === "approved") {
+        user.videoKycStatus = "not_required";
+        user.videoKycRoomId = undefined;
+      }
     }
 
     user.role = "partner";
