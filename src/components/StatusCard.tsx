@@ -14,13 +14,11 @@ import { useRouter } from "next/navigation";
 interface StatusCardProps {
   status: "pending" | "approved" | "rejected" | string;
   reason?: string;
-  videoKycStatus?: string;
 }
 
 export default function StatusCard({ 
   status, 
-  reason, 
-  videoKycStatus 
+  reason 
 }: StatusCardProps) {
   const router = useRouter();
 
@@ -65,22 +63,9 @@ export default function StatusCard({
       accent: "text-red-900",
       sub: "text-red-700/70"
     },
-    kyc_pending: {
-      icon: <Video className="text-violet-500" size={24} />,
-      bg: "bg-violet-50/50",
-      border: "border-violet-100",
-      title: "Video KYC Step",
-      description: "You're at the Video KYC phase. Please wait for an admin to initiate a call.",
-      accent: "text-violet-900",
-      sub: "text-violet-700/70"
-    }
   };
 
-  // If at KYC step but admin hasn't initiated yet, show special state
-  const isKycStep = videoKycStatus === "pending";
-  const displayStatus = (effectiveStatus === "pending" && isKycStep) ? "kyc_pending" : effectiveStatus;
-
-  const currentConfig = config[displayStatus];
+  const currentConfig = config[effectiveStatus];
   if (!currentConfig) return null;
 
   return (

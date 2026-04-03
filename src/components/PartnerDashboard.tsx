@@ -229,7 +229,6 @@ function PartnerDashboard() {
             <StatusCard
               status={userData.partnerStatus}
               reason={userData.rejectionReason}
-              videoKycStatus={kycStatus || userData.videoKycStatus}
             />
           </div>
         )}
