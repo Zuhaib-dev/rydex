@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import {
   Bike,
@@ -36,7 +36,8 @@ export default function VehiclePage() {
   const [vehicleModel, setVehicleModel] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const canContinue = selected && vehicleNumber.trim() && vehicleModel.trim() && !loading;
+  const canContinue =
+    selected && vehicleNumber.trim() && vehicleModel.trim() && !loading;
 
   const handleContinue = async () => {
     if (!canContinue) return;
@@ -50,12 +51,35 @@ export default function VehiclePage() {
       console.log("Vehicle Save Success:", response.data);
       router.push("/partner/onboarding/documents");
     } catch (error: any) {
-      console.error("Error submitting vehicle details:", error.response?.data || error);
-      alert(error.response?.data?.message || "Failed to save vehicle details. Please try again.");
+      console.error(
+        "Error submitting vehicle details:",
+        error.response?.data || error,
+      );
+      alert(
+        error.response?.data?.message ||
+          "Failed to save vehicle details. Please try again.",
+      );
     } finally {
       setLoading(false);
     }
   };
+  useEffect(() => {
+    const fetchVehicleData = async () => {
+      try {
+        const { data } = await axios.get("/api/partner/onboarding/vehicle");
+        if (data?.vehicle) {
+          setVehicleNumber(data.vehicle.vehicleNumber || "");
+          setVehicleModel(data.vehicle.vehicleModel || "");
+          setSelected(data.vehicle.type || null);
+        }
+      } catch (error: any) {
+        if (error.status !== 404) {
+          console.error("Error fetching vehicle data:", error);
+        }
+      }
+    };
+    fetchVehicleData();
+  }, []);
 
   return (
     <div className="min-h-screen bg-zinc-50 flex items-start justify-center py-10 px-4">
@@ -73,10 +97,16 @@ export default function VehiclePage() {
           >
             <ArrowLeft size={16} strokeWidth={2} />
           </button>
-          <motion.p {...fadeUp(0.05)} className="text-xs text-zinc-400 font-medium mb-1">
+          <motion.p
+            {...fadeUp(0.05)}
+            className="text-xs text-zinc-400 font-medium mb-1"
+          >
             step 1 of 3
           </motion.p>
-          <motion.h1 {...fadeUp(0.1)} className="text-2xl font-black text-zinc-900 tracking-tight">
+          <motion.h1
+            {...fadeUp(0.1)}
+            className="text-2xl font-black text-zinc-900 tracking-tight"
+          >
             Vehicle Details
           </motion.h1>
           <motion.p {...fadeUp(0.15)} className="text-sm text-zinc-400 mt-1">
@@ -87,7 +117,9 @@ export default function VehiclePage() {
         <div className="px-6 py-7 space-y-8">
           {/* Vehicle Type */}
           <motion.div {...fadeUp(0.18)}>
-            <p className="text-sm font-semibold text-zinc-700 mb-4">Vehicle Type</p>
+            <p className="text-sm font-semibold text-zinc-700 mb-4">
+              Vehicle Type
+            </p>
             <div className="grid grid-cols-3 gap-3">
               {VEHICLE_TYPES.map((v, i) => {
                 const Icon = v.icon;
@@ -97,7 +129,11 @@ export default function VehiclePage() {
                     key={v.id}
                     initial={{ opacity: 0, scale: 0.94 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.2 + i * 0.06, duration: 0.35, ease: [0.22, 1, 0.36, 1] as const }}
+                    transition={{
+                      delay: 0.2 + i * 0.06,
+                      duration: 0.35,
+                      ease: [0.22, 1, 0.36, 1] as const,
+                    }}
                     whileTap={{ scale: 0.96 }}
                     onClick={() => setSelected(v.id)}
                     className={`relative flex flex-col items-center gap-3 rounded-[22px] border p-4 transition-all duration-300 cursor-pointer overflow-hidden ${
@@ -107,20 +143,24 @@ export default function VehiclePage() {
                     }`}
                   >
                     <motion.div
-                      animate={{ 
+                      animate={{
                         backgroundColor: isActive ? "#ffffff" : "#09090b",
-                        color: isActive ? "#09090b" : "#ffffff"
+                        color: isActive ? "#09090b" : "#ffffff",
                       }}
                       className="w-[52px] h-[52px] rounded-full flex items-center justify-center shadow-sm"
                     >
                       <Icon size={24} strokeWidth={1.75} />
                     </motion.div>
-                    
+
                     <div className="text-center w-full z-10">
-                      <p className={`text-[15px] font-bold tracking-tight transition-colors duration-300 ${isActive ? "text-white" : "text-zinc-900"}`}>
+                      <p
+                        className={`text-[15px] font-bold tracking-tight transition-colors duration-300 ${isActive ? "text-white" : "text-zinc-900"}`}
+                      >
                         {v.label}
                       </p>
-                      <p className={`text-[11px] mt-0.5 font-medium transition-colors duration-300 ${isActive ? "text-zinc-400" : "text-zinc-500"}`}>
+                      <p
+                        className={`text-[11px] mt-0.5 font-medium transition-colors duration-300 ${isActive ? "text-zinc-400" : "text-zinc-500"}`}
+                      >
                         {v.sub}
                       </p>
                     </div>
@@ -130,26 +170,34 @@ export default function VehiclePage() {
                         layoutId="active-bg"
                         className="absolute inset-0 bg-zinc-900 z-0"
                         initial={false}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 300,
+                          damping: 30,
+                        }}
                       />
                     )}
                     {/* Render content above the absolute bg */}
                     <div className="absolute inset-0 flex flex-col items-center gap-3 p-4 z-10">
-                       <motion.div
-                        animate={{ 
+                      <motion.div
+                        animate={{
                           backgroundColor: isActive ? "#ffffff" : "#09090b",
-                          color: isActive ? "#09090b" : "#ffffff"
+                          color: isActive ? "#09090b" : "#ffffff",
                         }}
                         className="w-[52px] h-[52px] rounded-full flex items-center justify-center shadow-sm"
                       >
                         <Icon size={24} strokeWidth={1.75} />
                       </motion.div>
-                      
+
                       <div className="text-center w-full">
-                        <p className={`text-[15px] font-bold tracking-tight transition-colors duration-300 ${isActive ? "text-white" : "text-zinc-900"}`}>
+                        <p
+                          className={`text-[15px] font-bold tracking-tight transition-colors duration-300 ${isActive ? "text-white" : "text-zinc-900"}`}
+                        >
                           {v.label}
                         </p>
-                        <p className={`text-[11px] mt-0.5 font-medium transition-colors duration-300 ${isActive ? "text-zinc-400" : "text-zinc-500"}`}>
+                        <p
+                          className={`text-[11px] mt-0.5 font-medium transition-colors duration-300 ${isActive ? "text-zinc-400" : "text-zinc-500"}`}
+                        >
                           {v.sub}
                         </p>
                       </div>

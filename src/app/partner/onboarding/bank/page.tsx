@@ -13,7 +13,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 
 export default function BankPage() {
@@ -30,6 +30,30 @@ export default function BankPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchBankData = async () => {
+      try {
+        const { data } = await axios.get("/api/partner/onboarding/bank");
+        if (data?.bank) {
+          setFormData({
+            accountHolderName: data.bank.accountHolderName || "",
+            accountNumber: data.bank.accountNumber || "",
+            ifscCode: data.bank.ifscCode || "",
+            bankName: data.bank.bankName || "",
+            mobileNumber: data.bank.mobileNumber || "",
+            upi: data.bank.upi || "",
+          });
+        }
+      } catch (error: any) {
+        // Silently fail for 404 (initial added state)
+        if (error.response?.status !== 404) {
+          console.error("Error fetching bank data:", error);
+        }
+      }
+    };
+    fetchBankData();
+  }, []);
 
   const IFSC_REGEX = /^[A-Z]{4}0[A-Z0-9]{6}$/;
 

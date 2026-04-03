@@ -80,3 +80,34 @@ export async function POST(req: NextRequest) {
     return Response.json({ message: "Internal Server Error" }, { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    await connectDb();
+    const session = await auth();
+    if (!session || !session.user?.email) {
+      return Response.json({ message: "User unauthorized" }, { status: 400 });
+    }
+
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return Response.json({ message: "User not found" }, { status: 400 });
+    }
+
+    const partnerBank = await PartnerBank.findOne({ owner: user._id });
+
+    if (!partnerBank) {
+      return Response.json({ message: "Bank details not found" }, { status: 404 });
+    }
+
+    return Response.json({
+      bank: {
+        ...partnerBank.toObject(),
+        mobileNumber: user.mobileNumber,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching bank details:", error);
+    return Response.json({ message: "Internal Server Error" }, { status: 500 });
+  }
+}
