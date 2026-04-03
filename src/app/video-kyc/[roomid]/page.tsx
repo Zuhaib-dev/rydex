@@ -23,6 +23,7 @@ export default function VideoKYCRoom() {
   const { roomid } = useParams<{ roomid: string }>();
   const { userData } = useSelector((state: RootState) => state.user);
   const containerRef = useRef<HTMLDivElement>(null);
+  const zpRef = useRef<any>(null);
   const router = useRouter();
 
   const [callState, setCallState] = useState<CallState>("idle");
@@ -68,10 +69,18 @@ export default function VideoKYCRoom() {
       );
 
       const zp = ZegoUIKitPrebuilt.create(kitToken);
+      zpRef.current = zp;
       setCallState("live");
 
       zp.joinRoom({
         container: containerRef.current,
+        showPreJoinView: false,
+        showMyCameraToggleButton: true,
+        showMyMicrophoneToggleButton: true,
+        showAudioVideoSettingsButton: true,
+        showScreenSharingButton: false,
+        showUserList: false,
+        showTextChat: false,
         scenario: {
           mode: ZegoUIKitPrebuilt.OneONoneCall,
         },
@@ -123,11 +132,19 @@ export default function VideoKYCRoom() {
             <ArrowLeft size={16} />
           </button>
           <div>
-            <h1 className="text-white font-black text-sm uppercase tracking-widest">
-              Video KYC
-            </h1>
-            <p className="text-white/30 text-xs font-mono mt-0.5">
-              {roomid}
+            <div className="flex items-center gap-2">
+              <h1 className="text-white font-black text-sm uppercase tracking-widest">
+                Video KYC
+              </h1>
+              <span className="w-1 h-1 bg-white/20 rounded-full" />
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/5 border border-white/10 rounded-md">
+                <span className={`text-[10px] font-black uppercase tracking-wider ${isAdmin ? 'text-violet-400' : 'text-gray-400'}`}>
+                  {userData?.role || 'User'}
+                </span>
+              </div>
+            </div>
+            <p className="text-white/40 text-[11px] font-medium mt-0.5">
+              Signed in as <span className="text-white/70 font-bold">{userData?.name || 'Guest'}</span>
             </p>
           </div>
         </div>
@@ -369,15 +386,33 @@ export default function VideoKYCRoom() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
-            className="px-6 py-4 border-t border-white/5 flex items-center justify-between"
+            className="px-6 py-4 border-t border-white/5 flex items-center justify-between bg-[#0a0a0a]/80 backdrop-blur-md"
           >
-            <div className="text-white/30 text-xs font-mono">
-              Room: {roomid}
+            <div className="flex items-center gap-6">
+              <div className="space-y-1">
+                <p className="text-white/20 text-[10px] font-black uppercase tracking-widest">Room ID</p>
+                <p className="text-white/40 text-xs font-mono">{roomid}</p>
+              </div>
+              <div className="h-8 w-px bg-white/5" />
+              <div className="flex items-center gap-2 text-white/30 text-xs">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                Secure • Encrypted
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-white/30 text-xs">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              Secure • Encrypted
-            </div>
+
+            <button
+              onClick={() => {
+                if (zpRef.current) {
+                  zpRef.current.leaveRoom();
+                } else {
+                  router.back();
+                }
+              }}
+              className="flex items-center gap-2 px-5 py-2.5 bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white border border-red-500/20 rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95"
+            >
+              <PhoneOff size={14} />
+              End Session
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
