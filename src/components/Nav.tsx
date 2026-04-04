@@ -130,7 +130,11 @@ function Nav() {
 
                           <div  className="p-3 space-y-1">
                             {!isPartner && !isAdmin && (
-                              <button onClick={()=>router.push('/partner/onboarding/vehicle')}  className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors text-sm font-medium text-gray-800">
+                              <Link 
+                                href='/partner/onboarding/vehicle' 
+                                onClick={() => setProfileOpen(false)}
+                                className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors text-sm font-medium text-gray-800"
+                              >
                                 <div className="flex items-center shrink-0">
                                   <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center ring-2 ring-white z-30">
                                     <Bike size={13} />
@@ -144,7 +148,7 @@ function Nav() {
                                 </div>
                                 <span>Become a partner</span>
                                 <ChevronRight size={15} className="ml-auto text-gray-400" />
-                              </button>
+                              </Link>
                             )}
                             <button
                               onClick={() => signOut({ redirect: false })}
