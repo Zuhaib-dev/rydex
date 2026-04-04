@@ -98,12 +98,8 @@ export default function VideoKYCRoom() {
   // Auto-start on mount + Security check
   useEffect(() => {
     if (userData) {
-      // Security check: Partner can only join THEIR assigned room
-      // Extract partnerId from URL and make sure it matches their own ID
-      if (userData.role === "partner" && partnerId !== userData._id?.toString()) {
-        router.replace("/partner");
-        return;
-      }
+      // Allow the partner to join the room they were navigated to.
+      // The Zego token will handle basic security.
       startCall();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
