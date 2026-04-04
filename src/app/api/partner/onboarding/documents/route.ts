@@ -62,9 +62,11 @@ export async function POST(req: NextRequest) {
       updatePayload,
       { new: true, upsert: true },
     );
-    // If partner has already progressed past step 2 (documents), reset back to step 2
-    // so bank, review, KYC, and pricing all require re-completion
-    if (user.partnerOnboardingSteps >= 2) {
+    // Advance to step 2 if they were at 1.
+    // If they were past step 2, reset to 2 so downstream steps must be re-completed.
+    if (!user.partnerOnboardingSteps || user.partnerOnboardingSteps < 2) {
+      user.partnerOnboardingSteps = 2;
+    } else if (user.partnerOnboardingSteps > 2) {
       user.partnerOnboardingSteps = 2;
       user.partnerStatus = "pending";
       // Revoke KYC approval if they had one

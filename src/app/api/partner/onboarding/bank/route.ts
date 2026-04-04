@@ -60,9 +60,11 @@ export async function POST(req: NextRequest) {
 
     await partnerBank.save();
 
-    // If partner has already progressed past step 3 (bank), reset back to step 3
-    // so review, KYC, and pricing all require re-completion
-    if (user.partnerOnboardingSteps >= 3) {
+    // Advance to step 3 if they were at 2.
+    // If they were past step 3, reset to 3 so review, KYC, and pricing all require re-completion
+    if (!user.partnerOnboardingSteps || user.partnerOnboardingSteps < 3) {
+      user.partnerOnboardingSteps = 3;
+    } else if (user.partnerOnboardingSteps > 3) {
       user.partnerOnboardingSteps = 3;
       user.partnerStatus = "pending";
       // Revoke KYC approval if they had one

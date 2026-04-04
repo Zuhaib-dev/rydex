@@ -60,9 +60,11 @@ export async function POST(req: Request) {
       });
     }
 
-    // If partner has already progressed past step 1 (vehicle), reset back to step 1
-    // so all downstream steps (docs, bank, review, KYC, pricing) require re-completion
-    if (user.partnerOnboardingSteps >= 1) {
+    // Advance to step 1 if they were at 0.
+    // If they were past step 1, reset to 1 so downstream steps must be re-completed.
+    if (!user.partnerOnboardingSteps || user.partnerOnboardingSteps < 1) {
+      user.partnerOnboardingSteps = 1;
+    } else if (user.partnerOnboardingSteps > 1) {
       user.partnerOnboardingSteps = 1;
       user.partnerStatus = "pending";
       // If they were already KYC-approved, revoke it so they need a fresh KYC

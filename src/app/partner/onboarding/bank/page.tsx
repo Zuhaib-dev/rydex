@@ -132,8 +132,8 @@ export default function BankPage() {
         trimmedData,
       );
       console.log("Bank Save Success:", response.data);
-      // Redirect to dashboard or completion interface
-      router.push("/");
+      // Redirect to dashboard
+      router.push("/partner");
     } catch (error: any) {
       console.error(
         "Error submitting bank details:",
