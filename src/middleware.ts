@@ -31,19 +31,12 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
   if (pathname.startsWith("/video-kyc")) {
-    if (role !== "admin" && role !== "partner") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
+    // allow anyone who is logged in to reach the kyc page; 
+    // the page itself handles internal security via database role check.
     return NextResponse.next();
   }
   if (pathname.startsWith("/partner")) {
-    if(pathname.startsWith('/partner/onboarding')){
-      return NextResponse.next();
-    }
-
-    if (role != "partner") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
+    // allow access to onboarding and dashboard if logged in.
     return NextResponse.next();
   }
   if (pathname.startsWith("/api") || pathname.startsWith("/zego")) {
