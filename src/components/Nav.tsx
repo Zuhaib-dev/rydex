@@ -42,7 +42,7 @@ function Nav() {
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between">
 
           {/* Logo */}
-          <Image src={"/logo.png"} alt="logo" width={42} height={42} priority className="drop-shadow-md" />
+          <Image src={"/logo.png"} alt="logo" width={42} height={42} priority style={{ width: "auto", height: "auto" }} className="drop-shadow-md" />
 
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-8">

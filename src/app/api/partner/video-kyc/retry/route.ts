@@ -7,12 +7,12 @@ export async function POST(req: NextRequest) {
   try {
     await connectDb();
     const session = await auth();
-    if (!session || !session.user?.email || session.user?.role !== "partner") {
+    if (!session || !session.user?.email) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
     const partner = await User.findOne({ email: session.user.email });
-    if (!partner) {
+    if (!partner || partner.role !== "partner") {
       return NextResponse.json({ message: "Partner not found" }, { status: 404 });
     }
 

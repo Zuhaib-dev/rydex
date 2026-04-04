@@ -38,14 +38,27 @@ export default function VideoKYCRoom() {
   // Extract partner ID from roomId ("kyc-{partnerId}-{timestamp}")
   const partnerId = roomid?.split("-").slice(1, -1).join("-") ?? "";
 
+  const isInitializing = useRef(false);
+
   const startCall = async () => {
-    if (!containerRef.current || !roomid) return;
+    if (!containerRef.current || !roomid || zpRef.current || isInitializing.current) {
+      return;
+    }
+    
+    isInitializing.current = true;
     setCallState("connecting");
 
     try {
+      console.log("Initializing Zego for room:", roomid);
       const { ZegoUIKitPrebuilt } = await import(
         "@zegocloud/zego-uikit-prebuilt"
       );
+
+      // Check if we were unmounted while waiting for the import
+      if (!isInitializing.current) {
+        console.log("Zego initialization aborted: component unmounted during import");
+        return;
+      }
 
       const appId = Number(process.env.NEXT_PUBLIC_ZEGO_APP_ID);
       const serverSecret = process.env.NEXT_PUBLIC_ZEGO_SERVER_SECRET;
@@ -53,11 +66,11 @@ export default function VideoKYCRoom() {
       if (!appId || !serverSecret) {
         console.error("Missing Zego environment variables!");
         setCallState("idle");
+        isInitializing.current = false;
         return;
       }
 
-      const userID =
-        userData?._id?.toString() || Math.random().toString(36).substring(7);
+      const userID = userData?._id?.toString() || Math.random().toString(36).substring(7);
       const userName = userData?.name || `Guest-${userID}`;
 
       const kitToken = ZegoUIKitPrebuilt.generateKitTokenForTest(
@@ -70,6 +83,8 @@ export default function VideoKYCRoom() {
 
       const zp = ZegoUIKitPrebuilt.create(kitToken);
       zpRef.current = zp;
+      
+      console.log("Zego instance created, joining room...");
       setCallState("live");
 
       zp.joinRoom({
@@ -92,18 +107,30 @@ export default function VideoKYCRoom() {
     } catch (error) {
       console.error("Zego Error:", error);
       setCallState("idle");
+      isInitializing.current = false;
     }
   };
 
-  // Auto-start on mount + Security check
+  // Auto-start on mount with stable dependencies
   useEffect(() => {
-    if (userData) {
-      // Allow the partner to join the room they were navigated to.
-      // The Zego token will handle basic security.
+    if (userData?._id) {
       startCall();
     }
+
+    return () => {
+      if (zpRef.current) {
+        console.log("Cleaning up Zego instance");
+        try {
+          zpRef.current.destroy();
+        } catch (e) {
+          console.error("Error destroying Zego instance:", e);
+        }
+        zpRef.current = null;
+      }
+      isInitializing.current = false;
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userData, roomid]);
+  }, [userData?._id, userData?.role, roomid]);
 
   const handlePostCall = async (action: "approved" | "rejected") => {
     if (!partnerId) return;
