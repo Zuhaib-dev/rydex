@@ -31,8 +31,14 @@ export async function GET(request: NextRequest) {
       partnerOnboardingSteps: 3,
     });
 
+    const pendingPartnerUsersForVehicle = await User.find({
+      role: "partner",
+      partnerOnboardingSteps: 6,
+    }).select("_id name email");
+
     const pendingVehicleReviews = await Vehicle.find({
       status: "pending",
+      owner: { $in: pendingPartnerUsersForVehicle.map((u) => u._id) },
     }).populate("owner", "name email");
 
     const pendingVideoKYC = await User.find({

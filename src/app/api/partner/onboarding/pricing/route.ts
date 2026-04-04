@@ -59,13 +59,20 @@ export async function POST(req: NextRequest) {
       vehicle.imageUrl = imageUrl;
     }
 
+    vehicle.status = "pending";
     await vehicle.save();
 
     // Advance to step 6 (Pricing done → Final Review next)
     if (user.partnerOnboardingSteps === 5) {
       user.partnerOnboardingSteps = 6;
-      await user.save();
     }
+    
+    // Reset partner status to pending if they are resubmitting after a rejection
+    if (user.partnerStatus === "rejected") {
+      user.partnerStatus = "pending";
+    }
+    
+    await user.save();
 
     return Response.json({ message: "Pricing saved successfully" });
   } catch (error) {

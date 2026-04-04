@@ -55,6 +55,8 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
   const handleReviewClick = (id: string, type: TabType) => {
     if (type === "partner") {
       router.push(`/admin/reviews/partner/${id}`);
+    } else if (type === "vehicle") {
+      router.push(`/admin/reviews/vehicle/${id}`);
     }
   };
 
@@ -125,7 +127,10 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
                   </p>
                 </div>
               </div>
-              <button className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5">
+              <button 
+                onClick={() => handleReviewClick(vehicle._id, "vehicle")}
+                className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5"
+              >
                 Review
                 <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
               </button>
