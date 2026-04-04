@@ -72,7 +72,7 @@ export default function PricingPage() {
       if (imageFile) fd.append("vehicleImage", imageFile);
 
       await axios.post("/api/partner/onboarding/pricing", fd);
-      router.push("/");
+      window.location.href = "/partner";
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to save pricing. Please try again.");
     } finally {
@@ -241,10 +241,9 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* Footer Actions */}
         <div className="px-6 pb-6 pt-2 border-t border-gray-100 flex gap-3 mt-1">
           <button
-            onClick={() => router.push("/")}
+            onClick={() => router.push("/partner")}
             className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition active:scale-95"
           >
             Cancel
