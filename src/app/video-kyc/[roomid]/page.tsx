@@ -99,7 +99,8 @@ export default function VideoKYCRoom() {
   useEffect(() => {
     if (userData) {
       // Security check: Partner can only join THEIR assigned room
-      if (userData.role === "partner" && roomid !== userData.videoKycRoomId) {
+      // Extract partnerId from URL and make sure it matches their own ID
+      if (userData.role === "partner" && partnerId !== userData._id?.toString()) {
         router.replace("/partner");
         return;
       }
