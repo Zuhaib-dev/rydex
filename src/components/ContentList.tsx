@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { ChevronRight, Video, Check, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import axios from "axios";
 import { useState } from "react";
 
@@ -49,23 +49,14 @@ const EmptyState = () => (
   );
 
 const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabType }) => {
-  const router = useRouter();
   const [kycLoadingId, setKycLoadingId] = useState<string | null>(null);
-
-  const handleReviewClick = (id: string, type: TabType) => {
-    if (type === "partner") {
-      router.push(`/admin/reviews/partner/${id}`);
-    } else if (type === "vehicle") {
-      router.push(`/admin/reviews/vehicle/${id}`);
-    }
-  };
 
   const initiateKycCall = async (partnerId: string) => {
     setKycLoadingId(partnerId);
     try {
       const res = await axios.post(`/api/admin/video-kyc/start/${partnerId}`);
       const { roomId } = res.data;
-      router.push(`/video-kyc/${roomId}`);
+      window.location.href = `/video-kyc/${roomId}`;
     } catch (err) {
       console.error("Failed to start KYC call:", err);
       setKycLoadingId(null);
@@ -92,13 +83,13 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
                   <p className="text-gray-400 text-xs mt-0.5 tracking-tight">{partner.email}</p>
                 </div>
               </div>
-              <button 
-                onClick={() => handleReviewClick(partner._id, "partner")}
+              <Link 
+                href={`/admin/reviews/partner/${partner._id}`}
                 className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5"
               >
                 Review
                 <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
+              </Link>
             </motion.div>
           ))}
         </div>
@@ -127,13 +118,13 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
                   </p>
                 </div>
               </div>
-              <button 
-                onClick={() => handleReviewClick(vehicle._id, "vehicle")}
+              <Link 
+                href={`/admin/reviews/vehicle/${vehicle._id}`}
                 className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5"
               >
                 Review
                 <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
-              </button>
+              </Link>
             </motion.div>
           ))}
         </div>
