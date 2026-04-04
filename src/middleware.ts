@@ -14,10 +14,15 @@ export async function middleware(req: NextRequest) {
   if (PUBLIC_ROUTES.includes(pathname)) {
     return NextResponse.next();
   }
-  if (pathname.startsWith("/api/auth")) {
+  if (
+    pathname.startsWith("/video-kyc") || 
+    pathname.startsWith("/partner/onboarding") ||
+    pathname.startsWith("/api") || 
+    pathname.startsWith("/zego")
+  ) {
     return NextResponse.next();
   }
-  
+
   const token = await getToken({ req, secret: process.env.AUTH_SECRET });
   
   if (!token) {
@@ -30,18 +35,12 @@ export async function middleware(req: NextRequest) {
     }
     return NextResponse.next();
   }
-  if (pathname.startsWith("/video-kyc")) {
-    // allow anyone who is logged in to reach the kyc page; 
-    // the page itself handles internal security via database role check.
-    return NextResponse.next();
-  }
+  
   if (pathname.startsWith("/partner")) {
-    // allow access to onboarding and dashboard if logged in.
+    // already handled onboarding above, this is for the partner dashboard /partner
     return NextResponse.next();
   }
-  if (pathname.startsWith("/api") || pathname.startsWith("/zego")) {
-    return NextResponse.next();
-  }
+
   return NextResponse.redirect(new URL("/", req.url));
 }
 
