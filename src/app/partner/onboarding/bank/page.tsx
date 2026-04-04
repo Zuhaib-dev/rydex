@@ -133,7 +133,7 @@ export default function BankPage() {
       );
       console.log("Bank Save Success:", response.data);
       // Redirect to dashboard with a hard reload for better experience
-      window.location.href = "/partner";
+      window.location.href = "/";
     } catch (error: any) {
       console.error(
         "Error submitting bank details:",

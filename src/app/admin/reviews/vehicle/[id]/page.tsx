@@ -77,7 +77,7 @@ export default function VehicleReviewPage() {
         action,
         reason: action === "rejected" ? rejectionReason : "",
       });
-      router.push("/admin");
+      router.push("/");
     } catch (err: any) {
       setError(err.response?.data?.message || "Failed to submit review.");
       setActionLoading(false);
@@ -98,7 +98,7 @@ export default function VehicleReviewPage() {
         <AlertTriangle className="text-amber-500" size={48} />
         <p className="text-gray-500 font-medium">Vehicle review not found.</p>
         <button
-          onClick={() => router.push("/admin")}
+          onClick={() => router.push("/")}
           className="px-6 py-2 bg-black text-white rounded-full font-bold text-sm"
         >
           Go Back
@@ -114,7 +114,7 @@ export default function VehicleReviewPage() {
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push("/admin")}
+              onClick={() => router.push("/")}
               className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition"
             >
               <ArrowLeft size={18} className="text-gray-600" />

@@ -72,7 +72,7 @@ export default function PricingPage() {
       if (imageFile) fd.append("vehicleImage", imageFile);
 
       await axios.post("/api/partner/onboarding/pricing", fd);
-      window.location.href = "/partner";
+      window.location.href = "/";
     } catch (err: any) {
       alert(err.response?.data?.message || "Failed to save pricing. Please try again.");
     } finally {
@@ -124,7 +124,7 @@ export default function PricingPage() {
         <div className="px-6 pt-6 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <button
-              onClick={() => router.push("/partner")}
+              onClick={() => router.push("/")}
               className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition shrink-0"
             >
               <ArrowLeft size={15} className="text-gray-500" />
@@ -243,7 +243,7 @@ export default function PricingPage() {
 
         <div className="px-6 pb-6 pt-2 border-t border-gray-100 flex gap-3 mt-1">
           <button
-            onClick={() => router.push("/partner")}
+            onClick={() => router.push("/")}
             className="flex-1 py-3.5 rounded-2xl border border-gray-200 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition active:scale-95"
           >
             Cancel

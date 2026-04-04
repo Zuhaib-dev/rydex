@@ -162,7 +162,7 @@ export default function VideoKYCRoom() {
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push(isAdmin ? "/" : "/partner")}
+            onClick={() => router.push("/")}
             className="w-9 h-9 flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 transition text-white/60 hover:text-white"
           >
             <ArrowLeft size={16} />
