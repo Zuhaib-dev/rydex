@@ -16,7 +16,8 @@ export async function middleware(req: NextRequest) {
   }
   if (
     pathname.startsWith("/video-kyc") || 
-    pathname.startsWith("/partner/onboarding") ||
+    pathname.startsWith("/partner") ||
+    pathname.startsWith("/admin") ||
     pathname.startsWith("/api") || 
     pathname.startsWith("/zego")
   ) {
@@ -27,18 +28,6 @@ export async function middleware(req: NextRequest) {
   
   if (!token) {
     return NextResponse.redirect(new URL("/", req.url));
-  }
-  const role = token.role;
-  if (pathname.startsWith("/admin")) {
-    if (role != "admin") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-    return NextResponse.next();
-  }
-  
-  if (pathname.startsWith("/partner")) {
-    // already handled onboarding above, this is for the partner dashboard /partner
-    return NextResponse.next();
   }
 
   return NextResponse.redirect(new URL("/", req.url));
