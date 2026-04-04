@@ -7,6 +7,8 @@ import { redirect, usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import AuthModel from "./AuthModel";
 import { useSession, signOut } from "next-auth/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 import {
   Bike,
   Car,
@@ -25,9 +27,14 @@ function Nav() {
   const pathName = usePathname();
 
   const { data: session, status } = useSession();
+  const { userData } = useSelector((state: RootState) => state.user);
   const user = session?.user;
-  const router  = useRouter()
+  const router = useRouter();
 
+  // Unified role check (Session role or fresh Redux role)
+  const currentRole = userData?.role || user?.role;
+  const isPartner = currentRole === "partner";
+  const isAdmin = currentRole === "admin";
   if (status === "loading") return null;
 
   return (
@@ -114,15 +121,15 @@ function Nav() {
                             </div>
                             <p className="text-white text-sm font-semibold leading-tight">{user?.name}</p>
                             <p className="text-gray-400 text-xs mt-0.5 truncate">{user?.email}</p>
-                            {user?.role && (
+                            {currentRole && (
                               <span className="mt-2 inline-block text-[10px] font-semibold uppercase tracking-widest bg-white/10 text-white/80 px-2 py-0.5 rounded-full">
-                                {user.role}
+                                {currentRole}
                               </span>
                             )}
                           </div>
 
                           <div  className="p-3 space-y-1">
-                            {user.role !== "partner" && (
+                            {!isPartner && !isAdmin && (
                               <button onClick={()=>router.push('/partner/onboarding/vehicle')}  className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-50 rounded-xl transition-colors text-sm font-medium text-gray-800">
                                 <div className="flex items-center shrink-0">
                                   <div className="w-7 h-7 rounded-full bg-black text-white flex items-center justify-center ring-2 ring-white z-30">

@@ -82,6 +82,7 @@ function PartnerDashboard() {
       }
     };
 
+    poll(); // Fetch immediately on mount
     pollRef.current = setInterval(poll, 8000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
