@@ -1,1 +1,1 @@
-this is a project I'm building from last few weeks and will finish it by this month learned a lot from this project from nextjs to authentication and other things backend and other stuff
+this is a project I'm building from last few weeks and will finish it by this month learned a lot from this project from nextjs to authentication and other things backend and other stuff 
