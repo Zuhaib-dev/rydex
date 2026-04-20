@@ -94,7 +94,8 @@ const userSchema = new mongoose.Schema<IUser>(
     },
     isOnline:{
       type:Boolean,
-      default:false
+      default:false,
+      index:true
     }
   },
   { timestamps: true },
