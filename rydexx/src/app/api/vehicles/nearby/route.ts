@@ -16,11 +16,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 1️⃣ Find nearby vendors
-    const vendors = await User.find({
-      role: "vendor",
+    // 1️⃣ Find nearby partners
+    const partners = await User.find({
+      role: "partner",
       isOnline: true,
-      vendorStatus: "approved",
+      partnerStatus: "approved",
       location: {
         $near: {
           $geometry: {
@@ -32,15 +32,15 @@ export async function POST(req: NextRequest) {
       }
     }).select("_id")
 
-    const vendorIds = vendors.map(v => v._id)
+    const partnerIds = partners.map(v => v._id)
 
-    if (!vendorIds.length) {
+    if (!partnerIds.length) {
       return NextResponse.json({ success: true, vehicles: [] })
     }
 
-    // 2️⃣ Get vehicles of those vendors
+    // 2️⃣ Get vehicles of those partners
     const vehicles = await Vehicle.find({
-      owner: { $in: vendorIds },
+      owner: { $in: partnerIds },
       status: "approved",
       isActive: true,
       ...(vehicleType && { type: vehicleType })

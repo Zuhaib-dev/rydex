@@ -12,10 +12,10 @@ interface VehicleProps {
     _id: string;
     type: "bike" | "auto" | "car" | "loading" | "truck";
     vehicleModel: string;
-    number: string;
+    vehicleNumber: string;
     imageUrl?: string;
     baseFare?: number;
-    pricePerKm?: number;
+    perKmRate?: number;
     waitingCharge?: number;
   };
   distanceKm?: number;
@@ -35,12 +35,12 @@ export default function VehicleBookingCard({
   vehicle, distanceKm = 0, isRecommended, onBook,
 }: VehicleProps) {
   const {
-    type, vehicleModel, number,
-    imageUrl, baseFare = 0, pricePerKm = 0, waitingCharge = 0,
+    type, vehicleModel, vehicleNumber,
+    imageUrl, baseFare = 0, perKmRate = 0, waitingCharge = 0,
   } = vehicle;
 
   const { label, Icon } = TYPE_CONFIG[type] ?? TYPE_CONFIG.car;
-  const estimated = Math.round(baseFare + distanceKm * pricePerKm);
+  const estimated = Math.round(baseFare + distanceKm * perKmRate);
 
   return (
     <motion.div
@@ -116,7 +116,7 @@ export default function VehicleBookingCard({
             </h3>
             <div className="mt-1.5 inline-flex items-center bg-zinc-100 px-2.5 py-1 rounded-lg border border-zinc-200">
               <span className="text-zinc-500 text-xs font-black tracking-[0.2em] font-mono uppercase">
-                {number}
+                {vehicleNumber}
               </span>
             </div>
           </div>
@@ -132,7 +132,7 @@ export default function VehicleBookingCard({
               <Gauge size={11} className="text-zinc-400" />
               <p className="text-zinc-400 text-[9px] uppercase tracking-widest font-bold">Per km</p>
             </div>
-            <p className="text-zinc-900 text-sm font-black">₹{pricePerKm}</p>
+            <p className="text-zinc-900 text-sm font-black">₹{perKmRate}</p>
           </div>
           <div className="bg-zinc-50 border border-zinc-100 rounded-2xl px-3.5 py-3">
             <div className="flex items-center gap-1.5 mb-1">

@@ -240,7 +240,7 @@ export default function SearchPage() {
                       vehicle:    v.type,
                       driverId:   v.owner,
                       vehicleId:  v._id,
-                      fare:       String(Math.round(v.baseFare + (km ?? 0) * v.pricePerKm)),
+                      fare:       String(Math.round(v.baseFare + (km ?? 0) * v.perKmRate)),
                       pickupLat:  String(pickupLat),
                       pickupLng:  String(pickupLng),
                       dropLat:    params.get("dropLat") || "",

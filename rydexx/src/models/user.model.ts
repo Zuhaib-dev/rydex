@@ -18,7 +18,7 @@ export interface IUser extends Document {
   rejectionReason:string,
   socketId:string|null,
   location?:{
-    type:'point',
+    type:'Point',
     coordinates:[number,number]
   },
   isOnline:boolean,
@@ -87,10 +87,13 @@ const userSchema = new mongoose.Schema<IUser>(
       type:String,
       default:null
     },
-    location:{
-      type:{String,
-      enum:["point"],},
-      coordinates:[Number,Number]
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point"
+      },
+      coordinates: [Number, Number]
     },
     isOnline:{
       type:Boolean,

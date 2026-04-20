@@ -19,34 +19,34 @@ const UserSchema = new Schema(
 
     role: {
       type: String,
-      enum: ["user", "vendor", "admin"],
+      enum: ["user", "partner", "admin"],
       default: "user",
       index: true,
     },
 
-    /* ===== VENDOR ===== */
+    /* ===== PARTNER ===== */
 
-    vendorStatus: {
+    partnerStatus: {
       type: String,
       enum: ["pending", "approved", "rejected"],
     },
 
-    vendorOnboardingStep: {
+    partnerOnboardingStep: {
       type: Number,
       default: 0,
       min: 0,
       max: 8,
     },
 
-    vendorProfileCompleted: {
+    partnerProfileCompleted: {
       type: Boolean,
       default: false,
     },
 
-    vendorRejectionReason: String,
-    vendorApprovedAt: Date,
+    partnerRejectionReason: String,
+    partnerApprovedAt: Date,
 
-    isVendorBlocked: {
+    isPartnerBlocked: {
       type: Boolean,
       default: false,
     },
