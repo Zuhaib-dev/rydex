@@ -119,8 +119,8 @@ export default function RideChat({
     <div className="flex flex-col h-full min-h-0 bg-white rounded-2xl overflow-hidden border border-zinc-100">
 
       {/* ── HEADER ── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-zinc-100">
-        <div className="relative flex-shrink-0">
+      <div className="shrink-0 flex items-center gap-3 px-4 py-3 bg-white border-b border-zinc-100">
+        <div className="relative shrink-0">
           <div className="w-9 h-9 rounded-xl bg-zinc-950 flex items-center justify-center text-white text-xs font-bold">
             {otherInitial}
           </div>
@@ -178,7 +178,7 @@ export default function RideChat({
                 >
                   {/* Their avatar */}
                   {!isMine && (
-                    <div className="w-6 flex-shrink-0 self-end mb-0.5">
+                    <div className="w-6 shrink-0 self-end mb-0.5">
                       {isLast ? (
                         <div className="w-6 h-6 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-[9px] font-bold">
                           {otherInitial}
@@ -193,7 +193,7 @@ export default function RideChat({
                       ? "bg-zinc-950 text-white rounded-br-sm"
                       : "bg-white border border-zinc-200 text-zinc-900 rounded-bl-sm"
                   }`}>
-                    <p className="break-words">{msg.text}</p>
+                    <p className="wrap-break-words">{msg.text}</p>
                     <div className={`flex items-center justify-end gap-1 mt-1 text-[10px] ${
                       isMine ? "text-zinc-500" : "text-zinc-400"
                     }`}>
@@ -210,7 +210,7 @@ export default function RideChat({
 
                   {/* My avatar */}
                   {isMine && (
-                    <div className="w-6 flex-shrink-0 self-end mb-0.5">
+                    <div className="w-6 shrink-0 self-end mb-0.5">
                       {isLast ? (
                         <div className="w-6 h-6 rounded-lg bg-zinc-200 flex items-center justify-center text-zinc-600 text-[9px] font-bold">
                           {myInitial}
@@ -233,7 +233,7 @@ export default function RideChat({
               exit={{ opacity: 0 }}
               className="flex items-end gap-2"
             >
-              <div className="w-6 h-6 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-[9px] font-bold flex-shrink-0">
+              <div className="w-6 h-6 rounded-lg bg-zinc-900 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
                 {otherInitial}
               </div>
               <div className="bg-white border border-zinc-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm">
@@ -277,7 +277,7 @@ export default function RideChat({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="flex-shrink-0 overflow-hidden border-t border-zinc-100 bg-white"
+            className="shrink-0 overflow-hidden border-t border-zinc-100 bg-white"
           >
             <div className="px-4 pt-3 pb-2">
               <div className="flex items-center justify-between mb-2">
@@ -310,14 +310,14 @@ export default function RideChat({
 
       {/* ── QUICK REPLIES ── */}
       <div
-        className="flex-shrink-0 flex gap-2 px-4 pt-3 pb-2 bg-white border-t border-zinc-100 overflow-x-auto"
+        className="shrink-0 flex gap-2 px-4 pt-3 pb-2 bg-white border-t border-zinc-100 overflow-x-auto"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {QUICK_REPLIES.map(reply => (
           <button
             key={reply}
             onClick={() => sendMessage(reply)}
-            className="flex-shrink-0 text-[11px] font-semibold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 active:scale-95 px-3 py-1.5 rounded-full transition-all whitespace-nowrap"
+            className="shrink-0 text-[11px] font-semibold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 active:scale-95 px-3 py-1.5 rounded-full transition-all whitespace-nowrap"
           >
             {reply}
           </button>
@@ -325,13 +325,13 @@ export default function RideChat({
       </div>
 
       {/* ── INPUT ── */}
-      <div className="flex-shrink-0 px-4 pb-4 pt-2 bg-white">
+      <div className="shrink-0 px-4 pb-4 pt-2 bg-white">
         <div className="flex items-center gap-2 bg-zinc-100 rounded-2xl pl-3 pr-1.5 py-1.5">
 
           <motion.button
             whileTap={{ scale: 0.9 }}
             onClick={() => setShowAI(v => !v)}
-            className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+            className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
               showAI
                 ? "bg-violet-600 text-white"
                 : "bg-white text-violet-500 hover:bg-violet-50 border border-zinc-200"
@@ -353,7 +353,7 @@ export default function RideChat({
             whileTap={{ scale: 0.88 }}
             onClick={() => sendMessage(input)}
             disabled={!input.trim()}
-            className={`flex-shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+            className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
               input.trim()
                 ? "bg-zinc-950 text-white hover:bg-zinc-800"
                 : "bg-transparent text-zinc-300 cursor-not-allowed"
