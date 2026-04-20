@@ -84,14 +84,14 @@ export default function SearchPage() {
         />
 
         {/* Soft fade at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-zinc-100 to-transparent pointer-events-none z-10" />
+        <div className="absolute bottom-0 left-0 right-0 h-20 bg-lineart-to-t from-zinc-100 to-transparent pointer-events-none z-10" />
 
         {/* FLOATING METRICS — top center */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="absolute top-5 left-1/2 -translate-x-1/2 flex items-center gap-2 z-[999]"
+          className="absolute top-5 left-1/2 -translate-x-1/2 flex items-center gap-2 z-999"
         >
           <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-zinc-200 shadow-sm px-4 py-2 rounded-full text-xs font-semibold text-zinc-700">
             <Route size={12} className="text-zinc-400" />
@@ -124,7 +124,7 @@ export default function SearchPage() {
             className="bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden mb-5"
           >
             <div className="flex gap-3 px-4 py-3 border-b border-zinc-100">
-              <div className="flex flex-col items-center pt-1.5 flex-shrink-0">
+              <div className="flex flex-col items-center pt-1.5 shrink-0">
                 <div className="w-2.5 h-2.5 rounded-full bg-zinc-900" />
                 <div className="w-px flex-1 bg-zinc-300 my-1" style={{ minHeight: 14 }} />
               </div>
@@ -132,17 +132,17 @@ export default function SearchPage() {
                 <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-semibold mb-0.5">Pickup</p>
                 <p className="text-sm text-zinc-900 font-semibold leading-snug truncate">{pickup || "—"}</p>
               </div>
-              <MapPin size={14} className="text-zinc-400 flex-shrink-0 mt-1.5" />
+              <MapPin size={14} className="text-zinc-400 hrink-0 mt-1.5" />
             </div>
             <div className="flex gap-3 px-4 py-3">
-              <div className="flex-shrink-0 pt-1.5">
+              <div className="shrink-0 pt-1.5">
                 <div className="w-2.5 h-2.5 rounded-sm bg-zinc-900" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-semibold mb-0.5">Drop</p>
                 <p className="text-sm text-zinc-900 font-semibold leading-snug truncate">{drop || "—"}</p>
               </div>
-              <Navigation size={14} className="text-zinc-400 flex-shrink-0 mt-1.5" />
+              <Navigation size={14} className="text-zinc-400 shrink-0 mt-1.5" />
             </div>
           </motion.div>
 
