@@ -24,36 +24,42 @@ type Props = {
   }) => void;
 };
 
+/* ─── HELPERS ──────────────────────────────────────────────────────── */
+
+/** Converts [lng, lat] (DB format) to [lat, lng] (Leaflet format) */
+const toLatLon = (coord: [number, number]): [number, number] => [coord[1], coord[0]];
+
+/** Converts [lng, lat] (DB format) to "lng,lat" (OSRM string format) */
+const toLonLatStr = (coord: [number, number]): string => `${coord[0]},${coord[1]}`;
+
 /* ─── ICONS ────────────────────────────────────────────────────────── */
 
 const driverIcon = new L.DivIcon({
   html: `
     <div id="car-marker" style="
-      width:52px; height:52px;
+      width:56px; height:56px;
       display:flex; align-items:center; justify-content:center;
-      transform-origin:center;
-      transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
-      filter: drop-shadow(0 6px 18px rgba(0,0,0,0.5));
+      transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.35));
     ">
-      <div style="
-        background:#0a0a0a;
-        width:46px; height:46px;
-        border-radius:50%;
-        display:flex; align-items:center; justify-content:center;
-        box-shadow:0 0 0 3px #fff,0 0 0 5px #0a0a0a,0 8px 28px rgba(0,0,0,0.5);
-      ">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M5 11L6.5 6.5H17.5L19 11" stroke="white" stroke-width="1.6" stroke-linecap="round"/>
-          <rect x="3" y="11" width="18" height="7" rx="2" stroke="white" stroke-width="1.6"/>
-          <circle cx="7.5" cy="18.5" r="1.5" fill="white"/>
-          <circle cx="16.5" cy="18.5" r="1.5" fill="white"/>
-          <path d="M3 14H21" stroke="white" stroke-width="1" opacity="0.35"/>
-        </svg>
-      </div>
+      <svg width="42" height="42" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Sleek Top-view Car Body -->
+        <rect x="30" y="20" width="40" height="60" rx="12" fill="#000"/>
+        <rect x="32" y="25" width="36" height="15" rx="4" fill="#333"/> <!-- Windshield -->
+        <rect x="32" y="55" width="36" height="10" rx="2" fill="#222"/> <!-- Rear window -->
+        <!-- Roof detail -->
+        <rect x="35" y="32" width="30" height="28" rx="6" fill="#111"/>
+        <!-- Headlights -->
+        <rect x="34" y="18" width="8" height="4" rx="1" fill="#fff" opacity="0.9"/>
+        <rect x="58" y="18" width="8" height="4" rx="1" fill="#fff" opacity="0.9"/>
+        <!-- Tail lights -->
+        <rect x="34" y="78" width="8" height="3" rx="1" fill="#ff2d2d" opacity="0.8"/>
+        <rect x="58" y="78" width="8" height="3" rx="1" fill="#ff2d2d" opacity="0.8"/>
+      </svg>
     </div>`,
   className: "",
-  iconSize: [52, 52],
-  iconAnchor: [26, 26],
+  iconSize: [56, 56],
+  iconAnchor: [28, 28],
 });
 
 const pickupIcon = new L.DivIcon({
@@ -90,8 +96,9 @@ function AutoFollow({ pos }: { pos: [number, number] | null }) {
   const map = useMap();
   useEffect(() => {
     if (pos) {
+      const leafletPos = toLatLon(pos);
       const z = map.getZoom() < 15 ? 15 : map.getZoom();
-      map.flyTo(pos, z, { duration: 0.7, easeLinearity: 0.25 });
+      map.flyTo(leafletPos, z, { duration: 0.7, easeLinearity: 0.25 });
     }
   }, [pos, map]);
   return null;
@@ -112,20 +119,28 @@ export default function LiveRideMap({
   const prevStatus   = useRef<string | null>(null);
 
   /*
-   * Status-based display logic:
-   *
-   * arriving  → show pickup marker + dashed line to pickup + solid line to drop
-   * ongoing   → hide pickup marker, clear pickup route, solid line to drop only
-   * completed → hide both routes, show only drop marker (and driver position)
+   * Status-based display logic
    */
   const showPickupMarker = status === "arriving";
   const showPickupRoute  = status === "arriving" && routeToPickup.length > 0;
   const showDropRoute    = status !== "completed" && routeToDrop.length > 0;
 
   const rotateCar = (from: [number, number], to: [number, number]) => {
-    const angle = Math.atan2(to[0] - from[0], to[1] - from[1]) * (180 / Math.PI);
+    // Math.atan2(deltaLat, deltaLon) returns radians from East
+    // Leaflet rotate(deg) is clockwise from North (0 is North)
+    const deltaLat = to[1] - from[1];
+    const deltaLon = to[0] - from[0];
+    const angleRad = Math.atan2(deltaLat, deltaLon);
+    const angleDeg = (angleRad * 180) / Math.PI;
+
+    // Convert from "radians from East" to "degrees from North" (clockwise)
+    // 90 is East, 180 is South, 270 is West, 0/360 is North
+    // atan2(0, 1) is 0deg (East) -> should be 90deg rotation
+    // atan2(1, 0) is 90deg (North) -> should be 0deg rotation
+    const rotation = 90 - angleDeg;
+
     const el = document.getElementById("car-marker");
-    if (el) el.style.transform = `rotate(${angle}deg)`;
+    if (el) el.style.transform = `rotate(${rotation}deg)`;
   };
 
   useEffect(() => {
@@ -133,18 +148,18 @@ export default function LiveRideMap({
 
     const base = "https://router.project-osrm.org/route/v1/driving/";
     const qs   = "?overview=full&geometries=geojson";
-    const [dlat, dlng]   = driverLocation;
-    const [plat, plng]   = pickupLocation;
-    const [drlat, drlng] = dropLocation;
+    
+    const dStr = toLonLatStr(driverLocation);
+    const pStr = toLonLatStr(pickupLocation);
+    const drStr = toLonLatStr(dropLocation);
 
     const statusChanged = prevStatus.current !== status;
     prevStatus.current  = status;
 
     if (status === "arriving") {
-      // Fetch route to pickup AND route to drop (for ETA display)
       Promise.all([
-        fetch(`${base}${dlng},${dlat};${plng},${plat}${qs}`).then(r => r.json()),
-        fetch(`${base}${dlng},${dlat};${drlng},${drlat}${qs}`).then(r => r.json()),
+        fetch(`${base}${dStr};${pStr}${qs}`).then(r => r.json()),
+        fetch(`${base}${dStr};${drStr}${qs}`).then(r => r.json()),
       ]).then(([pData, dData]) => {
         if (pData.routes?.length)
           setRouteToPickup(
@@ -163,11 +178,9 @@ export default function LiveRideMap({
       });
 
     } else {
-      // ongoing / completed — only need driver→drop
-      // Clear pickup route immediately when status changes away from arriving
       if (statusChanged) setRouteToPickup([]);
 
-      fetch(`${base}${dlng},${dlat};${drlng},${drlat}${qs}`)
+      fetch(`${base}${dStr};${drStr}${qs}`)
         .then(r => r.json())
         .then(dData => {
           if (dData.routes?.length)
@@ -189,7 +202,7 @@ export default function LiveRideMap({
 
   return (
     <MapContainer
-      center={pickupLocation}
+      center={toLatLon(pickupLocation)}
       zoom={14}
       style={{ height: "100%", width: "100%" }}
       scrollWheelZoom
@@ -204,7 +217,7 @@ export default function LiveRideMap({
 
       {/* Driver */}
       {driverLocation && (
-        <Marker position={driverLocation} icon={driverIcon}>
+        <Marker position={toLatLon(driverLocation)} icon={driverIcon}>
           <Tooltip permanent={false} direction="top" offset={[0, -32]}>
             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", fontFamily: "system-ui" }}>
               YOUR DRIVER
@@ -213,15 +226,15 @@ export default function LiveRideMap({
         </Marker>
       )}
 
-      {/* Pickup marker — only while driver is still arriving */}
+      {/* Pickup marker */}
       {showPickupMarker && (
-        <Marker position={pickupLocation} icon={pickupIcon} />
+        <Marker position={toLatLon(pickupLocation)} icon={pickupIcon} />
       )}
 
-      {/* Drop marker — always visible */}
-      <Marker position={dropLocation} icon={dropIcon} />
+      {/* Drop marker */}
+      <Marker position={toLatLon(dropLocation)} icon={dropIcon} />
 
-      {/* Dashed line → pickup (arriving only) */}
+      {/* Dashed line → pickup */}
       {showPickupRoute && (
         <Polyline
           positions={routeToPickup}
@@ -229,11 +242,11 @@ export default function LiveRideMap({
         />
       )}
 
-      {/* Solid line → drop (arriving + ongoing) */}
+      {/* Solid line → drop */}
       {showDropRoute && (
         <Polyline
           positions={routeToDrop}
-          pathOptions={{ color: "#0a0a0a", weight: 5, lineCap: "round", lineJoin: "round" }}
+          pathOptions={{ color: "#000", weight: 5, lineCap: "round", lineJoin: "round" }}
         />
       )}
     </MapContainer>
