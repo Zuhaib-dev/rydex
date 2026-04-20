@@ -120,7 +120,7 @@ export default function VehicleBookingCard({
               </span>
             </div>
           </div>
-          <div className="flex-shrink-0 w-10 h-10 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center">
+          <div className="shrink-0 w-10 h-10 rounded-2xl bg-zinc-100 border border-zinc-200 flex items-center justify-center">
             <Icon size={17} className="text-zinc-700" />
           </div>
         </div>
