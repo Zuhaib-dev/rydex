@@ -13,7 +13,7 @@ await mongoose.connect(process.env.MONGODB_URL);
 const app = express();
 app.use(express.json());
 const server = http.createServer(app);
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 8000;
 
 const io = new Server(server, {
   cors: {
