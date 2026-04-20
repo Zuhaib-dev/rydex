@@ -1,6 +1,6 @@
 <div align="center">
 
-![Rydex Banner](/Users/fs/.gemini/antigravity/brain/407024d1-1be5-4325-954e-b2191fe2db75/rydex_banner_1776677303448.png)
+![Rydex Banner](https://rydexx.netlify.app/logo.png)
 
 # 🚀 Rydex
 
