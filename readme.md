@@ -99,10 +99,10 @@ npm run dev
 > [!TIP]
 > This project is a testament to my dedication to building high-quality, scalable applications. Check out my other work!
 
-- **Portfolio**: [your-portfolio-link.com](https://your-portfolio-link.com)
+- **Portfolio**: [your-portfolio-link.com](https://zuhaibrashid.com)
 - **GitHub**: [@Zuhaib-dev](https://github.com/Zuhaib-dev)
-- **LinkedIn**: [Connect with me](https://linkedin.com/in/your-profile)
-- **Twitter**: [@your_handle](https://twitter.com/your_handle)
+- **LinkedIn**: [Connect with me](https://www.linkedin.com/in/zuhaib-rashid-661345318/)
+- **Twitter**: [@your_handle](https://x.com/xuhaib_x9)
 
 ---
 
