@@ -164,7 +164,7 @@ export default function Nav() {
 
           {/* LOGO */}
           <Link href="/" className="flex items-center">
-            <Image src="/logo.jpeg" alt="RYDEX" width={44} height={44} priority />
+            <Image src="/logo.png" alt="RYDEX" width={44} height={44} priority />
           </Link>
 
           {/* DESKTOP NAV */}
