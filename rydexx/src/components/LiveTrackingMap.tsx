@@ -222,26 +222,56 @@ export default function LiveRideMap({
           />
         )}
 
-        {/* Path: Pickup -> Drop (Main Route, always show) */}
-        {routePD.length > 0 && (
+        {/* Path: Pickup -> Drop (Main Route) */}
+        {routePD.length > 0 && status !== "ongoing" && (
           <>
             <Polyline
               positions={routePD}
-              pathOptions={{ color: "#000", weight: 8, opacity: 0.05, lineCap: "round" }}
+              pathOptions={{
+                color: "#000",
+                weight: 6,
+                opacity: 0.15,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
             />
             <Polyline
               positions={routePD}
-              pathOptions={{ color: "#000", weight: 3, opacity: 0.8, lineCap: "round" }}
+              pathOptions={{
+                color: "#000",
+                weight: 3.5,
+                opacity: 0.9,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
             />
           </>
         )}
 
-        {/* Path: Driver -> Drop (Active Glow, if ongoing) */}
+        {/* Path: Driver -> Drop (Active path during trip) */}
         {status === "ongoing" && routeDD.length > 0 && (
-          <Polyline
-            positions={routeDD}
-            pathOptions={{ color: "#000", weight: 4, opacity: 1, lineCap: "round", lineJoin: "round" }}
-          />
+          <>
+            <Polyline
+              positions={routeDD}
+              pathOptions={{
+                color: "#000",
+                weight: 6,
+                opacity: 0.2,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            />
+            <Polyline
+              positions={routeDD}
+              pathOptions={{
+                color: "#000",
+                weight: 4,
+                opacity: 1,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            />
+          </>
         )}
       </MapContainer>
 
