@@ -23,6 +23,7 @@ import RideChat from "@/components/RideChat";
 
 const LiveRideMap = dynamic(() => import("@/components/LiveTrackingMap"), {
   ssr: false,
+  loading: () => <MapSkeleton />,
 });
 
 /* ─── TYPES ──────────────────────────────────────────────────────────── */
@@ -964,6 +965,14 @@ function PanelContent({
       )}
 
       {/* CANCEL BUTTON */}
+    </div>
+  );
+}
+
+function MapSkeleton() {
+  return (
+    <div className="w-full h-full bg-zinc-900 animate-pulse flex items-center justify-center">
+      <Car size={32} className="text-zinc-800 animate-bounce" />
     </div>
   );
 }

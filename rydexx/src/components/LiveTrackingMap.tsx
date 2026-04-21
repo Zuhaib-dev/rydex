@@ -26,81 +26,81 @@ type Props = {
 
 /* ─── HELPERS ──────────────────────────────────────────────────────── */
 
-/** Converts [lng, lat] (DB format) to [lat, lng] (Leaflet format) */
-const toLatLon = (coord: [number, number]): [number, number] => [coord[1], coord[0]];
+/** Standardizes coordinates to Leaflet [lat, lng] format */
+const toLatLon = (coord: [number, number]): [number, number] => coord;
 
-/** Converts [lng, lat] (DB format) to "lng,lat" (OSRM string format) */
-const toLonLatStr = (coord: [number, number]): string => `${coord[0]},${coord[1]}`;
+/** Converts [lat, lng] to "lng,lat" (OSRM string format) */
+const toLonLatStr = (coord: [number, number]): string => `${coord[1]},${coord[0]}`;
 
 /* ─── ICONS ────────────────────────────────────────────────────────── */
 
 const driverIcon = new L.DivIcon({
   html: `
-    <div id="car-marker" style="
-      width:56px; height:56px;
+    <div id="car-marker-container" style="
+      width:60px; height:60px;
       display:flex; align-items:center; justify-content:center;
-      transition: transform 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-      filter: drop-shadow(0 8px 24px rgba(0,0,0,0.35));
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      filter: drop-shadow(0 12px 28px rgba(0,0,0,0.5));
     ">
-      <svg width="42" height="42" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <!-- Sleek Top-view Car Body -->
-        <rect x="30" y="20" width="40" height="60" rx="12" fill="#000"/>
-        <rect x="32" y="25" width="36" height="15" rx="4" fill="#333"/> <!-- Windshield -->
-        <rect x="32" y="55" width="36" height="10" rx="2" fill="#222"/> <!-- Rear window -->
-        <!-- Roof detail -->
-        <rect x="35" y="32" width="30" height="28" rx="6" fill="#111"/>
-        <!-- Headlights -->
-        <rect x="34" y="18" width="8" height="4" rx="1" fill="#fff" opacity="0.9"/>
-        <rect x="58" y="18" width="8" height="4" rx="1" fill="#fff" opacity="0.9"/>
-        <!-- Tail lights -->
-        <rect x="34" y="78" width="8" height="3" rx="1" fill="#ff2d2d" opacity="0.8"/>
-        <rect x="58" y="78" width="8" height="3" rx="1" fill="#ff2d2d" opacity="0.8"/>
-      </svg>
+      <div id="car-marker-rotate" style="transition: transform 0.5s ease-out;">
+        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <ellipse cx="50" cy="50" rx="30" ry="45" fill="rgba(0,0,0,0.3)" filter="blur(10px)"/>
+          <rect x="32" y="18" width="36" height="64" rx="14" fill="#1a1a1a"/>
+          <rect x="34" y="20" width="32" height="60" rx="12" fill="#000"/>
+          <path d="M36 32 C36 28, 64 28, 64 32 L62 48 C62 52, 38 52, 38 48 Z" fill="#222"/>
+          <rect x="37" y="58" width="26" height="12" rx="3" fill="#111"/>
+          <rect x="35" y="22" width="6" height="2" rx="1" fill="#fff" opacity="0.8"/>
+          <rect x="59" y="22" width="6" height="2" rx="1" fill="#fff" opacity="0.8"/>
+          <rect x="36" y="78" width="6" height="2" rx="1" fill="#ff4d4d" opacity="0.9"/>
+          <rect x="58" y="78" width="6" height="2" rx="1" fill="#ff4d4d" opacity="0.9"/>
+          <rect x="42" y="38" width="16" height="25" rx="4" stroke="#333" stroke-width="1.5" fill="none"/>
+        </svg>
+      </div>
     </div>`,
   className: "",
-  iconSize: [56, 56],
-  iconAnchor: [28, 28],
+  iconSize: [60, 60],
+  iconAnchor: [30, 30],
 });
 
 const pickupIcon = new L.DivIcon({
   html: `
-    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.28))">
-      <div style="background:#0a0a0a;color:#fff;padding:5px 13px;border-radius:100px;font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap;font-family:system-ui">
+    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.4))">
+      <div style="background:#fff;color:#000;padding:6px 14px;border-radius:12px;font-size:11px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;font-family:system-ui;border:2px solid #000;box-shadow:0 4px 0 #000">
         PICKUP
       </div>
-      <div style="width:2px;height:9px;background:#0a0a0a"></div>
-      <div style="width:10px;height:10px;background:#0a0a0a;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>
+      <div style="width:3px;height:12px;background:#000;margin-top:-2px"></div>
+      <div style="width:12px;height:12px;background:#000;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #000"></div>
     </div>`,
   className: "",
-  iconSize: [80, 50],
-  iconAnchor: [40, 50],
+  iconSize: [100, 60],
+  iconAnchor: [50, 60],
 });
 
 const dropIcon = new L.DivIcon({
   html: `
-    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 4px 12px rgba(0,0,0,0.25))">
-      <div style="background:#fff;color:#0a0a0a;padding:5px 13px;border-radius:100px;font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;white-space:nowrap;border:1.5px solid #0a0a0a;font-family:system-ui">
+    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 8px 16px rgba(0,0,0,0.4))">
+      <div style="background:#000;color:#fff;padding:6px 14px;border-radius:12px;font-size:11px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;font-family:system-ui;border:2px solid #fff;box-shadow:0 4px 0 rgba(255,255,255,0.2)">
         DROP
       </div>
-      <div style="width:2px;height:9px;background:#0a0a0a"></div>
-      <div style="width:10px;height:10px;background:#fff;border-radius:50%;border:2.5px solid #0a0a0a;box-shadow:0 2px 6px rgba(0,0,0,0.25)"></div>
+      <div style="width:3px;height:12px;background:#fff;margin-top:-2px"></div>
+      <div style="width:12px;height:12px;background:#fff;border-radius:50%;border:3px solid #000;box-shadow:0 0 0 2px #fff"></div>
     </div>`,
   className: "",
-  iconSize: [70, 50],
-  iconAnchor: [35, 50],
+  iconSize: [100, 60],
+  iconAnchor: [50, 60],
 });
 
 /* ─── AUTO FOLLOW ─────────────────────────────────────────────────── */
 
-function AutoFollow({ pos }: { pos: [number, number] | null }) {
+function AutoFollow({ pos, active }: { pos: [number, number] | null; active: boolean }) {
   const map = useMap();
   useEffect(() => {
-    if (pos) {
+    if (pos && active) {
       const leafletPos = toLatLon(pos);
-      const z = map.getZoom() < 15 ? 15 : map.getZoom();
-      map.flyTo(leafletPos, z, { duration: 0.7, easeLinearity: 0.25 });
+      const z = map.getZoom() < 16 ? 16 : map.getZoom();
+      map.flyTo(leafletPos, z, { duration: 1.2, easeLinearity: 0.1 });
     }
-  }, [pos, map]);
+  }, [pos, map, active]);
   return null;
 }
 
@@ -113,142 +113,149 @@ export default function LiveRideMap({
   status,
   onStats,
 }: Props) {
-  const [routeToPickup, setRouteToPickup] = useState<[number, number][]>([]);
-  const [routeToDrop,   setRouteToDrop]   = useState<[number, number][]>([]);
-  const prevLocation = useRef<[number, number] | null>(null);
-  const prevStatus   = useRef<string | null>(null);
+  const [routePD, setRoutePD] = useState<[number, number][]>([]); // Pickup to Drop
+  const [routeDP, setRouteDP] = useState<[number, number][]>([]); // Driver to Pickup
+  const [routeDD, setRouteDD] = useState<[number, number][]>([]); // Driver to Drop
 
-  /*
-   * Status-based display logic
-   */
-  const showPickupMarker = status === "arriving";
-  const showPickupRoute  = status === "arriving" && routeToPickup.length > 0;
-  const showDropRoute    = status !== "completed" && routeToDrop.length > 0;
+  const prevLocation = useRef<[number, number] | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   const rotateCar = (from: [number, number], to: [number, number]) => {
-    // Math.atan2(deltaLat, deltaLon) returns radians from East
-    // Leaflet rotate(deg) is clockwise from North (0 is North)
-    const deltaLat = to[1] - from[1];
-    const deltaLon = to[0] - from[0];
+    const deltaLat = to[0] - from[0];
+    const deltaLon = to[1] - from[1];
+    if (Math.abs(deltaLat) < 0.00001 && Math.abs(deltaLon) < 0.00001) return;
+
     const angleRad = Math.atan2(deltaLat, deltaLon);
     const angleDeg = (angleRad * 180) / Math.PI;
-
-    // Convert from "radians from East" to "degrees from North" (clockwise)
-    // 90 is East, 180 is South, 270 is West, 0/360 is North
-    // atan2(0, 1) is 0deg (East) -> should be 90deg rotation
-    // atan2(1, 0) is 90deg (North) -> should be 0deg rotation
     const rotation = 90 - angleDeg;
 
-    const el = document.getElementById("car-marker");
+    const el = document.getElementById("car-marker-rotate");
     if (el) el.style.transform = `rotate(${rotation}deg)`;
   };
 
+  // 1. Fetch BASIC route (Pickup -> Drop) once
+  useEffect(() => {
+    const base = "https://router.project-osrm.org/route/v1/driving/";
+    const qs   = "?overview=full&geometries=geojson";
+    const pStr = toLonLatStr(pickupLocation);
+    const dStr = toLonLatStr(dropLocation);
+
+    fetch(`${base}${pStr};${dStr}${qs}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.routes?.length) {
+          setRoutePD(data.routes[0].geometry.coordinates.map(([lon, lat]: any) => [lat, lon]));
+        }
+      });
+  }, [pickupLocation, dropLocation]);
+
+  // 2. Fetch DRIVER routes (Driver -> Pickup, Driver -> Drop)
   useEffect(() => {
     if (!driverLocation) return;
 
     const base = "https://router.project-osrm.org/route/v1/driving/";
     const qs   = "?overview=full&geometries=geojson";
-    
-    const dStr = toLonLatStr(driverLocation);
-    const pStr = toLonLatStr(pickupLocation);
-    const drStr = toLonLatStr(dropLocation);
+    const drStr = toLonLatStr(driverLocation);
+    const pStr  = toLonLatStr(pickupLocation);
+    const dStr  = toLonLatStr(dropLocation);
 
-    const statusChanged = prevStatus.current !== status;
-    prevStatus.current  = status;
+    Promise.all([
+      fetch(`${base}${drStr};${pStr}${qs}`).then(r => r.json()),
+      fetch(`${base}${drStr};${dStr}${qs}`).then(r => r.json()),
+    ]).then(([pData, dData]) => {
+      if (pData.routes?.length) {
+        setRouteDP(pData.routes[0].geometry.coordinates.map(([lon, lat]: any) => [lat, lon]));
+      }
+      if (dData.routes?.length) {
+        setRouteDD(dData.routes[0].geometry.coordinates.map(([lon, lat]: any) => [lat, lon]));
+      }
 
-    if (status === "arriving") {
-      Promise.all([
-        fetch(`${base}${dStr};${pStr}${qs}`).then(r => r.json()),
-        fetch(`${base}${dStr};${drStr}${qs}`).then(r => r.json()),
-      ]).then(([pData, dData]) => {
-        if (pData.routes?.length)
-          setRouteToPickup(
-            pData.routes[0].geometry.coordinates.map(([lon, lat]: number[]) => [lat, lon])
-          );
-        if (dData.routes?.length)
-          setRouteToDrop(
-            dData.routes[0].geometry.coordinates.map(([lon, lat]: number[]) => [lat, lon])
-          );
-        onStats?.({
-          distanceToPickup: (pData.routes?.[0]?.distance ?? 0) / 1000,
-          durationToPickup: (pData.routes?.[0]?.duration ?? 0) / 60,
-          distanceToDrop:   (dData.routes?.[0]?.distance ?? 0) / 1000,
-          durationToDrop:   (dData.routes?.[0]?.duration ?? 0) / 60,
-        });
+      onStats?.({
+        distanceToPickup: (pData.routes?.[0]?.distance ?? 0) / 1000,
+        durationToPickup: (pData.routes?.[0]?.duration ?? 0) / 60,
+        distanceToDrop:   (dData.routes?.[0]?.distance ?? 0) / 1000,
+        durationToDrop:   (dData.routes?.[0]?.duration ?? 0) / 60,
       });
-
-    } else {
-      if (statusChanged) setRouteToPickup([]);
-
-      fetch(`${base}${dStr};${drStr}${qs}`)
-        .then(r => r.json())
-        .then(dData => {
-          if (dData.routes?.length)
-            setRouteToDrop(
-              dData.routes[0].geometry.coordinates.map(([lon, lat]: number[]) => [lat, lon])
-            );
-          onStats?.({
-            distanceToPickup: 0,
-            durationToPickup: 0,
-            distanceToDrop:   (dData.routes?.[0]?.distance ?? 0) / 1000,
-            durationToDrop:   (dData.routes?.[0]?.duration ?? 0) / 60,
-          });
-        });
-    }
+    });
 
     if (prevLocation.current) rotateCar(prevLocation.current, driverLocation);
     prevLocation.current = driverLocation;
-  }, [driverLocation, status]);
+  }, [driverLocation, pickupLocation, dropLocation]);
 
   return (
-    <MapContainer
-      center={toLatLon(pickupLocation)}
-      zoom={14}
-      style={{ height: "100%", width: "100%" }}
-      scrollWheelZoom
-      zoomControl={false}
-    >
-      <TileLayer
-        attribution="© OpenStreetMap contributors © CARTO"
-        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-      />
+    <div className="relative w-full h-full bg-[#111]">
+      <MapContainer
+        center={toLatLon(pickupLocation)}
+        zoom={15}
+        style={{ height: "100%", width: "100%", background: "#111" }}
+        scrollWheelZoom
+        zoomControl={false}
+        whenReady={() => setMapLoaded(true)}
+      >
+        <TileLayer
+          attribution="&copy; <a href='https://carto.com/'>CARTO</a>"
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+        />
 
-      <AutoFollow pos={driverLocation} />
+        <AutoFollow pos={driverLocation || pickupLocation} active={mapLoaded} />
 
-      {/* Driver */}
-      {driverLocation && (
-        <Marker position={toLatLon(driverLocation)} icon={driverIcon}>
-          <Tooltip permanent={false} direction="top" offset={[0, -32]}>
-            <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.08em", fontFamily: "system-ui" }}>
-              YOUR DRIVER
-            </span>
-          </Tooltip>
-        </Marker>
-      )}
+        {/* Driver */}
+        {driverLocation && (
+          <Marker position={toLatLon(driverLocation)} icon={driverIcon} zIndexOffset={1000}>
+            <Tooltip permanent={false} direction="top" offset={[0, -35]} className="custom-tooltip">
+              <div className="flex items-center gap-2 px-2 py-1 bg-black text-white rounded-md text-[9px] font-black tracking-widest uppercase">
+                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                Driver
+              </div>
+            </Tooltip>
+          </Marker>
+        )}
 
-      {/* Pickup marker */}
-      {showPickupMarker && (
         <Marker position={toLatLon(pickupLocation)} icon={pickupIcon} />
-      )}
+        <Marker position={toLatLon(dropLocation)} icon={dropIcon} />
 
-      {/* Drop marker */}
-      <Marker position={toLatLon(dropLocation)} icon={dropIcon} />
+        {/* Path: Driver -> Pickup (Dashed, only if arriving) */}
+        {status === "arriving" && routeDP.length > 0 && (
+          <Polyline
+            positions={routeDP}
+            pathOptions={{ color: "#fff", weight: 3, dashArray: "1 12", opacity: 0.8, lineCap: "round" }}
+          />
+        )}
 
-      {/* Dashed line → pickup */}
-      {showPickupRoute && (
-        <Polyline
-          positions={routeToPickup}
-          pathOptions={{ color: "#888", weight: 4, dashArray: "2 10", lineCap: "round" }}
-        />
-      )}
+        {/* Path: Pickup -> Drop (Main Route, always show) */}
+        {routePD.length > 0 && (
+          <>
+            <Polyline
+              positions={routePD}
+              pathOptions={{ color: "#fff", weight: 8, opacity: 0.1, lineCap: "round" }}
+            />
+            <Polyline
+              positions={routePD}
+              pathOptions={{ color: "#fff", weight: 3, opacity: 0.8, lineCap: "round" }}
+            />
+          </>
+        )}
 
-      {/* Solid line → drop */}
-      {showDropRoute && (
-        <Polyline
-          positions={routeToDrop}
-          pathOptions={{ color: "#000", weight: 5, lineCap: "round", lineJoin: "round" }}
-        />
-      )}
-    </MapContainer>
+        {/* Path: Driver -> Drop (Active Glow, if ongoing) */}
+        {status === "ongoing" && routeDD.length > 0 && (
+          <Polyline
+            positions={routeDD}
+            pathOptions={{ color: "#ffffff", weight: 4, opacity: 1, lineCap: "round", lineJoin: "round" }}
+          />
+        )}
+      </MapContainer>
+
+      <style jsx global>{`
+        .custom-tooltip {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          padding: 0 !important;
+        }
+        .leaflet-container {
+          filter: grayscale(0.2) contrast(1.1);
+        }
+      `}</style>
+    </div>
   );
 }
