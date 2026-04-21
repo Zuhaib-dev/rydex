@@ -146,6 +146,9 @@ export default function LiveRideMap({
         if (data.routes?.length) {
           setRoutePD(data.routes[0].geometry.coordinates.map(([lon, lat]: any) => [lat, lon]));
         }
+      })
+      .catch(err => {
+        console.warn("OSRM Route PD failed:", err.message);
       });
   }, [pickupLocation, dropLocation]);
 
@@ -160,22 +163,24 @@ export default function LiveRideMap({
     const dStr  = toLonLatStr(dropLocation);
 
     Promise.all([
-      fetch(`${base}${drStr};${pStr}${qs}`).then(r => r.json()),
-      fetch(`${base}${drStr};${dStr}${qs}`).then(r => r.json()),
+      fetch(`${base}${drStr};${pStr}${qs}`).then(r => r.json()).catch(() => ({})),
+      fetch(`${base}${drStr};${dStr}${qs}`).then(r => r.json()).catch(() => ({})),
     ]).then(([pData, dData]) => {
-      if (pData.routes?.length) {
+      if (pData?.routes?.length) {
         setRouteDP(pData.routes[0].geometry.coordinates.map(([lon, lat]: any) => [lat, lon]));
       }
-      if (dData.routes?.length) {
+      if (dData?.routes?.length) {
         setRouteDD(dData.routes[0].geometry.coordinates.map(([lon, lat]: any) => [lat, lon]));
       }
 
       onStats?.({
-        distanceToPickup: (pData.routes?.[0]?.distance ?? 0) / 1000,
-        durationToPickup: (pData.routes?.[0]?.duration ?? 0) / 60,
-        distanceToDrop:   (dData.routes?.[0]?.distance ?? 0) / 1000,
-        durationToDrop:   (dData.routes?.[0]?.duration ?? 0) / 60,
+        distanceToPickup: (pData?.routes?.[0]?.distance ?? 0) / 1000,
+        durationToPickup: (pData?.routes?.[0]?.duration ?? 0) / 60,
+        distanceToDrop:   (dData?.routes?.[0]?.distance ?? 0) / 1000,
+        durationToDrop:   (dData?.routes?.[0]?.duration ?? 0) / 60,
       });
+    }).catch(err => {
+      console.warn("OSRM Route Driver failed:", err.message);
     });
 
     if (prevLocation.current) rotateCar(prevLocation.current, driverLocation);
