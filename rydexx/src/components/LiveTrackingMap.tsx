@@ -183,18 +183,18 @@ export default function LiveRideMap({
   }, [driverLocation, pickupLocation, dropLocation]);
 
   return (
-    <div className="relative w-full h-full bg-[#111]">
+    <div className="relative w-full h-full bg-white">
       <MapContainer
         center={toLatLon(pickupLocation)}
         zoom={15}
-        style={{ height: "100%", width: "100%", background: "#111" }}
+        style={{ height: "100%", width: "100%", background: "#f8f8f8" }}
         scrollWheelZoom
         zoomControl={false}
         whenReady={() => setMapLoaded(true)}
       >
         <TileLayer
           attribution="&copy; <a href='https://carto.com/'>CARTO</a>"
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
 
         <AutoFollow pos={driverLocation || pickupLocation} active={mapLoaded} />
@@ -203,8 +203,8 @@ export default function LiveRideMap({
         {driverLocation && (
           <Marker position={toLatLon(driverLocation)} icon={driverIcon} zIndexOffset={1000}>
             <Tooltip permanent={false} direction="top" offset={[0, -35]} className="custom-tooltip">
-              <div className="flex items-center gap-2 px-2 py-1 bg-black text-white rounded-md text-[9px] font-black tracking-widest uppercase">
-                <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+              <div className="flex items-center gap-2 px-2 py-1 bg-white text-black border border-zinc-200 rounded-md text-[9px] font-black tracking-widest uppercase shadow-sm">
+                <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                 Driver
               </div>
             </Tooltip>
@@ -218,7 +218,7 @@ export default function LiveRideMap({
         {status === "arriving" && routeDP.length > 0 && (
           <Polyline
             positions={routeDP}
-            pathOptions={{ color: "#fff", weight: 3, dashArray: "1 12", opacity: 0.8, lineCap: "round" }}
+            pathOptions={{ color: "#000", weight: 3, dashArray: "1 12", opacity: 0.6, lineCap: "round" }}
           />
         )}
 
@@ -227,11 +227,11 @@ export default function LiveRideMap({
           <>
             <Polyline
               positions={routePD}
-              pathOptions={{ color: "#fff", weight: 8, opacity: 0.1, lineCap: "round" }}
+              pathOptions={{ color: "#000", weight: 8, opacity: 0.05, lineCap: "round" }}
             />
             <Polyline
               positions={routePD}
-              pathOptions={{ color: "#fff", weight: 3, opacity: 0.8, lineCap: "round" }}
+              pathOptions={{ color: "#000", weight: 3, opacity: 0.8, lineCap: "round" }}
             />
           </>
         )}
@@ -240,7 +240,7 @@ export default function LiveRideMap({
         {status === "ongoing" && routeDD.length > 0 && (
           <Polyline
             positions={routeDD}
-            pathOptions={{ color: "#ffffff", weight: 4, opacity: 1, lineCap: "round", lineJoin: "round" }}
+            pathOptions={{ color: "#000", weight: 4, opacity: 1, lineCap: "round", lineJoin: "round" }}
           />
         )}
       </MapContainer>
@@ -253,7 +253,7 @@ export default function LiveRideMap({
           padding: 0 !important;
         }
         .leaflet-container {
-          filter: grayscale(0.2) contrast(1.1);
+          filter: contrast(1.05);
         }
       `}</style>
     </div>
