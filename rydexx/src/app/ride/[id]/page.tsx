@@ -53,6 +53,7 @@ interface BookingDetails {
   userMobileNumber: string;
   driverMobileNumber: string;
   pickupOtp?: string;
+  dropOtp?: string;
 }
 
 /* ─── STATUS CONFIG ──────────────────────────────────────────────────── */
@@ -935,6 +936,16 @@ function PanelContent({
               <p className="text-sm text-zinc-800 leading-snug">
                 {booking.dropAddress || "—"}
               </p>
+              {booking.dropOtp && status === "started" && (
+                <div className="mt-1.5 inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg">
+                  <p className="text-emerald-700 text-xs font-black tracking-widest font-mono">
+                    {booking.dropOtp}
+                  </p>
+                  <p className="text-emerald-600 text-[10px] font-semibold">
+                    DROP OTP
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
