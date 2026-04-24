@@ -19,7 +19,7 @@ export async function GET(req: Request) {
         },
       );
     }
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }).select("-password -otp -otpExpiryAt");
     if (!user) {
       return Response.json(
         { message: "User not found" },

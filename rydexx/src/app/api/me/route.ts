@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
             )
         }
 
-        const user = await User.findOne({ email: session.user.email }).select("-password")
+        const user = await User.findOne({ email: session.user.email }).select("-password -otp -otpExpiryAt")
         if (!user) {
             return NextResponse.json(
                 { message: "user not found" },
@@ -26,9 +26,10 @@ export async function GET(req: NextRequest) {
             { status: 200 }
         )
 
-    } catch (error) {
+    } catch (error: any) {
+        console.error("GET /api/me error:", error);
         return NextResponse.json(
-            { message: `get me error : ${error}` },
+            { message: "An internal server error occurred while fetching user data." },
             { status: 500 }
         )
     }
