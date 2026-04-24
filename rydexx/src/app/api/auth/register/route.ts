@@ -42,11 +42,32 @@ export async function POST(req: NextRequest) {
     await sendMail(
       email,"Verify Your Email",`Your OTP is ${otp}`
     )
-    return NextResponse.json(user, { status: 201 });
-  } catch (error) {
+    
+    const userResponse = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+    };
+
+    return NextResponse.json({ message: "Registration successful", user: userResponse }, { status: 201 });
+  } catch (error: any) {
+    console.error("Registration error:", error);
+    
+    // Provide a generic error message to the client to avoid leaking sensitive details
+    // like the email body (OTP) if the mailer fails.
+    let errorMessage = "An error occurred during registration. Please try again.";
+    
+    if (error.name === "ValidationError") {
+      errorMessage = "Validation error. Please check your inputs.";
+    } else if (error.code === 11000) {
+      errorMessage = "Email already registered.";
+    }
+
     return NextResponse.json(
       {
-        message: `register error ${error}`,
+        message: errorMessage,
       },
       { status: 500 },
     );
