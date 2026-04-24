@@ -45,9 +45,10 @@ export async function GET(
       },
       { status: 200 },
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Partner GET error:", error);
     return NextResponse.json(
-      { message: `Partner server error${error} ` },
+      { message: "An internal server error occurred." },
       { status: 500 },
     );
   }
@@ -103,9 +104,10 @@ export async function PUT(
       { message: `Partner ${status} successfully` },
       { status: 200 },
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Partner PUT update error:", error);
     return NextResponse.json(
-      { message: `Update error: ${error}` },
+      { message: "An internal server error occurred." },
       { status: 500 },
     );
   }

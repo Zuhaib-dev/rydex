@@ -39,9 +39,10 @@ export async function POST(
       { message: "Partner Rejected Successfully" },
       { status: 200 },
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Partner rejection error:", error);
     return NextResponse.json(
-      { message: `Partner rejection error: ${error}` },
+      { message: "An internal server error occurred during rejection." },
       { status: 500 },
     );
   }

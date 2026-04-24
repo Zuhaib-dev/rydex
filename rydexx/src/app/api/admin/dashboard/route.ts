@@ -74,9 +74,10 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Admin dashboard error:", error);
     return NextResponse.json(
-      { message: `Admin server error${error} ` },
+      { message: "An internal server error occurred." },
       { status: 500 },
     );
   }
