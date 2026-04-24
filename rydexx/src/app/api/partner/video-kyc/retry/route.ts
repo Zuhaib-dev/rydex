@@ -32,9 +32,10 @@ export async function POST(req: NextRequest) {
       { message: "Retry requested successfully." },
       { status: 200 }
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Server error:", error);
     return NextResponse.json(
-      { message: `Server error: ${error}` },
+      { message: "An internal server error occurred." },
       { status: 500 }
     );
   }

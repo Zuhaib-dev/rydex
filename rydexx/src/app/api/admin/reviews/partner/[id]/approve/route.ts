@@ -51,9 +51,10 @@ export async function GET(
       { message: "Partner Approved Successfully" },
       { status: 200 },
     );
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Partner approval error:", error);
     return NextResponse.json(
-      { message: `Partner approval error: ${error}` },
+      { message: "An internal server error occurred." },
       { status: 500 },
     );
   }

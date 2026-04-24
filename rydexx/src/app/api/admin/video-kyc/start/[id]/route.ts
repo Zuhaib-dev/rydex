@@ -26,9 +26,10 @@ export async function POST(
     partner.videoKycStatus = "in_progress";
     await partner.save();
     return NextResponse.json({ roomId });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Partner Video Kyc server error:", error);
     return NextResponse.json(
-      { message: `Partner Video Kyc server error${error} ` },
+      { message: "An internal server error occurred." },
       { status: 500 },
     );
   }

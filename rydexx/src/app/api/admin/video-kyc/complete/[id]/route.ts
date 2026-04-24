@@ -49,9 +49,10 @@ export async function POST(
     return NextResponse.json({
       message: `Video KYC ${action} successfully`,
     });
-  } catch (error) {
+  } catch (error: any) {
+    console.error("Server error:", error);
     return NextResponse.json(
-      { message: `Server error: ${error}` },
+      { message: "An internal server error occurred." },
       { status: 500 },
     );
   }
