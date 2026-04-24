@@ -11,7 +11,7 @@ export async function POST(req:NextRequest) {
         const user=await User.findByIdAndUpdate(userId,{
          socketId,
          isOnline:true
-        },{new:true})
+        },{new:true}).select("-password -otp -otpExpiryAt")
         if(!user){
             return NextResponse.json({message:"user not found"},{status:400})
         }
