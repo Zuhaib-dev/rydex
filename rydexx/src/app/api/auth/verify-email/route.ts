@@ -48,11 +48,11 @@ export async function POST(req:Request) {
         {status:200}
        )
 
-    } catch (error) {
+    } catch (error: any) {
+        console.error("[verify-email] error:", error);
         return Response.json(
-            {message:`Internal Server Error ${error}` },
+            {message: "An internal server error occurred during email verification."},
             {status:500}
         )
-        
     }
 }
