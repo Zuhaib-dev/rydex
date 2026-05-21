@@ -18,7 +18,7 @@ export async function GET() {
       );
     }
 
-    if (session.user.role !== "vendor") {
+    if (session.user.role !== "partner") {
       return NextResponse.json(
         { message: "Forbidden" },
         { status: 403 }

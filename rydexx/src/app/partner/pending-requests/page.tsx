@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 type Booking = {
   _id: string;
@@ -22,11 +23,16 @@ type Booking = {
 };
 
 export default function VendorPendingPage() {
+  const { data: session } = useSession();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
    const router=useRouter()
   const fetchPendingBookings = async () => {
+    if (!session?.user) {
+      setLoading(false);
+      return;
+    }
     try {
       const res = await axios.get("/api/partner/bookings/pending");
       setBookings(res.data.bookings || []);
@@ -38,12 +44,17 @@ export default function VendorPendingPage() {
   };
 
   useEffect(() => {
-    fetchPendingBookings();
-  }, []);
+    if (session?.user?.id) {
+      fetchPendingBookings();
+    }
+  }, [session?.user?.id]);
 useEffect(() => {
   const socket = getSocket();
 
-
+  // Send partner identity to socket server
+  if (session?.user?.id) {
+    socket.emit("identity", session.user.id);
+  }
 
   socket.on("new-booking", (booking) => {
     setBookings((prev) => [booking, ...prev]);
