@@ -4,11 +4,14 @@
 import { RootState } from "@/redux/store";
 import { Bike, Bus, Car, Truck } from "lucide-react";
 import { motion } from "motion/react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
   const { userData } = useSelector((state: RootState) => state.user);
+  const { status } = useSession();
   const router = useRouter();
+  const isAuthenticated = status === "authenticated" || !!userData;
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
       <div
@@ -52,7 +55,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
           transition={{ delay: 0.5 }}
           className="mt-12 px-10 py-4 bg-white text-black rounded-full shadow-xl font-semibold"
           onClick={() => {
-            !userData ? onAuthRequired() : router.push("/user/book");
+            !isAuthenticated ? onAuthRequired() : router.push("/user/book");
           }}
         >
           Book Now

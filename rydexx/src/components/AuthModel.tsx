@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import { useState } from "react";
 import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 type propType = {
   open: boolean;
   onClose: () => void;
@@ -12,6 +13,7 @@ type propType = {
 type stepType = "login" | "signup" | "otp";
 function AuthModel({ open, onClose }: propType) {
   const session = useSession();
+  const router = useRouter();
   // console.log(session);
 
   const [step, setStep] = useState<stepType>("login");
@@ -72,6 +74,7 @@ function AuthModel({ open, onClose }: propType) {
     if (res?.error) {
       setErr("Invalid email or password"); 
     } else if (res?.ok) {
+      router.refresh();
       onClose(); 
     }
   };

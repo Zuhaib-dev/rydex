@@ -45,6 +45,7 @@ export default function BookPage() {
   const [dropLat,   setDropLat]   = useState<number | null>(null);
   const [dropLng,   setDropLng]   = useState<number | null>(null);
   const [locating,  setLocating]  = useState(false);
+  const [locationError, setLocationError] = useState("");
 
   const canContinue = !!(pickup && drop && vehicle && mobile && pickupLat && pickupLng && dropLat && dropLng);
 
@@ -75,6 +76,7 @@ export default function BookPage() {
   const useCurrentLocation = () => {
     if (!navigator.geolocation) return;
     setLocating(true);
+    setLocationError("");
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         try {
@@ -91,7 +93,10 @@ export default function BookPage() {
           }
         } finally { setLocating(false); }
       },
-      () => setLocating(false),
+      () => {
+        setLocating(false);
+        setLocationError("Could not detect your location. Search and select pickup manually.");
+      },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
@@ -297,6 +302,11 @@ export default function BookPage() {
                     )}
                   </AnimatePresence>
                 </div>
+                {locationError && (
+                  <p className="px-4 pb-3 text-[10px] font-medium text-amber-600">
+                    {locationError}
+                  </p>
+                )}
 
                 {/* SEPARATOR */}
                 <div className="h-px bg-zinc-200 mx-4" />
