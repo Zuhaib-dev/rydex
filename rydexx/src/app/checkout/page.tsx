@@ -7,7 +7,7 @@ import {
   XCircle, Clock, CreditCard, Banknote,
   ArrowRight, RotateCcw, AlertCircle, Wallet,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 
@@ -20,7 +20,7 @@ type Status =
   | "rejected" | "expired" | "cancelled"
   | "payment" | "confirmed";
 
-export default function CheckoutPage() {
+function CheckoutContent() {
   const params = useSearchParams();
 
   const pickup    = params.get("pickup")    || "Pickup Location";
@@ -623,5 +623,13 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-zinc-100" />}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
