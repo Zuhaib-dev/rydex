@@ -13,7 +13,7 @@ export async function GET() {
   const booking = await Booking.findOne({
     user: session.user.id,
     status: {
-      $in: ["requested", "awaiting_payment", "confirmed", "started"],
+      $in: ["requested", "awaiting_payment", "confirmed", "arriving", "arrived", "started"],
     },
   }).sort({ createdAt: -1 });
 

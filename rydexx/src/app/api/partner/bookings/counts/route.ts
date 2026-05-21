@@ -20,7 +20,7 @@ export async function GET() {
       );
     }
 
-    if (session.user.role !== "vendor") {
+    if (session.user.role !== "partner") {
       return NextResponse.json(
         { message: "Forbidden" },
         { status: 403 }
@@ -37,10 +37,10 @@ export async function GET() {
       status: "requested",
     });
 
-    // Active = accepted or started rides
+    // Active = accepted/payment/ongoing rides
     const active = await Booking.countDocuments({
       driver: vendorId,
-      status: { $in: ["accepted", "started"] },
+      status: { $in: ["awaiting_payment", "confirmed", "arriving", "arrived", "started"] },
     });
 
     return NextResponse.json({

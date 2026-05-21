@@ -34,6 +34,8 @@ export type BookingStatus =
   | "requested"
   | "awaiting_payment"
   | "confirmed"
+  | "arriving"
+  | "arrived"
   | "started"
   | "completed"
   | "cancelled"
@@ -67,6 +69,8 @@ const MAP_STATUS: Record<BookingStatus, "arriving" | "ongoing" | "completed"> =
     requested: "arriving",
     awaiting_payment: "arriving",
     confirmed: "arriving",
+    arriving: "arriving",
+    arrived: "arriving",
     started: "ongoing",
     completed: "completed",
     cancelled: "completed",
@@ -92,6 +96,16 @@ const STATUS_LABEL: Record<
     label: "Heading to Pickup",
     sublabel: "Drive to the pickup location",
     dot: "bg-amber-400",
+  },
+  arriving: {
+    label: "Heading to Pickup",
+    sublabel: "Drive to the pickup location",
+    dot: "bg-amber-400",
+  },
+  arrived: {
+    label: "At Pickup",
+    sublabel: "Verify pickup OTP to start",
+    dot: "bg-blue-400",
   },
   started: {
     label: "Ride in Progress",
@@ -395,8 +409,8 @@ export default function DriverRidePage() {
       </div>
     );
 
-  const isActive = ["confirmed", "started"].includes(status);
-  const canChat = status === "confirmed";
+  const isActive = ["confirmed", "arriving", "arrived", "started"].includes(status);
+  const canChat = ["confirmed", "arriving", "arrived"].includes(status);
   const displayEta = mapStatus === "arriving" ? etaToPickup : etaToDrop;
   const displayDistance =
     mapStatus === "arriving" ? distanceToPickup : distanceToDrop;
@@ -473,7 +487,7 @@ export default function DriverRidePage() {
         initial={{ x: 60, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="hidden lg:flex w-[420px] xl:w-[460px] bg-white border-l border-zinc-100 flex-col overflow-hidden"
+        className="hidden lg:flex w-105 xl:w-[460px] bg-white border-l border-zinc-100 flex-col overflow-hidden"
       >
         <div className="bg-zinc-950 px-6 py-5 shrink-o">
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase font-semibold mb-1">
@@ -593,13 +607,14 @@ function ActionBar({
   handleVerifyDropOtp,
   sendDropOtp,
 }: any) {
-  if (!["confirmed", "started"].includes(status)) return null;
+  const canVerifyPickup = ["confirmed", "arriving", "arrived"].includes(status);
+  if (![...["confirmed", "arriving", "arrived"], "started"].includes(status)) return null;
 
   return (
     <div className="shrink-o border-t border-zinc-100 bg-white px-5 py-4">
       <AnimatePresence mode="wait">
         {/* STATE 1 — Arrived */}
-        {status === "confirmed" && !otpMode && !otpVerified && (
+        {canVerifyPickup && !otpMode && !otpVerified && (
           <motion.button
             key="arrived"
             initial={{ opacity: 0, y: 6 }}
@@ -617,7 +632,7 @@ function ActionBar({
         )}
 
         {/* STATE 2 — Pickup OTP */}
-        {status === "confirmed" && otpMode && !otpVerified && (
+        {canVerifyPickup && otpMode && !otpVerified && (
           <motion.div
             key="pickup-otp"
             initial={{ opacity: 0, y: 10, scale: 0.98 }}
@@ -690,7 +705,7 @@ function ActionBar({
         )}
 
         {/* STATE 3 — Pickup verified */}
-        {otpVerified && status === "confirmed" && (
+        {otpVerified && canVerifyPickup && (
           <motion.div
             key="pickup-verified"
             initial={{ opacity: 0, scale: 0.95 }}

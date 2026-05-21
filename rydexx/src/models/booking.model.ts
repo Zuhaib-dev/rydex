@@ -4,6 +4,8 @@ export type BookingStatus =
   | "requested"
   | "awaiting_payment"
   | "confirmed"
+  | "arriving"
+  | "arrived"
   | "started"
   | "completed"
   | "cancelled"
@@ -40,6 +42,10 @@ export interface IBooking extends Document {
   paymentStatus: PaymentStatus;
 
   paymentDeadline?: Date;
+  arrivingAt?: Date;
+  arrivedAt?: Date;
+  startedAt?: Date;
+  completedAt?: Date;
 
   userMobileNumber: string;
   driverMobileNumber: string;
@@ -111,6 +117,10 @@ partnerAmount: {
     },
 
     paymentDeadline: Date,
+    arrivingAt: Date,
+    arrivedAt: Date,
+    startedAt: Date,
+    completedAt: Date,
 
     pickupOtp: {
   type: String,

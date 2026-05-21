@@ -13,7 +13,7 @@ export async function GET() {
   const booking = await Booking.findOne({
     driver: session.user.id,
     status: {
-      $in: ["awaiting_payment", "confirmed", "started"],
+      $in: ["awaiting_payment", "confirmed", "arriving", "arrived", "started"],
     },
   }).sort({ createdAt: -1 }).populate("user driver vehicle")
   

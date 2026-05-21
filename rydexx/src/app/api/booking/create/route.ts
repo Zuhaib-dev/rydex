@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   const existing = await Booking.findOne({
     user: session.user.id,
     status: {
-      $in: ["requested", "awaiting_payment", "confirmed", "started"],
+      $in: ["requested", "awaiting_payment", "confirmed", "arriving", "arrived", "started"],
     },
   });
 

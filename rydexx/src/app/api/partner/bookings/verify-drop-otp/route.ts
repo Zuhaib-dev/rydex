@@ -33,7 +33,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (booking.dropExpires < new Date()) {
+    if (booking.dropOtpExpires && booking.dropOtpExpires < new Date()) {
       return NextResponse.json(
         { message: "OTP expired" },
         { status: 400 }
