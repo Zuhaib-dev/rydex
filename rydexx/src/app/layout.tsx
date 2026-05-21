@@ -64,6 +64,9 @@ export const metadata: Metadata = {
       "Rydex lets you book bikes, cars, and trucks instantly. Fast, affordable, and reliable vehicle booking at your fingertips.",
     images: ["/heroImage.jpg"],
   },
+  verification: {
+    google: "PhC4G2XmPO_iZ5yQFaXvkOkJHHJEwRRJsjygMozyteA",
+  },
   icons: {
     icon: "/logo.png",
     apple: "/logo.png",
