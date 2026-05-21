@@ -31,7 +31,11 @@ function GeoUpdater({ userId }: { userId: string | undefined }) {
           longitude: pos.coords.longitude,
         });
       },
-      (err) => console.log(err),
+      (err) => {
+        if (err.code !== err.POSITION_UNAVAILABLE) {
+          console.warn("Location tracking unavailable:", err.message);
+        }
+      },
       {
         enableHighAccuracy: true,
         maximumAge: 5000,

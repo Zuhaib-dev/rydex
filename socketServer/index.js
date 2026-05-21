@@ -15,9 +15,27 @@ app.use(express.json());
 const server = http.createServer(app);
 const port = process.env.PORT || 8000;
 
+const normalizeOrigin = (origin) => origin?.replace(/\/+$/, "");
+const allowedOrigins = [
+  process.env.NEXT_BASE_URL,
+  process.env.CLIENT_URL,
+  "https://rydexx.netlify.app",
+  "http://localhost:3000",
+]
+  .filter(Boolean)
+  .map(normalizeOrigin);
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.NEXT_BASE_URL,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(normalizeOrigin(origin))) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`Origin ${origin} is not allowed by Socket.IO CORS`));
+    },
+    methods: ["GET", "POST"],
   },
 });
 

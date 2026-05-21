@@ -216,7 +216,11 @@ export default function DriverRidePage() {
           status: b.status,
         });
       },
-      (err) => console.error("GPS error:", err),
+      (err) => {
+        if (err.code !== err.POSITION_UNAVAILABLE) {
+          console.warn("GPS tracking unavailable:", err.message);
+        }
+      },
       { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 },
     );
     return () => navigator.geolocation.clearWatch(watchId);
