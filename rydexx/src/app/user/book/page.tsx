@@ -46,8 +46,9 @@ export default function BookPage() {
   const [dropLng,   setDropLng]   = useState<number | null>(null);
   const [locating,  setLocating]  = useState(false);
   const [locationError, setLocationError] = useState("");
+  const [continuing, setContinuing] = useState(false);
 
-  const canContinue = !!(pickup && drop && vehicle && mobile && pickupLat && pickupLng && dropLat && dropLng);
+  const canContinue = !!(pickup && drop && vehicle && mobile.length >= 10);
 
   /* ── SEARCH ── */
   const searchAddress = async (q: string, setResults: (r: Place[]) => void, restrict?: string | null) => {
@@ -71,6 +72,82 @@ export default function BookPage() {
   };
 
   const fmt = (p: Place) => [p.name, p.city, p.state, p.country].filter(Boolean).join(", ");
+
+  const findFirstPlace = async (q: string, restrict?: string | null) => {
+    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q.trim())}&limit=8&lang=en`);
+    const data = await res.json();
+    let results: Place[] = (data?.features ?? []).map((f: any) => ({
+      id: String(f.properties.osm_id),
+      name: f.properties.name,
+      city: f.properties.city,
+      state: f.properties.state,
+      country: f.properties.country,
+      countrycode: f.properties.countrycode?.toLowerCase(),
+      lat: f.geometry.coordinates[1],
+      lng: f.geometry.coordinates[0],
+    }));
+
+    if (restrict) results = results.filter(p => p.countrycode === restrict);
+    return results[0] ?? null;
+  };
+
+  const handleContinue = async () => {
+    if (!canContinue || !vehicle) return;
+
+    setContinuing(true);
+    setLocationError("");
+
+    try {
+      let resolvedPickupLat = pickupLat;
+      let resolvedPickupLng = pickupLng;
+      let resolvedDropLat = dropLat;
+      let resolvedDropLng = dropLng;
+      let resolvedPickupCountry = pickupCountry;
+      let resolvedPickup = pickup;
+      let resolvedDrop = drop;
+
+      if (resolvedPickupLat == null || resolvedPickupLng == null) {
+        const place = await findFirstPlace(pickup);
+        if (!place) throw new Error("pickup");
+        resolvedPickupLat = place.lat;
+        resolvedPickupLng = place.lng;
+        resolvedPickupCountry = place.countrycode || null;
+        resolvedPickup = fmt(place);
+        setPickup(resolvedPickup);
+        setPickupCountry(resolvedPickupCountry);
+        setPickupLat(place.lat);
+        setPickupLng(place.lng);
+      }
+
+      if (resolvedDropLat == null || resolvedDropLng == null) {
+        const place = await findFirstPlace(drop, resolvedPickupCountry);
+        if (!place) throw new Error("drop");
+        resolvedDropLat = place.lat;
+        resolvedDropLng = place.lng;
+        resolvedDrop = fmt(place);
+        setDrop(resolvedDrop);
+        setDropLat(place.lat);
+        setDropLng(place.lng);
+      }
+
+      const url = new URLSearchParams({
+        pickup: resolvedPickup,
+        drop: resolvedDrop,
+        vehicle,
+        mobileNumber: mobile,
+        pickupLat: String(resolvedPickupLat),
+        pickupLng: String(resolvedPickupLng),
+        dropLat: String(resolvedDropLat),
+        dropLng: String(resolvedDropLng),
+      });
+
+      router.push(`/user/search?${url.toString()}`);
+    } catch {
+      setLocationError("Select a suggested pickup and drop location so we can find nearby drivers.");
+    } finally {
+      setContinuing(false);
+    }
+  };
 
   /* ── GPS ── */
   const useCurrentLocation = () => {
@@ -368,15 +445,13 @@ export default function BookPage() {
               <motion.button
                 whileTap={{ scale: 0.97 }}
                 whileHover={canContinue ? { scale: 1.02 } : {}}
-                disabled={!canContinue}
-                onClick={() => router.push(
-                  `/user/search?pickup=${encodeURIComponent(pickup)}&drop=${encodeURIComponent(drop)}&vehicle=${vehicle}&mobileNumber=${encodeURIComponent(mobile)}&pickupLat=${pickupLat}&pickupLng=${pickupLng}&dropLat=${dropLat}&dropLng=${dropLng}`
-                )}
+                disabled={!canContinue || continuing}
+                onClick={handleContinue}
                 className="w-full h-14 rounded-2xl bg-zinc-900 hover:bg-black disabled:opacity-35 text-white font-black text-sm tracking-wide flex items-center justify-center gap-2.5 transition-colors shadow-lg disabled:shadow-none"
               >
-                <span>Continue</span>
+                <span>{continuing ? "Finding route..." : "Continue"}</span>
                 <motion.div
-                  animate={canContinue ? { x: [0, 4, 0] } : {}}
+                  animate={canContinue && !continuing ? { x: [0, 4, 0] } : {}}
                   transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 1 }}
                 >
                   <ArrowRight size={17} />
