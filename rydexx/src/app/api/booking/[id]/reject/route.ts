@@ -6,10 +6,10 @@ import axios from "axios";
 
 export async function POST(
   req: NextRequest,
- context : { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
   await connectDb();
-const id=(await context.params).id
   const session = await auth();
   if (!session?.user?.id)
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });

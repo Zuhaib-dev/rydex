@@ -6,8 +6,8 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
   await connectDb();
-const id =(await context.params).id
   const booking =await Booking.findOneAndUpdate(
   { _id: id, status: "requested" },
   { status: "cancelled" }

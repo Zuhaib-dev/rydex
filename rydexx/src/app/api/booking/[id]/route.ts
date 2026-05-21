@@ -1,15 +1,15 @@
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import axios from "axios";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 
 
 export async function GET(
-  req: Request,
-   context : { params: Promise<{ id: string }> }
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
   await connectDb();
- const id=(await context.params).id
   const booking = await Booking.findById(id).populate("driver vehicle")
 
 
