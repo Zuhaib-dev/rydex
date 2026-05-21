@@ -3,7 +3,7 @@ import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import User from "@/models/user.model";
 import { auth } from "@/lib/auth";
-import axios from "axios";
+import { emitToSocketServer } from "@/lib/socketServer";
 
 export async function POST(req: Request) {
   await connectDb();
@@ -73,14 +73,11 @@ export async function POST(req: Request) {
     status: "requested",
   });
   
-  await axios.post(
-    `${process.env.NEXT_PUBLIC_SOCKET_SERVER}/emit`,
-    {
-      userId: driverId,
-      event: "new-booking",
-      data: booking,
-    }
-  );
+  await emitToSocketServer({
+    userId: driverId,
+    event: "new-booking",
+    data: booking,
+  });
 
   return NextResponse.json({ success: true, booking });
 }

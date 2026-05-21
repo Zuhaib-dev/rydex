@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { auth } from "@/lib/auth";
-import axios from "axios";
+import { emitToSocketServer } from "@/lib/socketServer";
 
 export async function POST(
   req: NextRequest,
@@ -27,17 +27,6 @@ export async function POST(
     },
     { new: true }
   );
-  await axios.post(
-  `${process.env.NEXT_PUBLIC_SOCKET_SERVER}/emit`,
-  {
-    userId: booking.user,
-    event: "booking-updated",
-    data: {
-      bookingId: booking._id,
-      status: "rejected",
-    },
-  }
-);
 
   if (!booking) {
     return NextResponse.json(
@@ -45,6 +34,15 @@ export async function POST(
       { status: 400 }
     );
   }
+
+  await emitToSocketServer({
+    userId: booking.user,
+    event: "booking-updated",
+    data: {
+      bookingId: booking._id,
+      status: "rejected",
+    },
+  });
 
   return NextResponse.json({ success: true });
 }

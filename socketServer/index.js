@@ -39,6 +39,14 @@ const io = new Server(server, {
   },
 });
 
+app.get("/", (req, res) => {
+  res.json({ success: true, service: "rydex-socket-server" });
+});
+
+app.get("/health", (req, res) => {
+  res.json({ success: true });
+});
+
 app.post("/emit", async (req, res) => {
   const { userId, event, data } = req.body;
 
