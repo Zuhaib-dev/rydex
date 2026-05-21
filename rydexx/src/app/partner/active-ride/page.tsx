@@ -487,7 +487,7 @@ export default function DriverRidePage() {
         initial={{ x: 60, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
         transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-        className="hidden lg:flex w-105 xl:w-[460px] bg-white border-l border-zinc-100 flex-col overflow-hidden"
+        className="hidden lg:flex w-105 xl:w-115 bg-white border-l border-zinc-100 flex-col overflow-hidden"
       >
         <div className="bg-zinc-950 px-6 py-5 shrink-o">
           <p className="text-zinc-500 text-[10px] tracking-[0.2em] uppercase font-semibold mb-1">
@@ -939,7 +939,7 @@ function PanelContent({
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="mx-5 lg:mx-6 overflow-hidden"
           >
-            <div className="rounded-2xl overflow-hidden border border-zinc-100 h-[460px]">
+            <div className="rounded-2xl overflow-hidden border border-zinc-100 h-115">
               <RideChat
                 currentRole="driver"
                 rideId={booking._id}

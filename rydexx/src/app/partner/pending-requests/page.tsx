@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { motion } from "framer-motion";
 import {
+  ArrowLeft,
   MapPin,
   Navigation,
   Loader2,
@@ -79,7 +80,7 @@ useEffect(() => {
       setProcessingId(bookingId);
       await axios.post(`/api/booking/${bookingId}/${action}`);
       fetchPendingBookings();
-      router.push("/partner/bookings")
+      router.push(action === "accept" ? "/partner/active-ride" : "/partner/pending-requests")
     } catch {
       alert("Action failed");
     } finally {
@@ -92,13 +93,24 @@ useEffect(() => {
 
       {/* Top Section */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 py-16">
-          <h1 className="text-4xl font-semibold text-gray-900">
-            Ride Requests
-          </h1>
-          <p className="mt-3 text-gray-500 text-lg">
-            Manage incoming ride requests and respond in real time.
-          </p>
+        <div className="max-w-6xl mx-auto px-6 py-12">
+          <div className="flex items-start gap-4">
+            <button
+              onClick={() => router.back()}
+              className="w-11 h-11 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 shrink-0"
+              aria-label="Go back"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h1 className="text-4xl font-semibold text-gray-900">
+                Ride Requests
+              </h1>
+              <p className="mt-3 text-gray-500 text-lg">
+                Manage incoming ride requests and respond in real time.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
