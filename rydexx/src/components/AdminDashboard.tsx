@@ -15,6 +15,7 @@ import KPI from "./KPI";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import ContentList from "./ContentList";
+import AdminEarningsChart from "./AdminEarning";
 
 type TabType = "partner" | "kyc" | "vehicle";
 
@@ -116,6 +117,38 @@ function AdminDashboard() {
           <KPI title="Approved Partners" value={data?.totalApprovedPartners || 0} icon={<CheckCircle size={20} />} iconBgColor="bg-blue-50" iconColor="text-blue-500" />
           <KPI title="Pending Partners" value={data?.totalPendingPartners || 0} icon={<Clock size={20} />} iconBgColor="bg-amber-50" iconColor="text-amber-500" />
           <KPI title="Rejected Partners" value={data?.totalRejectedPartners || 0} icon={<XCircle size={20} />} iconBgColor="bg-red-50" iconColor="text-red-500" />
+        </section>
+
+        <section className="grid grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] gap-6 items-stretch">
+          <AdminEarningsChart />
+          <div className="bg-black text-white rounded-[28px] p-6 shadow-[0_14px_40px_rgba(0,0,0,0.18)] flex flex-col justify-between min-h-[360px]">
+            <div>
+              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-5">
+                <ShieldCheck size={22} />
+              </div>
+              <p className="text-[10px] uppercase tracking-[0.22em] text-white/50 font-black mb-2">
+                Control Center
+              </p>
+              <h2 className="text-3xl font-black tracking-tight leading-tight">
+                Reviews, KYC, and revenue in one place.
+              </h2>
+              <p className="text-sm text-white/60 leading-relaxed mt-4">
+                Monitor platform commission while clearing partner and vehicle approval queues.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3 pt-8">
+              {[
+                ["Partner", data?.pendingPartnerReviews?.length || 0],
+                ["KYC", data?.pendingVideoKYC?.length || 0],
+                ["Vehicle", data?.pendingVehicleReviews?.length || 0],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-2xl bg-white/10 px-4 py-3">
+                  <p className="text-2xl font-black">{value}</p>
+                  <p className="text-[10px] uppercase tracking-widest text-white/45 font-bold mt-1">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </section>
 
         {/* Tab Buttons */}

@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { TrendingUp, TrendingDown, Zap, Calendar, BarChart2, Star } from "lucide-react";
+import { TrendingUp, TrendingDown, Zap, Calendar, BarChart2, Star, Wallet } from "lucide-react";
 import axios from "axios";
 
 type Earnings = {
@@ -58,11 +58,13 @@ export default function PartnerEarningsChart() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    axios.get("/api/partner/earnings").then((res) => {
-      const last7Days: Earnings[] = res.data.earnings.slice(-7);
-      setData(last7Days);
-      setLoaded(true);
-    });
+    axios
+      .get("/api/partner/earning")
+      .then((res) => {
+        const last7Days: Earnings[] = res.data.earnings.slice(-7);
+        setData(last7Days);
+      })
+      .finally(() => setLoaded(true));
   }, []);
 
   const total = data.reduce((a, d) => a + d.earnings, 0);
@@ -73,7 +75,7 @@ export default function PartnerEarningsChart() {
   const yesterday = data[data.length - 2];
   const delta = today && yesterday ? today.earnings - yesterday.earnings : 0;
   const deltaPositive = delta >= 0;
-  const deltaPct = yesterday ? Math.abs(Math.round((delta / yesterday.earnings) * 100)) : 0;
+  const deltaPct = yesterday?.earnings ? Math.abs(Math.round((delta / yesterday.earnings) * 100)) : 0;
 
   const metrics = [
     {
@@ -105,12 +107,13 @@ export default function PartnerEarningsChart() {
   ];
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 w-full">
+    <div className="bg-white rounded-[28px] border border-gray-100 shadow-[0_8px_30px_rgba(0,0,0,0.04)] p-6 w-full">
       {/* Header */}
       <div className="flex items-start justify-between mb-6 flex-wrap gap-4">
         <div>
-          <span className="inline-block text-[11px] font-semibold tracking-widest uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-full mb-2">
-            Partner Dashboard
+          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold tracking-widest uppercase text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full mb-2">
+            <Wallet size={12} />
+            Partner Earnings
           </span>
           <h2 className="text-xl font-bold text-gray-900 tracking-tight">
             Daily Earnings
@@ -164,9 +167,34 @@ export default function PartnerEarningsChart() {
       </div>
 
       {/* Chart */}
-      <AnimatePresence>
-        {loaded && (
+      <AnimatePresence mode="wait">
+        {!loaded ? (
           <motion.div
+            key="loading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="h-56 rounded-2xl bg-gray-50 animate-pulse"
+          />
+        ) : data.length === 0 ? (
+          <motion.div
+            key="empty"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="h-56 rounded-2xl border border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center text-center px-6"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-white border border-gray-100 flex items-center justify-center text-gray-400 mb-3">
+              <BarChart2 size={20} />
+            </div>
+            <p className="text-sm font-bold text-gray-900">No paid rides yet</p>
+            <p className="text-xs text-gray-400 mt-1 max-w-xs">
+              Earnings will appear here after completed paid bookings.
+            </p>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="chart"
             initial={{ opacity: 0, scaleY: 0.92 }}
             animate={{ opacity: 1, scaleY: 1 }}
             transition={{ duration: 0.45, ease: "easeOut" }}

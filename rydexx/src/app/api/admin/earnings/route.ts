@@ -1,21 +1,16 @@
-
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
-
 
 export async function GET() {
   await dbConnect();
 
   const session = await auth();
-  const driverId = session?.user?.id;
-
-  if (!driverId) {
-    return Response.json({ earnings: [] });
+  if (session?.user?.role !== "admin") {
+    return Response.json({ earnings: [] }, { status: 403 });
   }
 
   const bookings = await Booking.find({
-    driver: driverId,
     paymentStatus: { $in: ["paid", "cash"] },
   }).sort({ createdAt: 1 });
 
@@ -27,11 +22,8 @@ export async function GET() {
       month: "short",
     });
 
-    if (!earningsMap[date]) {
-      earningsMap[date] = 0;
-    }
-
-    earningsMap[date] += booking.partnerAmount || 0;
+    earningsMap[date] ||= 0;
+    earningsMap[date] += booking.adminCommission || 0;
   });
 
   const earnings = Object.entries(earningsMap).map(([date, earnings]) => ({
@@ -39,7 +31,5 @@ export async function GET() {
     earnings,
   }));
 
-  return Response.json({
-    earnings,
-  });
+  return Response.json({ earnings });
 }
