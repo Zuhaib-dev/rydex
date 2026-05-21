@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PUBLIC_ROUTES = ["/", "/user/book", "/user/search", "/checkout"];
+const PUBLIC_ROUTES = [
+  "/",
+  "/bookings",
+  "/checkout",
+  "/partner/active-ride",
+  "/partner/bookings",
+  "/partner/pending-requests",
+  "/user/book",
+  "/user/search",
+];
+
+const PUBLIC_PREFIXES = ["/ride/"];
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -16,7 +27,10 @@ export async function middleware(req: NextRequest) {
   }
 
   // 2. Allow public routes
-  if (PUBLIC_ROUTES.includes(pathname)) {
+  if (
+    PUBLIC_ROUTES.includes(pathname) ||
+    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+  ) {
     return NextResponse.next();
   }
 

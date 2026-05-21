@@ -31,6 +31,8 @@ type BookingStatus =
   | "requested"
   | "awaiting_payment"
   | "confirmed"
+  | "arriving"
+  | "arrived"
   | "started"
   | "completed"
   | "cancelled"
@@ -82,6 +84,18 @@ const STATUS_CONFIG: Record<
     label: "Driver on the Way",
     sublabel: "Driver is heading to pickup",
     dot: "bg-emerald-400",
+    mapStatus: "arriving",
+  },
+  arriving: {
+    label: "Driver on the Way",
+    sublabel: "Driver is heading to pickup",
+    dot: "bg-emerald-400",
+    mapStatus: "arriving",
+  },
+  arrived: {
+    label: "Driver Arrived",
+    sublabel: "Share pickup OTP to start your ride",
+    dot: "bg-sky-400",
     mapStatus: "arriving",
   },
   started: {
