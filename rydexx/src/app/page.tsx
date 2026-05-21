@@ -12,9 +12,10 @@ export default async function Home() {
   const session = await auth();
   await connectDb();
   const user = await User.findOne({ email: session?.user?.email });
+  const shouldTrackLocation = Boolean(session?.user?.id && user?.role === "partner");
   return (
     <div className="w-full min-h-screen bg-white ">
- <GeoUpdater userId={session?.user?.id}/>
+      {shouldTrackLocation && <GeoUpdater userId={session?.user?.id} />}
 
       {user?.role == "partner" ? (
         <>

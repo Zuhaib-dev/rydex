@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-const PUBLIC_ROUTES = ["/"];
+const PUBLIC_ROUTES = ["/", "/user/book", "/user/search", "/checkout"];
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
@@ -41,12 +41,6 @@ export async function middleware(req: NextRequest) {
   // Partner & KYC Routes
   if (pathname.startsWith("/partner") || pathname.startsWith("/video-kyc")) {
     if (role === "partner" || role === "admin") return NextResponse.next();
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
-  // User Routes
-  if (pathname.startsWith("/user") || pathname.startsWith("/search")) {
-    if (!role || role === "user" || role === "admin") return NextResponse.next();
     return NextResponse.redirect(new URL("/", req.url));
   }
 
