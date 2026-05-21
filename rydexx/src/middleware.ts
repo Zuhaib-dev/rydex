@@ -28,7 +28,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  const role = token.role as string;
+  const role = token.role as string | undefined;
 
   // 4. Role-based access control (RBAC)
 
@@ -46,7 +46,7 @@ export async function middleware(req: NextRequest) {
 
   // User Routes
   if (pathname.startsWith("/user") || pathname.startsWith("/search")) {
-    if (role === "user" || role === "admin") return NextResponse.next();
+    if (!role || role === "user" || role === "admin") return NextResponse.next();
     return NextResponse.redirect(new URL("/", req.url));
   }
 
@@ -64,4 +64,3 @@ export const config = {
     "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff2?|ttf|otf|css|js|map)$).*)",
   ],
 };
-

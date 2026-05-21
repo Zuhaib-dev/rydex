@@ -10,7 +10,7 @@ function PublicHome() {
     <>
       <HeroSection  onAuthRequired={()=>setAuthOpen(true)} />
       <VehicleSlider />
-      <AuthModel open={authOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModel open={authOpen} onClose={() => setAuthOpen(false)} redirectTo="/user/book" />
     </>
   );
 }

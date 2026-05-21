@@ -53,8 +53,10 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="mt-12 px-10 py-4 bg-white text-black rounded-full shadow-xl font-semibold"
+          disabled={status === "loading" && !userData}
+          className="mt-12 px-10 py-4 bg-white text-black rounded-full shadow-xl font-semibold disabled:opacity-70"
           onClick={() => {
+            if (status === "loading" && !userData) return;
             !isAuthenticated ? onAuthRequired() : router.push("/user/book");
           }}
         >

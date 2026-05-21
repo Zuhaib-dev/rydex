@@ -9,9 +9,10 @@ import { useRouter } from "next/navigation";
 type propType = {
   open: boolean;
   onClose: () => void;
+  redirectTo?: string;
 };
 type stepType = "login" | "signup" | "otp";
-function AuthModel({ open, onClose }: propType) {
+function AuthModel({ open, onClose, redirectTo }: propType) {
   const session = useSession();
   const router = useRouter();
   // console.log(session);
@@ -76,10 +77,13 @@ function AuthModel({ open, onClose }: propType) {
     } else if (res?.ok) {
       router.refresh();
       onClose(); 
+      if (redirectTo) {
+        router.push(redirectTo);
+      }
     }
   };
   const handleGoogleLogin = async () => {
-    await signIn("google");
+    await signIn("google", { callbackUrl: redirectTo || "/" });
   };
   const handleChangeOtp = (index: number, value: string) => {
     const lastChar = value.slice(-1); 
