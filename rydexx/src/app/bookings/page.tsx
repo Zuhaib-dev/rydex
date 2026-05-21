@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
+  ArrowLeft,
   IndianRupee,
   Loader2,
   Car,
@@ -12,6 +13,7 @@ import {
   Phone,
 } from "lucide-react";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 
 interface Booking {
   _id: string;
@@ -34,6 +36,7 @@ interface Booking {
 }
 
 export default function MyBookingsPage() {
+  const router = useRouter();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("All");
@@ -57,6 +60,9 @@ export default function MyBookingsPage() {
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       confirmed: "bg-emerald-50 text-emerald-700 border-emerald-200",
+      arriving: "bg-sky-50 text-sky-700 border-sky-200",
+      arrived: "bg-indigo-50 text-indigo-700 border-indigo-200",
+      started: "bg-purple-50 text-purple-700 border-purple-200",
       completed: "bg-teal-50 text-teal-700 border-teal-200",
       requested: "bg-amber-50 text-amber-700 border-amber-200",
       awaiting_payment: "bg-blue-50 text-blue-700 border-blue-200",
@@ -88,10 +94,21 @@ export default function MyBookingsPage() {
       <div className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto py-6">
-            <h1 className="text-2xl font-semibold text-gray-900">My Bookings</h1>
-            <p className="text-gray-500 text-sm mt-1">
-              {bookings.length} {bookings.length === 1 ? 'ride' : 'rides'} found
-            </p>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.back()}
+                className="w-10 h-10 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 shrink-0"
+                aria-label="Go back"
+              >
+                <ArrowLeft size={18} />
+              </button>
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-900">My Bookings</h1>
+                <p className="text-gray-500 text-sm mt-1">
+                  {bookings.length} {bookings.length === 1 ? 'ride' : 'rides'} found
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -114,6 +131,7 @@ export default function MyBookingsPage() {
               <option>Confirmed</option>
               <option>Completed</option>
               <option>Requested</option>
+              <option>Started</option>
               <option>Cancelled</option>
             </select>
           </div>

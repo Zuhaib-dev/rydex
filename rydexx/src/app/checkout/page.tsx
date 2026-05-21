@@ -5,10 +5,10 @@ import {
   MapPin, Navigation, ShieldCheck,
   Bike, Car, Truck, Loader2, CheckCircle2,
   XCircle, Clock, CreditCard, Banknote,
-  ArrowRight, RotateCcw, AlertCircle, Wallet,
+  ArrowLeft, ArrowRight, RotateCcw, AlertCircle, Wallet,
 } from "lucide-react";
 import { Suspense, useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 
 const VEHICLE_ICONS: Record<string, any> = {
@@ -21,6 +21,7 @@ type Status =
   | "payment" | "confirmed";
 
 function CheckoutContent() {
+  const router = useRouter();
   const params = useSearchParams();
 
   const pickup    = params.get("pickup")    || "Pickup Location";
@@ -227,6 +228,13 @@ function CheckoutContent() {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="mb-10"
         >
+          <button
+            onClick={() => router.back()}
+            className="mb-6 w-11 h-11 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center hover:bg-zinc-50 transition-colors"
+            aria-label="Go back"
+          >
+            <ArrowLeft size={17} className="text-zinc-900" />
+          </button>
           <div className="flex items-center gap-2 mb-2">
             <div className="h-px w-8 bg-zinc-900" />
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">Booking</span>
