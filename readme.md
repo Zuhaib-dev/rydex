@@ -104,7 +104,7 @@ npm run dev
 - **LinkedIn**: [Connect with me](https://www.linkedin.com/in/zuhaib-rashid-661345318/)
 - **Twitter**: [@your_handle](https://x.com/xuhaib_x9)
 
----
+--- 
 
 <div align="center">
   <p>Built with ❤️ by Zuhaib</p>
