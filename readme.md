@@ -108,4 +108,4 @@ npm run dev
 
 <div align="center">
   <p>Built with ❤️ by Zuhaib</p>
-</div>
+</div> 
