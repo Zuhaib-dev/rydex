@@ -78,16 +78,62 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://rydexx.netlify.app/#organization",
+        "name": "Rydex",
+        "url": "https://rydexx.netlify.app",
+        "logo": "https://rydexx.netlify.app/logo.png",
+        "sameAs": [
+          "https://github.com/Zuhaib-dev",
+          "https://www.linkedin.com/in/zuhaib-rashid-661345318/",
+          "https://x.com/xuhaib_x9"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "@id": "https://rydexx.netlify.app/#website",
+        "url": "https://rydexx.netlify.app",
+        "name": "Rydex",
+        "description": "Rydex lets you book bikes, cars, and trucks instantly. Fast, affordable, and reliable vehicle booking at your fingertips.",
+        "publisher": {
+          "@id": "https://rydexx.netlify.app/#organization"
+        }
+      },
+      {
+        "@type": "SoftwareApplication",
+        "@id": "https://rydexx.netlify.app/#softwareapplication",
+        "name": "Rydex App",
+        "operatingSystem": "All",
+        "applicationCategory": "TravelApplication",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "INR"
+        }
+      }
+    ]
+  };
+
   return (
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body>
         <ReduxProvider>
           <Provider>
             <InitUser />
-          {children}
+            {children}
           </Provider>
         </ReduxProvider>
       </body>
