@@ -3,7 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Menu,
@@ -13,6 +13,11 @@ import {
   Car,
   Truck,
   ChevronRight,
+  Mail,
+  Phone,
+  ShieldCheck,
+  CalendarDays,
+  ClipboardList,
 } from "lucide-react";
 import AuthModal from "./AuthModel";
 import { useDispatch, useSelector } from "react-redux";
@@ -22,10 +27,16 @@ import { setUserData } from "@/redux/userSlice";
 import axios from "axios";
 
 const NAV_ITEMS = ["Home", "Bookings", "Fleet", "FAQ", "Contact"];
+const subscribeHydration = () => () => {};
 
 type ProfileUser = {
   name?: string | null;
+  email?: string | null;
   role?: string | null;
+  mobileNumber?: string | null;
+  partnerStatus?: string | null;
+  isEmailVerified?: boolean | null;
+  createdAt?: string | Date | null;
 };
 
 type ProfileContentProps = {
@@ -50,6 +61,7 @@ export default function Nav() {
   const [activeCount, setActiveCount] = useState(0);
 
   const { data: session, status } = useSession();
+  const isHydrated = useSyncExternalStore(subscribeHydration, () => true, () => false);
   const pathname = usePathname();
   const router = useRouter();
   const profileRef = useRef<HTMLDivElement>(null);
@@ -60,6 +72,7 @@ export default function Nav() {
   const profileImage = userData?.image || session?.user?.image || null;
   const profileName = userData?.name || session?.user?.name || "User";
   const isLoggedIn = Boolean(profileUser) || status === "authenticated";
+  const shouldGateBookings = isHydrated && !isLoggedIn;
 
   /* Scroll */
   useEffect(() => {
@@ -168,7 +181,7 @@ export default function Nav() {
     return NAV_ITEMS.map((item) => {
       const href = item === "Home" ? "/" : `/${item.toLowerCase()}`;
       const active = pathname === href;
-      if (item === "Bookings" && !isLoggedIn) {
+      if (item === "Bookings" && shouldGateBookings) {
         return (
           <button
             key={item}
@@ -213,7 +226,7 @@ export default function Nav() {
 
           {/* LOGO */}
           <Link href="/" className="flex items-center">
-            <Image src="/logo.png" alt="RYDEX" width={44} height={44} priority className="w-auto h-auto" />
+            <Image src="/logo.png" alt="RYDEX" width={44} height={44} priority className="h-11 w-11 object-contain" />
           </Link>
 
           {/* DESKTOP NAV */}
@@ -249,7 +262,7 @@ export default function Nav() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-14 right-0 w-[300px] bg-white text-black rounded-2xl shadow-xl border"
+                        className="absolute top-14 right-0 w-[340px] overflow-hidden rounded-2xl border border-black/10 bg-white text-black shadow-[0_24px_80px_rgba(0,0,0,0.22)]"
                       >
                         <ProfileContent userData={profileUser} profileImage={profileImage} profileName={profileName} handleLogout={handleLogout} router={router} />
                       </motion.div>
@@ -359,7 +372,7 @@ export default function Nav() {
           ) : (
             NAV_ITEMS.map((item) => {
               const href = item === "Home" ? "/" : `/${item.toLowerCase()}`;
-              if (item === "Bookings" && !isLoggedIn) {
+              if (item === "Bookings" && shouldGateBookings) {
                 return (
                   <button
                     key={item}
@@ -446,50 +459,122 @@ function ProfileContent({
   router,
   mobile,
 }: ProfileContentProps) {
+  const role = userData.role || "user";
+  const email = userData.email || "Email not available";
+  const joinedDate = userData.createdAt
+    ? new Date(userData.createdAt).toLocaleDateString("en-US", {
+        month: "short",
+        year: "numeric",
+      })
+    : null;
+
   return (
-    <div className={`${mobile ? "p-6 pb-10" : "p-5"}`}>
-      <div className="flex items-center gap-3 mb-4">
-        {profileImage ? (
-          <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200">
-            <Image
-              src={profileImage}
-              alt={profileName}
-              width={48}
-              height={48}
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-              unoptimized
-            />
+    <div className={`${mobile ? "p-5 pb-8" : "p-0"}`}>
+      <div className="bg-black px-5 py-5 text-white">
+        <div className="flex items-center gap-4">
+          {profileImage ? (
+            <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-white/25 bg-white">
+              <Image
+                src={profileImage}
+                alt={profileName}
+                width={64}
+                height={64}
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+                unoptimized
+              />
+            </div>
+          ) : (
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white/20 bg-white text-2xl font-bold text-black">
+              {profileName.charAt(0).toUpperCase()}
+            </div>
+          )}
+
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-lg font-semibold leading-tight">{profileName}</p>
+            <p className="mt-1 truncate text-sm text-white/65">{email}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-black">
+                {role}
+              </span>
+              {userData.isEmailVerified && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/40 bg-emerald-400/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-100">
+                  <ShieldCheck size={12} />
+                  Verified
+                </span>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-black text-white font-bold flex items-center justify-center border text-lg">
-            {profileName.charAt(0).toUpperCase()}
-          </div>
-        )}
-        <div>
-          <p className="font-semibold text-base leading-tight">{profileName}</p>
-          <p className="text-[10px] uppercase text-gray-500 mt-1 font-bold tracking-wider">{userData.role || "user"}</p>
         </div>
       </div>
 
-      {userData.role !== "partner" && (
+      <div className="space-y-2 px-5 py-4">
+        <ProfileDetail icon={<Mail size={16} />} label="Email" value={email} preserveCase />
+        <ProfileDetail icon={<ShieldCheck size={16} />} label="Account role" value={role} />
+        {userData.mobileNumber && (
+          <ProfileDetail icon={<Phone size={16} />} label="Phone" value={userData.mobileNumber} />
+        )}
+        {userData.partnerStatus && role === "partner" && (
+          <ProfileDetail icon={<ClipboardList size={16} />} label="Partner status" value={userData.partnerStatus} />
+        )}
+        {joinedDate && (
+          <ProfileDetail icon={<CalendarDays size={16} />} label="Joined" value={joinedDate} />
+        )}
+      </div>
+
+      <div className="border-t border-gray-100 px-3 py-3">
+        <button
+          onClick={() => router.push("/bookings")}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
+        >
+          <ClipboardList size={17} />
+          My Bookings
+          <ChevronRight size={16} className="ml-auto text-gray-400" />
+        </button>
+
+      {role !== "partner" && (
         <button
           onClick={() => router.push("/partner/onboarding/vehicle")}
-          className="w-full flex items-center gap-3 py-3 hover:bg-gray-100 rounded-xl"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
         >
           <VehicleStack />
           Become a Partner
-          <ChevronRight size={16} className="ml-auto" />
+          <ChevronRight size={16} className="ml-auto text-gray-400" />
         </button>
       )}
 
       <button
         onClick={handleLogout}
-        className="w-full flex items-center gap-3 py-3 hover:bg-gray-100 rounded-xl mt-2"
+          className="mt-1 flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
       >
         <LogOut size={16} />
         Logout
       </button>
+      </div>
+    </div>
+  );
+}
+
+function ProfileDetail({
+  icon,
+  label,
+  value,
+  preserveCase,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  preserveCase?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-700 shadow-sm">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+        <p className={`truncate text-sm font-semibold text-gray-900 ${preserveCase ? "" : "capitalize"}`}>{value}</p>
+      </div>
     </div>
   );
 }

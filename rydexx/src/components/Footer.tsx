@@ -50,7 +50,7 @@ function Footer() {
 
           {/* Brand */}
           <div className="flex flex-col gap-4 max-w-xs">
-            <Image src="/logo.png" alt="Rydex" width={40} height={40} className="drop-shadow" />
+            <Image src="/logo.png" alt="Rydex" width={40} height={40} className="h-10 w-10 object-contain drop-shadow" />
             <p className="text-sm text-white/40 leading-relaxed">
               Fast, affordable vehicle booking — bikes, cars, trucks &amp; more. Your ride, your rules.
             </p>

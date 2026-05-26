@@ -198,9 +198,9 @@ export default function PartnerEarningsChart() {
             initial={{ opacity: 0, scaleY: 0.92 }}
             animate={{ opacity: 1, scaleY: 1 }}
             transition={{ duration: 0.45, ease: "easeOut" }}
-            className="h-56 w-full"
+            className="h-56 min-h-56 w-full min-w-0"
           >
-            <ResponsiveContainer width="100%" height="100%" minWidth={1}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <BarChart data={data} barCategoryGap="30%">
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
                 <XAxis
