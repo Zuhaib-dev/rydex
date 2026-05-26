@@ -62,7 +62,7 @@ export default function ContactPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400"
+            className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white to-neutral-400"
           >
             Get In Touch
           </motion.h1>
@@ -86,7 +86,7 @@ export default function ContactPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: i * 0.1 }}
-                  className="p-6 rounded-2xl border border-white/5 bg-white/[0.01] backdrop-blur-md flex gap-4 hover:border-white/10 transition-all"
+                  className="p-6 rounded-2xl border border-white/5 bg-white/1 backdrop-blur-md flex gap-4 hover:border-white/10 transition-all"
                 >
                   <div className="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
                     <Icon size={18} />
@@ -106,7 +106,7 @@ export default function ContactPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="p-6 rounded-2xl border border-white/5 bg-white/[0.01] backdrop-blur-md overflow-hidden relative"
+            className="p-6 rounded-2xl border border-white/5 bg-white/1 backdrop-blur-md overflow-hidden relative"
           >
             <h3 className="font-bold text-white text-sm mb-3">Live Dispatch Map Hub</h3>
             <div className="w-full h-36 rounded-xl bg-neutral-900 border border-white/10 flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
@@ -127,7 +127,7 @@ export default function ContactPage() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
-          className="md:col-span-7 p-8 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-2xl shadow-xl flex flex-col justify-between"
+          className="md:col-span-7 p-8 rounded-3xl border border-white/10 bg-white/2 backdrop-blur-2xl shadow-xl flex flex-col justify-between"
         >
           <form onSubmit={handleSubmit} className="space-y-6">
             <h2 className="text-2xl font-bold text-white mb-2">Send us a message</h2>
@@ -141,7 +141,7 @@ export default function ContactPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Zuhaib Rashid"
-                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500 focus:bg-white/[0.08] transition-all"
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500 focus:bg-white/2 transition-all"
                 />
               </div>
 
@@ -153,7 +153,7 @@ export default function ContactPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   placeholder="name@domain.com"
-                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500 focus:bg-white/[0.08] transition-all"
+                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500 focus:bg-white/2 transition-all"
                 />
               </div>
             </div>
@@ -165,7 +165,7 @@ export default function ContactPage() {
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 placeholder="Enterprise cargo scaling or partnerships"
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500 focus:bg-white/[0.08] transition-all"
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500 focus:bg-white/2 transition-all"
               />
             </div>
 
@@ -177,7 +177,7 @@ export default function ContactPage() {
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 placeholder="Enter details on vehicle availability, bookings, or dashboard concerns..."
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500 focus:bg-white/[0.08] transition-all resize-none"
+                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-blue-500 focus:bg-white/2 transition-all resize-none"
               />
             </div>
 
