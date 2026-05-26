@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
+import { emitBookingUpdated } from "@/lib/bookingEvents";
 
 export async function POST(
   req: NextRequest,
@@ -17,6 +18,11 @@ booking.status = "arrived";
 booking.arrivedAt = new Date();
 
   await booking.save();
+
+  await emitBookingUpdated(booking, {
+    bookingId: booking._id,
+    status: "arrived",
+  });
 
   return NextResponse.json({ success: true });
 }

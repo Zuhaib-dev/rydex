@@ -246,11 +246,20 @@ export default function DriverRidePage() {
     if (TERMINAL.includes(booking.status)) return;
     const socket = getSocket();
     socket.emit("join-booking", booking._id);
-    socket.on("driver-location", (d: any) =>
+    const handleDriverLocation = (d: any) =>
       setDriverPos([d.latitude, d.longitude]),
     );
+    const handleBookingUpdated = (data: { bookingId?: string; status?: BookingStatus; paymentStatus?: PaymentStatus }) => {
+      if (data.bookingId && data.bookingId !== booking._id) return;
+      setBooking((prev) => (prev ? { ...prev, ...data } : prev));
+    };
+
+    socket.on("driver-location", handleDriverLocation);
+    socket.on("booking-updated", handleBookingUpdated);
+
     return () => {
-      socket.off("driver-location");
+      socket.off("driver-location", handleDriverLocation);
+      socket.off("booking-updated", handleBookingUpdated);
     };
   }, [booking?._id, booking?.status]);
 

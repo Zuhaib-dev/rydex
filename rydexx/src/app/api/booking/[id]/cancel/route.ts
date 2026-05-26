@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
+import { emitBookingUpdated } from "@/lib/bookingEvents";
 
 export async function POST(
   req: NextRequest,
@@ -20,6 +21,11 @@ booking.status = "cancelled";
 
 
   await booking.save();
+
+  await emitBookingUpdated(booking, {
+    bookingId: booking._id,
+    status: "cancelled",
+  });
 
   return NextResponse.json({ success: true });
 }

@@ -52,24 +52,24 @@ export default function VendorPendingPage() {
 useEffect(() => {
   const socket = getSocket();
 
-  // Send partner identity to socket server
-  if (session?.user?.id) {
-    socket.emit("identity", session.user.id);
-  }
-
-  socket.on("new-booking", (booking) => {
-    setBookings((prev) => [booking, ...prev]);
-  });
-
-  socket.on("booking-updated", (data) => {
+  const handleNewBooking = (booking: Booking) => {
+    setBookings((prev) => (
+      prev.some((existing) => existing._id === booking._id)
+        ? prev
+        : [booking, ...prev]
+    ));
+  };
+  const handleBookingUpdated = (data: { bookingId?: string }) => {
     setBookings((prev) =>
       prev.filter((b) => b._id !== data.bookingId)
     );
-  });
+  };
 
+  socket.on("new-booking", handleNewBooking);
+  socket.on("booking-updated", handleBookingUpdated);
   return () => {
-    socket.off("new-booking");
-    socket.off("booking-updated");
+    socket.off("new-booking", handleNewBooking);
+    socket.off("booking-updated", handleBookingUpdated);
   };
 }, []);
   const handleAction = async (

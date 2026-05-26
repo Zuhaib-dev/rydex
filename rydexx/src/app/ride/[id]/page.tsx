@@ -190,15 +190,16 @@ export default function RidePage() {
     if (!id || !booking) return;
     const socket = getSocket();
     socket.emit("join-booking", id);
-    socket.on("driver-location", (data: any) =>
+    const handleDriverLocation = (data: any) =>
       setDriverPos([data.latitude, data.longitude]),
     );
-    socket.on("booking-updated", (data: any) => {
+    const handleBookingUpdated = (data: any) => {
+      if (data.bookingId && data.bookingId !== id) return;
       setBooking((prev) => (prev ? { ...prev, ...data } : null));
       /* close chat if ride moves past confirmed */
       if (data.status && data.status !== "confirmed") setChatOpen(false);
-    });
-    socket.on("driver-assigned", (data: any) => {
+    };
+    const handleDriverAssigned = (data: any) => {
       setBooking((prev) =>
         prev
           ? {
@@ -208,11 +209,16 @@ export default function RidePage() {
             }
           : null,
       );
-    });
+    };
+
+    socket.on("driver-location", handleDriverLocation);
+    socket.on("booking-updated", handleBookingUpdated);
+    socket.on("driver-assigned", handleDriverAssigned);
+
     return () => {
-      socket.off("driver-location");
-      socket.off("booking-updated");
-      socket.off("driver-assigned");
+      socket.off("driver-location", handleDriverLocation);
+      socket.off("booking-updated", handleBookingUpdated);
+      socket.off("driver-assigned", handleDriverAssigned);
     };
   }, [id, booking?._id]);
 

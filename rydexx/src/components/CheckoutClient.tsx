@@ -183,13 +183,16 @@ export default function CheckoutClient() {
   /* ── SOCKET ── */
   useEffect(() => {
     const socket = getSocket();
-    socket.on("booking-updated", (data) => {
+    const handleBookingUpdated = (data: { bookingId?: string; status?: Status }) => {
+      if (bookingId && data.bookingId && data.bookingId !== bookingId) return;
       if (data.status === "awaiting_payment") setStatus("awaiting_payment");
       if (data.status === "rejected")         setStatus("rejected");
       if (data.status === "confirmed")        setStatus("confirmed");
-    });
-    return () => { socket.off("booking-updated"); };
-  }, []);
+    };
+
+    socket.on("booking-updated", handleBookingUpdated);
+    return () => { socket.off("booking-updated", handleBookingUpdated); };
+  }, [bookingId]);
 
   /* ── RESTORE ── */
   useEffect(() => {

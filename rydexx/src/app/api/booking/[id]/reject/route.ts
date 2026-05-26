@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { auth } from "@/lib/auth";
-import { emitToSocketServer } from "@/lib/socketServer";
+import { emitBookingUpdated } from "@/lib/bookingEvents";
 
 export async function POST(
   req: NextRequest,
@@ -35,13 +35,9 @@ export async function POST(
     );
   }
 
-  await emitToSocketServer({
-    userId: booking.user,
-    event: "booking-updated",
-    data: {
-      bookingId: booking._id,
-      status: "rejected",
-    },
+  await emitBookingUpdated(booking, {
+    bookingId: booking._id,
+    status: "rejected",
   });
 
   return NextResponse.json({ success: true });

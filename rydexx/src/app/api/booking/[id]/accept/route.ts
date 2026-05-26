@@ -1,6 +1,6 @@
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
-import { emitToSocketServer } from "@/lib/socketServer";
+import { emitBookingUpdated } from "@/lib/bookingEvents";
 import { NextResponse, NextRequest } from "next/server";
 
 
@@ -20,13 +20,9 @@ export async function POST(
 
   await booking.save();
 
-  await emitToSocketServer({
-    userId: booking.user,
-    event: "booking-updated",
-    data: {
-      bookingId: booking._id,
-      status: "awaiting_payment",
-    },
+  await emitBookingUpdated(booking, {
+    bookingId: booking._id,
+    status: "awaiting_payment",
   });
 
   return NextResponse.json({ success: true });

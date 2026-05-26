@@ -1,6 +1,7 @@
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { NextResponse } from "next/server";
+import { emitBookingUpdated } from "@/lib/bookingEvents";
 
 export async function POST(
   req: Request,
@@ -19,6 +20,12 @@ export async function POST(
   booking.paymentDeadline = undefined;
 
   await booking.save();
+
+  await emitBookingUpdated(booking, {
+    bookingId: booking._id,
+    status: "confirmed",
+    paymentStatus: booking.paymentStatus,
+  });
 
   return NextResponse.json({ success: true });
 }

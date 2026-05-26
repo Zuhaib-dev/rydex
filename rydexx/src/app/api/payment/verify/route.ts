@@ -1,6 +1,7 @@
 import connectDb from "@/lib/db"
 import Booking from "@/models/booking.model"
 import crypto from "crypto"
+import { emitBookingUpdated } from "@/lib/bookingEvents"
 
 
 
@@ -44,6 +45,12 @@ export async function POST(req: Request) {
   booking.partnerAmount = partnerAmount
 
   await booking.save()
+
+  await emitBookingUpdated(booking, {
+    bookingId: booking._id,
+    status: "confirmed",
+    paymentStatus: booking.paymentStatus,
+  })
 
   return Response.json({
     success:true,
