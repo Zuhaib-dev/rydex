@@ -126,7 +126,7 @@ function AdminDashboard() {
       <header className="sticky top-0 bg-white border-b border-gray-100 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="Rydex" width={32} height={32} />
+            <Image src="/logo.png" alt="Rydex" width={32} height={32} className="h-8 w-8 object-contain" />
             <span className="font-black text-xl tracking-tighter uppercase">Rydex</span>
           </div>
           <div className="flex items-center gap-3">

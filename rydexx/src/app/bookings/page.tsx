@@ -13,6 +13,7 @@ import {
   Phone,
 } from "lucide-react";
 import axios from "axios";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 interface Booking {
@@ -172,10 +173,13 @@ export default function MyBookingsPage() {
                       {/* VEHICLE IMAGE */}
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 shrink-0 border border-gray-300">
                         {booking.vehicle?.imageUrl ? (
-                          <img 
-                            src={booking.vehicle.imageUrl} 
+                          <Image
+                            src={booking.vehicle.imageUrl}
                             alt={booking.vehicle.vehicleModel}
-                            className="w-full h-full object-cover"
+                            width={64}
+                            height={64}
+                            className="h-full w-full object-cover"
+                            unoptimized
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gray-300">
