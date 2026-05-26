@@ -17,7 +17,7 @@ import {
 import AuthModal from "./AuthModel";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { setUserData } from "@/redux/userSlice";
 import axios from "axios";
 
@@ -32,12 +32,17 @@ export default function Nav() {
   const [pendingCount, setPendingCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
 
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const router = useRouter();
   const profileRef = useRef<HTMLDivElement>(null);
 
   const dispatch = useDispatch<AppDispatch>();
   const { userData } = useSelector((state: RootState) => state.user);
+  const profileUser = userData || session?.user || null;
+  const profileImage = userData?.image || session?.user?.image || null;
+  const profileName = userData?.name || session?.user?.name || "User";
+  const isLoggedIn = Boolean(profileUser) || status === "authenticated";
 
   /* Scroll */
   useEffect(() => {
@@ -177,7 +182,7 @@ export default function Nav() {
 
             {/* DESKTOP PROFILE */}
             <div className="hidden md:block relative" ref={profileRef}>
-              {!userData ? (
+              {!isLoggedIn ? (
                 <button
                   onClick={() => setAuthOpen(true)}
                   className="px-6 py-2.5 rounded-full border border-white/20 text-sm font-semibold hover:bg-white hover:text-black transition"
@@ -189,17 +194,9 @@ export default function Nav() {
                   <button
                     onClick={() => setProfileOpen((p) => !p)}
                     className="w-11 h-11 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold"
+                    aria-label="Open profile menu"
                   >
-                    {userData.image ? (
-                      <img
-                        src={userData.image}
-                        alt={userData.name}
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      userData.name?.charAt(0).toUpperCase()
-                    )}
+                    <UserAvatar image={profileImage} name={profileName} />
                   </button>
 
                   <AnimatePresence>
@@ -210,7 +207,7 @@ export default function Nav() {
                         exit={{ opacity: 0, y: -10 }}
                         className="absolute top-14 right-0 w-[300px] bg-white text-black rounded-2xl shadow-xl border"
                       >
-                        <ProfileContent userData={userData} handleLogout={handleLogout} router={router} />
+                        <ProfileContent userData={profileUser} profileImage={profileImage} profileName={profileName} handleLogout={handleLogout} router={router} />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -220,7 +217,7 @@ export default function Nav() {
 
             {/* MOBILE PROFILE BUTTON */}
             <div className="md:hidden">
-              {!userData ? (
+              {!isLoggedIn ? (
                 <button onClick={() => setAuthOpen(true)} className="px-4 py-1.5 rounded-full bg-white text-black text-sm">
                   Login
                 </button>
@@ -228,17 +225,9 @@ export default function Nav() {
                 <button
                   onClick={() => setProfileOpen(true)}
                   className="w-9 h-9 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold"
+                  aria-label="Open profile menu"
                 >
-                  {userData.image ? (
-                    <img
-                      src={userData.image}
-                      alt={userData.name}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    userData.name?.charAt(0).toUpperCase()
-                  )}
+                  <UserAvatar image={profileImage} name={profileName} />
                 </button>
               )}
             </div>
@@ -347,7 +336,7 @@ export default function Nav() {
 
       {/* MOBILE PROFILE SHEET */}
       <AnimatePresence>
-        {profileOpen && userData && (
+        {profileOpen && profileUser && (
           <>
             <motion.div
               initial={{ opacity: 0 }}
@@ -363,7 +352,7 @@ export default function Nav() {
               transition={{ type: "spring", damping: 25 }}
               className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl shadow-2xl z-50 md:hidden"
             >
-              <ProfileContent userData={userData} handleLogout={handleLogout} router={router} mobile />
+              <ProfileContent userData={profileUser} profileImage={profileImage} profileName={profileName} handleLogout={handleLogout} router={router} mobile />
             </motion.div>
           </>
         )}
@@ -374,27 +363,42 @@ export default function Nav() {
   );
 }
 
-function ProfileContent({ userData, handleLogout, router, mobile }: any) {
+function UserAvatar({ image, name }: { image?: string | null; name: string }) {
+  if (image) {
+    return (
+      <img
+        src={image}
+        alt={name}
+        className="w-full h-full object-cover"
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
+  return <>{name.charAt(0).toUpperCase()}</>;
+}
+
+function ProfileContent({ userData, profileImage, profileName, handleLogout, router, mobile }: any) {
   return (
     <div className={`${mobile ? "p-6 pb-10" : "p-5"}`}>
       <div className="flex items-center gap-3 mb-4">
-        {userData.image ? (
+        {profileImage ? (
           <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200">
             <img
-              src={userData.image}
-              alt={userData.name}
+              src={profileImage}
+              alt={profileName}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
           </div>
         ) : (
           <div className="w-12 h-12 rounded-full bg-black text-white font-bold flex items-center justify-center border text-lg">
-            {userData.name?.charAt(0).toUpperCase()}
+            {profileName.charAt(0).toUpperCase()}
           </div>
         )}
         <div>
-          <p className="font-semibold text-base leading-tight">{userData.name}</p>
-          <p className="text-[10px] uppercase text-gray-500 mt-1 font-bold tracking-wider">{userData.role}</p>
+          <p className="font-semibold text-base leading-tight">{profileName}</p>
+          <p className="text-[10px] uppercase text-gray-500 mt-1 font-bold tracking-wider">{userData.role || "user"}</p>
         </div>
       </div>
 
