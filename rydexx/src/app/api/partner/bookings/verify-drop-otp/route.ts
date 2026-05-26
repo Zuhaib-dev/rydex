@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     booking.status = "completed";
 
     booking.dropOtp = "";
-    booking.dropOtpExpires = undefined as any;
+    booking.dropOtpExpires = undefined;
 
     await booking.save();
 
