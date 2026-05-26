@@ -195,6 +195,7 @@ export default function Nav() {
                         src={userData.image}
                         alt={userData.name}
                         className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
                       />
                     ) : (
                       userData.name?.charAt(0).toUpperCase()
@@ -233,6 +234,7 @@ export default function Nav() {
                       src={userData.image}
                       alt={userData.name}
                       className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
                     />
                   ) : (
                     userData.name?.charAt(0).toUpperCase()
@@ -382,6 +384,7 @@ function ProfileContent({ userData, handleLogout, router, mobile }: any) {
               src={userData.image}
               alt={userData.name}
               className="w-full h-full object-cover"
+              referrerPolicy="no-referrer"
             />
           </div>
         ) : (
