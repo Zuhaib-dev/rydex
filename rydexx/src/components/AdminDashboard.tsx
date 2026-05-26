@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { 
   Users, 
   CheckCircle, 
@@ -9,13 +9,20 @@ import {
   XCircle, 
   ShieldCheck,
   Video,
-  Truck
+  Truck,
+  LogOut,
+  Mail,
 } from "lucide-react";
 import KPI from "./KPI";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import ContentList from "./ContentList";
 import AdminEarningsChart from "./AdminEarning";
+import { signOut, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "@/redux/store";
+import { setUserData } from "@/redux/userSlice";
 
 type TabType = "partner" | "kyc" | "vehicle";
 
@@ -44,13 +51,24 @@ interface DashboardData {
   totalPendingPartners: number;
   pendingPartnerReviews: PartnerReview[];
   pendingVehicleReviews: VehicleReview[];
-  pendingVideoKYC: any[];
+  pendingVideoKYC: PartnerReview[];
 }
 
 function AdminDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabType>("partner");
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+  const { data: session } = useSession();
+  const router = useRouter();
+  const dispatch = useDispatch<AppDispatch>();
+  const { userData } = useSelector((state: RootState) => state.user);
+
+  const profileName = userData?.name || session?.user?.name || "Admin";
+  const profileEmail = userData?.email || session?.user?.email || "Email not available";
+  const profileRole = userData?.role || session?.user?.role || "admin";
+  const profileImage = userData?.image || session?.user?.image || null;
 
   const handleGetData = async () => {
     try {
@@ -62,20 +80,28 @@ function AdminDashboard() {
       setLoading(false);
     }
   };
-  const handleGetPendingKyc = async () => {
-    try {
-      const response = await axios.get("/api/admin/video-kyc/pending");
-      setData(response.data);
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     handleGetData();
   }, []);
+
+  useEffect(() => {
+    const handler = (event: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    dispatch(setUserData(null));
+    setProfileOpen(false);
+    router.push("/");
+  };
 
   if (loading) {
     return (
@@ -103,9 +129,88 @@ function AdminDashboard() {
             <Image src="/logo.png" alt="Rydex" width={32} height={32} />
             <span className="font-black text-xl tracking-tighter uppercase">Rydex</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-full text-xs font-bold uppercase tracking-widest shadow-lg">
-            <ShieldCheck size={14} className="text-white" />
-            Admin Dashboard
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 px-4 py-2 bg-black text-white rounded-full text-xs font-bold uppercase tracking-widest shadow-lg">
+              <ShieldCheck size={14} className="text-white" />
+              Admin Dashboard
+            </div>
+
+            <div className="relative" ref={profileRef}>
+              <button
+                onClick={() => setProfileOpen((open) => !open)}
+                className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-black text-sm font-black text-white shadow-sm transition hover:scale-[1.03]"
+                aria-label="Open admin profile menu"
+              >
+                {profileImage ? (
+                  <Image
+                    src={profileImage}
+                    alt={profileName}
+                    width={44}
+                    height={44}
+                    className="h-full w-full object-cover"
+                    referrerPolicy="no-referrer"
+                    unoptimized
+                  />
+                ) : (
+                  profileName.charAt(0).toUpperCase()
+                )}
+              </button>
+
+              <AnimatePresence>
+                {profileOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                    transition={{ duration: 0.16 }}
+                    className="absolute right-0 top-14 w-[330px] overflow-hidden rounded-2xl border border-black/10 bg-white text-black shadow-[0_24px_80px_rgba(0,0,0,0.18)]"
+                  >
+                    <div className="bg-black px-5 py-5 text-white">
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 bg-white text-xl font-black text-black">
+                          {profileImage ? (
+                            <Image
+                              src={profileImage}
+                              alt={profileName}
+                              width={56}
+                              height={56}
+                              className="h-full w-full object-cover"
+                              referrerPolicy="no-referrer"
+                              unoptimized
+                            />
+                          ) : (
+                            profileName.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-base font-bold">{profileName}</p>
+                          <p className="mt-1 truncate text-sm text-white/60">{profileEmail}</p>
+                          <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-black">
+                            <ShieldCheck size={12} />
+                            {profileRole}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 px-5 py-4">
+                      <AdminProfileDetail icon={<Mail size={16} />} label="Email" value={profileEmail} />
+                      <AdminProfileDetail icon={<ShieldCheck size={16} />} label="Access level" value={profileRole} />
+                    </div>
+
+                    <div className="border-t border-gray-100 px-3 py-3">
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                      >
+                        <LogOut size={16} />
+                        Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </header>
@@ -223,6 +328,28 @@ function AdminDashboard() {
           </AnimatePresence>
         </section>
       </main>
+    </div>
+  );
+}
+
+function AdminProfileDetail({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
+      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white text-gray-700 shadow-sm">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">{label}</p>
+        <p className="truncate text-sm font-semibold text-gray-900">{value}</p>
+      </div>
     </div>
   );
 }
