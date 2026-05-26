@@ -130,7 +130,7 @@ export default function Nav() {
     }
 
     return NAV_ITEMS.map((item) => {
-      const href = `/${item.toLowerCase()}`;
+      const href = item === "Home" ? "/" : `/${item.toLowerCase()}`;
       const active = pathname === href;
       return (
         <Link
@@ -306,16 +306,19 @@ export default function Nav() {
               </Link>
             </>
           ) : (
-            NAV_ITEMS.map((item) => (
-              <Link
-                key={item}
-                href={`/${item.toLowerCase()}`}
-                className="px-6 py-4 text-gray-300 hover:bg-white/5"
-                onClick={() => setMenuOpen(false)}
-              >
-                {item}
-              </Link>
-            ))
+            NAV_ITEMS.map((item) => {
+              const href = item === "Home" ? "/" : `/${item.toLowerCase()}`;
+              return (
+                <Link
+                  key={item}
+                  href={href}
+                  className="px-6 py-4 text-gray-300 hover:bg-white/5"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  {item}
+                </Link>
+              );
+            })
           )}
 
         </div>
