@@ -47,7 +47,7 @@ export default function PrivacyPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400"
+            className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white to-neutral-400"
           >
             Privacy Principles
           </motion.h1>
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="p-8 md:p-12 rounded-3xl border border-white/10 bg-white/[0.01] backdrop-blur-2xl space-y-8"
+          className="p-8 md:p-12 rounded-3xl border border-white/10 bg-white/1 backdrop-blur-2xl space-y-8"
         >
           {sections.map((sec, i) => {
             const Icon = sec.icon;
