@@ -6,7 +6,12 @@ const SOCKET_SERVER =
 
 export const getSocket=()=>{
 if(!socket){
-    socket=io(SOCKET_SERVER.replace(/\/+$/, ""))
+    socket=io(SOCKET_SERVER.replace(/\/+$/, ""), {
+        transports: ["websocket", "polling"],
+        reconnection: true,
+        reconnectionAttempts: 8,
+        reconnectionDelay: 800,
+    })
 }
 return socket
 }
