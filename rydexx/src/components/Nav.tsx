@@ -85,8 +85,12 @@ export default function Nav() {
 
   /* Close on route change */
   useEffect(() => {
-    setMenuOpen(false);
-    setProfileOpen(false);
+    const id = window.setTimeout(() => {
+      setMenuOpen(false);
+      setProfileOpen(false);
+    }, 0);
+
+    return () => window.clearTimeout(id);
   }, [pathname]);
 
   /* Desktop outside click */
