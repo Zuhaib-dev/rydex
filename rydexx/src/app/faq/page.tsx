@@ -76,7 +76,7 @@ export default function FAQPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400"
+            className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white to-neutral-400"
           >
             Frequently Asked Questions
           </motion.h1>
@@ -132,7 +132,7 @@ export default function FAQPage() {
                 initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
-                className="rounded-2xl border border-white/5 bg-white/[0.01] backdrop-blur-2xl overflow-hidden hover:border-white/10 transition-all duration-300"
+                className="rounded-2xl border border-white/5 bg-white/1 backdrop-blur-2xl overflow-hidden hover:border-white/10 transition-all duration-300"
               >
                 {/* Header button */}
                 <button
@@ -158,7 +158,7 @@ export default function FAQPage() {
                       animate={{ height: "auto", opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="border-t border-white/5 bg-white/[0.01]"
+                      className="border-t border-white/5 bg-white/1"
                     >
                       <p className="p-6 text-neutral-400 text-xs md:text-sm leading-relaxed">
                         {faq.a}
