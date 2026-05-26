@@ -3,6 +3,12 @@ import { getToken } from "next-auth/jwt";
 
 const PUBLIC_ROUTES = [
   "/",
+  "/about",
+  "/contact",
+  "/fleet",
+  "/faq",
+  "/privacy",
+  "/terms",
   "/bookings",
   "/checkout",
   "/partner/active-ride",
