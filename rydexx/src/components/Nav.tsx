@@ -43,6 +43,7 @@ export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [authRedirectTo, setAuthRedirectTo] = useState<string | undefined>();
   const [profileOpen, setProfileOpen] = useState(false);
 
   const [pendingCount, setPendingCount] = useState(0);
@@ -111,6 +112,16 @@ export default function Nav() {
     router.push("/");
   };
 
+  const openAuth = (redirectTo?: string) => {
+    setAuthRedirectTo(redirectTo);
+    setAuthOpen(true);
+  };
+
+  const handleBookingsClick = () => {
+    setMenuOpen(false);
+    openAuth("/bookings");
+  };
+
   const renderNavItems = () => {
     if (userData?.role === "partner") {
       return (
@@ -157,6 +168,19 @@ export default function Nav() {
     return NAV_ITEMS.map((item) => {
       const href = item === "Home" ? "/" : `/${item.toLowerCase()}`;
       const active = pathname === href;
+      if (item === "Bookings" && !isLoggedIn) {
+        return (
+          <button
+            key={item}
+            type="button"
+            onClick={handleBookingsClick}
+            className="text-sm font-medium text-gray-400 hover:text-white transition"
+          >
+            {item}
+          </button>
+        );
+      }
+
       return (
         <Link
           key={item}
@@ -204,7 +228,7 @@ export default function Nav() {
             <div className="hidden md:block relative" ref={profileRef}>
               {!isLoggedIn ? (
                 <button
-                  onClick={() => setAuthOpen(true)}
+                  onClick={() => openAuth()}
                   className="px-6 py-2.5 rounded-full border border-white/20 text-sm font-semibold hover:bg-white hover:text-black transition"
                 >
                   Login
@@ -238,7 +262,7 @@ export default function Nav() {
             {/* MOBILE PROFILE BUTTON */}
             <div className="md:hidden">
               {!isLoggedIn ? (
-                <button onClick={() => setAuthOpen(true)} className="px-4 py-1.5 rounded-full bg-white text-black text-sm">
+                <button onClick={() => openAuth()} className="px-4 py-1.5 rounded-full bg-white text-black text-sm">
                   Login
                 </button>
               ) : (
@@ -335,6 +359,19 @@ export default function Nav() {
           ) : (
             NAV_ITEMS.map((item) => {
               const href = item === "Home" ? "/" : `/${item.toLowerCase()}`;
+              if (item === "Bookings" && !isLoggedIn) {
+                return (
+                  <button
+                    key={item}
+                    type="button"
+                    className="px-6 py-4 text-left text-gray-300 hover:bg-white/5"
+                    onClick={handleBookingsClick}
+                  >
+                    {item}
+                  </button>
+                );
+              }
+
               return (
                 <Link
                   key={item}
@@ -378,7 +415,7 @@ export default function Nav() {
         )}
       </AnimatePresence>
 
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} redirectTo={authRedirectTo} />
     </>
   );
 }
