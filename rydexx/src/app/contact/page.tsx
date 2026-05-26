@@ -111,7 +111,7 @@ export default function ContactPage() {
             <h3 className="font-bold text-white text-sm mb-3">Live Dispatch Map Hub</h3>
             <div className="w-full h-36 rounded-xl bg-neutral-900 border border-white/10 flex flex-col items-center justify-center p-4 text-center relative overflow-hidden">
               {/* Mock Leaflet Grid background */}
-              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] bg-size:16px_16px" />
               <div className="absolute w-2 h-2 bg-blue-500 rounded-full animate-ping" />
               <div className="absolute w-2 h-2 bg-blue-500 rounded-full" />
               
