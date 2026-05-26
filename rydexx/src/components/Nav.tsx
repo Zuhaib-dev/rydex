@@ -386,11 +386,14 @@ export default function Nav() {
 function UserAvatar({ image, name }: { image?: string | null; name: string }) {
   if (image) {
     return (
-      <img
+      <Image
         src={image}
         alt={name}
+        width={44}
+        height={44}
         className="w-full h-full object-cover"
         referrerPolicy="no-referrer"
+        unoptimized
       />
     );
   }
@@ -411,11 +414,14 @@ function ProfileContent({
       <div className="flex items-center gap-3 mb-4">
         {profileImage ? (
           <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200">
-            <img
+            <Image
               src={profileImage}
               alt={profileName}
+              width={48}
+              height={48}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
+              unoptimized
             />
           </div>
         ) : (
