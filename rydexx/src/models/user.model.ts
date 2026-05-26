@@ -17,6 +17,7 @@ export interface IUser extends Document {
   videoKycRejectionReason:string
   rejectionReason:string,
   socketId:string|null,
+  image?:string|null,
   location?:{
     type:'Point',
     coordinates:[number,number]
@@ -84,6 +85,10 @@ const userSchema = new mongoose.Schema<IUser>(
       type:String
     },
     socketId:{
+      type:String,
+      default:null
+    },
+    image:{
       type:String,
       default:null
     },

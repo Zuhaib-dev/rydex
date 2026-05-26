@@ -188,9 +188,17 @@ export default function Nav() {
                 <>
                   <button
                     onClick={() => setProfileOpen((p) => !p)}
-                    className="w-11 h-11 rounded-full bg-white text-black font-bold"
+                    className="w-11 h-11 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold"
                   >
-                    {userData.name?.charAt(0).toUpperCase()}
+                    {userData.image ? (
+                      <img
+                        src={userData.image}
+                        alt={userData.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      userData.name?.charAt(0).toUpperCase()
+                    )}
                   </button>
 
                   <AnimatePresence>
@@ -218,9 +226,17 @@ export default function Nav() {
               ) : (
                 <button
                   onClick={() => setProfileOpen(true)}
-                  className="w-9 h-9 rounded-full bg-white text-black font-bold"
+                  className="w-9 h-9 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold"
                 >
-                  {userData.name?.charAt(0).toUpperCase()}
+                  {userData.image ? (
+                    <img
+                      src={userData.image}
+                      alt={userData.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    userData.name?.charAt(0).toUpperCase()
+                  )}
                 </button>
               )}
             </div>
@@ -359,8 +375,25 @@ export default function Nav() {
 function ProfileContent({ userData, handleLogout, router, mobile }: any) {
   return (
     <div className={`${mobile ? "p-6 pb-10" : "p-5"}`}>
-      <p className="font-semibold text-lg">{userData.name}</p>
-      <p className="text-xs uppercase text-gray-500 mb-4">{userData.role}</p>
+      <div className="flex items-center gap-3 mb-4">
+        {userData.image ? (
+          <div className="w-12 h-12 rounded-full overflow-hidden border border-gray-200">
+            <img
+              src={userData.image}
+              alt={userData.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div className="w-12 h-12 rounded-full bg-black text-white font-bold flex items-center justify-center border text-lg">
+            {userData.name?.charAt(0).toUpperCase()}
+          </div>
+        )}
+        <div>
+          <p className="font-semibold text-base leading-tight">{userData.name}</p>
+          <p className="text-[10px] uppercase text-gray-500 mt-1 font-bold tracking-wider">{userData.role}</p>
+        </div>
+      </div>
 
       {userData.role !== "partner" && (
         <button

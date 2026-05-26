@@ -65,8 +65,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           dbUser = await User.create({
             name: user.name,
             email: user.email,
+            image: user.image,
             role: "user",
           });
+        } else if (user.image && dbUser.image !== user.image) {
+          dbUser.image = user.image;
+          await dbUser.save();
         }
 
         user.id = dbUser._id.toString();
@@ -82,6 +86,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.name = user.name;
         token.email = user.email;
         token.role = user.role;
+        token.picture = user.image;
       }
 
       return token;
@@ -93,6 +98,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.name = token.name;
         session.user.email = token.email as string;
         session.user.role = token.role as string;
+        session.user.image = token.picture as string | null;
       }
 
       return session;
