@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       vehicles
     })
 
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { success: false },
       { status: 500 }

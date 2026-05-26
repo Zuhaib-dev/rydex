@@ -3,7 +3,7 @@ import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { auth } from "@/lib/auth";
 
-export async function GET(req: Request) {
+export async function GET() {
   await connectDb();
 
   const session = await auth();

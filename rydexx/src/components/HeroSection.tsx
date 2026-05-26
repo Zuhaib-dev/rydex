@@ -62,7 +62,12 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
           className="mt-12 px-10 py-4 bg-white text-black rounded-full shadow-xl font-semibold disabled:opacity-70"
           onClick={() => {
             if (status === "loading" && !userData) return;
-            !isAuthenticated ? onAuthRequired() : router.push("/user/book");
+            if (!isAuthenticated) {
+              onAuthRequired();
+              return;
+            }
+
+            router.push("/user/book");
           }}
         >
           Book Now
