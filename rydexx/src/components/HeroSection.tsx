@@ -4,6 +4,7 @@
 import { RootState } from "@/redux/store";
 import { Bike, Bus, Car, Truck } from "lucide-react";
 import { motion } from "motion/react";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
@@ -14,9 +15,13 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
   const isAuthenticated = status === "authenticated" || !!userData;
   return (
     <div className="relative min-h-screen w-full overflow-hidden">
-      <div
-        className="absolute inset-0 bg-cover bg-center "
-        style={{ backgroundImage: "url('/heroImage.jpg')" }}
+      <Image
+        src="/heroImage.jpg"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-center"
       />
       <div className="absolute inset-0 bg-black/60" />
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 text-center">
