@@ -88,7 +88,7 @@ export default function FleetPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-neutral-400"
+            className="text-4xl md:text-6xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white to-neutral-400"
           >
             The Rydex Fleet
           </motion.h1>
@@ -131,10 +131,10 @@ export default function FleetPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.4 }}
-            className="grid md:grid-cols-12 gap-8 p-8 md:p-12 rounded-3xl border border-white/10 bg-white/[0.01] backdrop-blur-2xl relative"
+            className="grid md:grid-cols-12 gap-8 p-8 md:p-12 rounded-3xl border border-white/10 bg-white/1 backdrop-blur-2xl relative"
           >
             {/* Dynamic ambient card flare */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/5 to-purple-600/5 rounded-3xl -z-10" />
+            <div className="absolute inset-0 bg-linear-to-tr from-blue-600/5 to-purple-600/5 rounded-3xl -z-10" />
 
             {/* Left Content (7 columns) */}
             <div className="md:col-span-7 space-y-6">
@@ -154,7 +154,7 @@ export default function FleetPage() {
 
               {/* Pricing Cards */}
               <div className="grid grid-cols-2 gap-4 pt-4 border-t border-white/5">
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col">
+                <div className="p-4 rounded-xl bg-white/2 border border-white/5 flex flex-col">
                   <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-semibold">Starting Base Fare</span>
                   <span className="text-2xl font-black text-white mt-1 flex items-center gap-1">
                     <IndianRupee size={18} />
@@ -162,7 +162,7 @@ export default function FleetPage() {
                   </span>
                 </div>
 
-                <div className="p-4 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col">
+                <div className="p-4 rounded-xl bg-white/2 border border-white/5 flex flex-col">
                   <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-semibold">Standard Fares</span>
                   <span className="text-2xl font-black text-white mt-1 flex items-center gap-1">
                     <IndianRupee size={18} />
@@ -178,7 +178,7 @@ export default function FleetPage() {
                   {currentVehicle.specs.map((spec) => {
                     const SpecIcon = spec.icon;
                     return (
-                      <div key={spec.label} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.01] border border-white/5 text-sm">
+                      <div key={spec.label} className="flex items-center justify-between p-3 rounded-lg bg-white/1 border border-white/5 text-sm">
                         <span className="text-neutral-500 flex items-center gap-2">
                           <SpecIcon size={14} className="text-blue-400/80" />
                           {spec.label}
@@ -192,7 +192,7 @@ export default function FleetPage() {
             </div>
 
             {/* Right Showcase (5 columns) */}
-            <div className="md:col-span-5 flex flex-col justify-between p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-6">
+            <div className="md:col-span-5 flex flex-col justify-between p-6 rounded-2xl bg-white/2 border border-white/5 space-y-6">
               <div>
                 <h3 className="font-bold text-lg text-white mb-2">Available Categories</h3>
                 <p className="text-xs text-neutral-500 leading-relaxed">We provide custom specifications for various models:</p>
