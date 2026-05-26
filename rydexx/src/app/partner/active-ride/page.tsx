@@ -246,9 +246,9 @@ export default function DriverRidePage() {
     if (TERMINAL.includes(booking.status)) return;
     const socket = getSocket();
     socket.emit("join-booking", booking._id);
-    const handleDriverLocation = (d: any) =>
-      setDriverPos([d.latitude, d.longitude]),
-    );
+    const handleDriverLocation = (d: any) => {
+      setDriverPos([d.latitude, d.longitude]);
+    };
     const handleBookingUpdated = (data: { bookingId?: string; status?: BookingStatus; paymentStatus?: PaymentStatus }) => {
       if (data.bookingId && data.bookingId !== booking._id) return;
       setBooking((prev) => (prev ? { ...prev, ...data } : prev));

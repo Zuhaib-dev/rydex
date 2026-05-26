@@ -190,9 +190,9 @@ export default function RidePage() {
     if (!id || !booking) return;
     const socket = getSocket();
     socket.emit("join-booking", id);
-    const handleDriverLocation = (data: any) =>
-      setDriverPos([data.latitude, data.longitude]),
-    );
+    const handleDriverLocation = (data: any) => {
+      setDriverPos([data.latitude, data.longitude]);
+    };
     const handleBookingUpdated = (data: any) => {
       if (data.bookingId && data.bookingId !== id) return;
       setBooking((prev) => (prev ? { ...prev, ...data } : null));
