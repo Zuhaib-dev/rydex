@@ -31,36 +31,26 @@ function PartnerDashboard() {
   ];
 
   const TOTAL_STEPS = STEPS.length;
-  const [completedSteps, setCompletedSteps] = useState(0);
+  const [polledCompletedSteps, setPolledCompletedSteps] = useState<number | null>(null);
   const { userData } = useSelector((state: RootState) => state.user);
   const router = useRouter();
 
   // Live KYC polling state
-  const [kycStatus, setKycStatus] = useState<string | null>(null);
-  const [kycRoomId, setKycRoomId] = useState<string | null>(null);
-  const [kycRejectionReason, setKycRejectionReason] = useState<string | null>(null);
+  const [polledKycStatus, setPolledKycStatus] = useState<string | null>(null);
+  const [polledKycRoomId, setPolledKycRoomId] = useState<string | null>(null);
+  const [polledKycRejectionReason, setPolledKycRejectionReason] = useState<string | null>(null);
   
   // Follow Partner Status too
-  const [partnerStatus, setPartnerStatus] = useState<string>("pending");
-  const [partnerRejectionReason, setPartnerRejectionReason] = useState<string | undefined>(undefined);
+  const [polledPartnerStatus, setPolledPartnerStatus] = useState<string | null>(null);
+  const [polledPartnerRejectionReason, setPolledPartnerRejectionReason] = useState<string | undefined>(undefined);
 
   const pollRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    if (userData?.partnerOnboardingSteps !== undefined) {
-      setCompletedSteps(userData.partnerOnboardingSteps);
-    }
-    // Seed initial KYC state from Redux
-    if (userData?.videoKycStatus) {
-      setKycStatus(userData.videoKycStatus);
-      setKycRoomId(userData.videoKycRoomId ?? null);
-      setKycRejectionReason(userData.videoKycRejectionReason ?? null);
-    }
-    if (userData?.partnerStatus) {
-      setPartnerStatus(userData.partnerStatus);
-      setPartnerRejectionReason(userData.rejectionReason);
-    }
-  }, [userData]);
+  const completedSteps = polledCompletedSteps ?? userData?.partnerOnboardingSteps ?? 0;
+  const kycStatus = polledKycStatus ?? userData?.videoKycStatus ?? null;
+  const kycRoomId = polledKycRoomId ?? userData?.videoKycRoomId ?? null;
+  const kycRejectionReason = polledKycRejectionReason ?? userData?.videoKycRejectionReason ?? null;
+  const partnerStatus = polledPartnerStatus ?? userData?.partnerStatus ?? "pending";
+  const partnerRejectionReason = polledPartnerRejectionReason ?? userData?.rejectionReason;
 
   // Poll /api/user/me every 8s to detect when admin starts a KYC call
   useEffect(() => {
@@ -69,13 +59,13 @@ function PartnerDashboard() {
         const res = await axios.get("/api/user/me");
         const u = res.data?.user;
         if (u) {
-          setKycStatus(u.videoKycStatus);
-          setKycRoomId(u.videoKycRoomId ?? null);
-          setKycRejectionReason(u.videoKycRejectionReason ?? null);
-          setPartnerStatus(u.partnerStatus);
-          setPartnerRejectionReason(u.rejectionReason);
+          setPolledKycStatus(u.videoKycStatus);
+          setPolledKycRoomId(u.videoKycRoomId ?? null);
+          setPolledKycRejectionReason(u.videoKycRejectionReason ?? null);
+          setPolledPartnerStatus(u.partnerStatus);
+          setPolledPartnerRejectionReason(u.rejectionReason);
           if (u.partnerOnboardingSteps !== undefined) {
-             setCompletedSteps(u.partnerOnboardingSteps);
+             setPolledCompletedSteps(u.partnerOnboardingSteps);
           }
         }
       } catch {
@@ -103,7 +93,7 @@ function PartnerDashboard() {
   const requestKycRetry = async () => {
     try {
       await axios.post("/api/partner/video-kyc/retry");
-      setKycStatus("pending");
+      setPolledKycStatus("pending");
       router.refresh();
     } catch (error) {
       console.error("Failed to request KYC retry", error);
