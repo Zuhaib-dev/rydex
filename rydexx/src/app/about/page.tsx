@@ -57,7 +57,7 @@ export default function AboutPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-4xl md:text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-neutral-200 to-neutral-400 leading-tight"
+            className="text-4xl md:text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white via-neutral-200 to-neutral-400 leading-tight"
           >
             Revolutionizing Logistics &amp; Travel
           </motion.h1>
@@ -75,7 +75,7 @@ export default function AboutPage() {
       </section>
 
       {/* Stats Counter Section */}
-      <section className="py-16 px-4 md:px-8 border-y border-white/5 bg-white/[0.01]">
+      <section className="py-16 px-4 md:px-8 border-y border-white/5 bg-white/1">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
           {stats.map((stat, i) => {
             const Icon = stat.icon;
@@ -118,7 +118,7 @@ export default function AboutPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: i * 0.15 }}
-                className="p-8 rounded-3xl border border-white/10 bg-white/[0.02] backdrop-blur-2xl hover:border-white/20 transition-all group"
+                className="p-8 rounded-3xl border border-white/10 bg-white/2 backdrop-blur-2xl hover:border-white/20 transition-all group"
               >
                 <div className="w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-300">
                   <Icon size={22} />
