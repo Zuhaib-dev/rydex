@@ -9,7 +9,6 @@ const PUBLIC_ROUTES = [
   "/faq",
   "/privacy",
   "/terms",
-  "/bookings",
   "/checkout",
   "/partner/active-ride",
   "/partner/bookings",
