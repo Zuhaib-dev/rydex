@@ -23,6 +23,22 @@ import axios from "axios";
 
 const NAV_ITEMS = ["Home", "Bookings", "Fleet", "FAQ", "Contact"];
 
+type ProfileUser = {
+  name?: string | null;
+  role?: string | null;
+};
+
+type ProfileContentProps = {
+  userData: ProfileUser;
+  profileImage?: string | null;
+  profileName: string;
+  handleLogout: () => Promise<void>;
+  router: {
+    push: (href: string) => void;
+  };
+  mobile?: boolean;
+};
+
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -200,7 +216,7 @@ export default function Nav() {
                   </button>
 
                   <AnimatePresence>
-                    {profileOpen && (
+                    {profileOpen && profileUser && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -378,7 +394,14 @@ function UserAvatar({ image, name }: { image?: string | null; name: string }) {
   return <>{name.charAt(0).toUpperCase()}</>;
 }
 
-function ProfileContent({ userData, profileImage, profileName, handleLogout, router, mobile }: any) {
+function ProfileContent({
+  userData,
+  profileImage,
+  profileName,
+  handleLogout,
+  router,
+  mobile,
+}: ProfileContentProps) {
   return (
     <div className={`${mobile ? "p-6 pb-10" : "p-5"}`}>
       <div className="flex items-center gap-3 mb-4">
@@ -404,7 +427,7 @@ function ProfileContent({ userData, profileImage, profileName, handleLogout, rou
 
       {userData.role !== "partner" && (
         <button
-          onClick={() => router.push("/partner/onboard/vehicle")}
+          onClick={() => router.push("/partner/onboarding/vehicle")}
           className="w-full flex items-center gap-3 py-3 hover:bg-gray-100 rounded-xl"
         >
           <VehicleStack />
