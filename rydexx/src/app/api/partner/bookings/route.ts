@@ -26,7 +26,8 @@ export async function GET(req: Request) {
       path: "driver",
       select: "name",
     })
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
   return NextResponse.json({ bookings });
 }

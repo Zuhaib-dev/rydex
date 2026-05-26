@@ -1,6 +1,5 @@
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
-import axios from "axios";
 import { NextResponse, NextRequest } from "next/server";
 
 
@@ -10,7 +9,7 @@ export async function GET(
 ) {
   const { id } = await context.params;
   await connectDb();
-  const booking = await Booking.findById(id).populate("driver vehicle")
+  const booking = await Booking.findById(id).populate("driver vehicle").lean();
 
 
   return NextResponse.json(booking);

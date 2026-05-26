@@ -20,7 +20,8 @@ export async function GET() {
       path: "driver",
       select: "name mobileNumber",
     })
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
   return NextResponse.json({ bookings });
 }

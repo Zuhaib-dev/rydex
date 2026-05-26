@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
           $maxDistance: 5000
         }
       }
-    }).select("_id")
+    }).select("_id").lean()
 
     const partnerIds = partners.map(v => v._id)
 

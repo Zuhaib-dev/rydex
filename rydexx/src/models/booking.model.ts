@@ -152,6 +152,9 @@ dropOtpExpires: {
   { timestamps: true }
 );
 
+BookingSchema.index({ user: 1, status: 1, createdAt: -1 });
+BookingSchema.index({ driver: 1, status: 1, createdAt: -1 });
+
 const Booking = mongoose.models.Booking ||
   mongoose.model<IBooking>("Booking", BookingSchema);
 export default Booking;
