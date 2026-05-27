@@ -1,93 +1,350 @@
 <div align="center">
 
-# 🎨 Rydex Frontend (`rydexx`)
-### *The Ultimate UI Command Center & Visual Masterpiece*
+# `rydexx` — Rydex Frontend & API
 
-[![Framework: Next.js 16](https://img.shields.io/badge/Framework-Next.js%2016-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![Style: Tailwind CSS 4](https://img.shields.io/badge/Style-Tailwind%20CSS%204-06B6D4?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
-[![State: Redux Toolkit](https://img.shields.io/badge/State-Redux%20Toolkit-764ABC?style=for-the-badge&logo=redux)](https://redux-toolkit.js.org/)
+### Next.js 16 · TypeScript · Tailwind CSS 4 · Mapbox · Socket.IO
 
----
-
-<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM2g1dDVoY3ZhaGV2M25tdTNubzM5cjBwMzM0eTRyZzE2ZXoxZ2YxMiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/13FrpeVHb9ZQOI/giphy.gif" width="500" alt="Slick Coding GIF"/>
-
-*Frontend developers when they write a `div` that is off-center by 1 pixel.*
-
----
+[![Next.js](https://img.shields.io/badge/Next.js-16.2-black?style=flat-square&logo=next.js)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
+[![PWA](https://img.shields.io/badge/PWA-Enabled-5A0FC8?style=flat-square&logo=pwa)](https://web.dev/progressive-web-apps/)
 
 </div>
 
-## 🎭 What is this codebase?
+---
 
-Welcome to the frontend core of **Rydex**! This is where we turn boring lines of code into gorgeous, eye-melting, responsive booking interfaces that our users fall in love with. 
+## What This Is
 
-We utilize **Next.js 16** (with the cutting-edge App Router), which means half of your code runs on the server (very smart, super fast, feels premium) and the other half runs on the client (mostly complaining about hydrated states and tracking user clicks). 
+This is the main application — the **Next.js 16 App Router** project that serves:
+- The **public landing page** (cinematic hero, feature bento, testimonials, CTA)
+- The **user booking flow** (vehicle select → map → fare → checkout)
+- The **partner dashboard** (live requests, earnings charts, KYC)
+- The **admin control center** (live map, approvals, surge zones)
+- **40+ REST API routes** (all under `/src/app/api/`)
 
 ---
 
-## 🚀 The Stack (And Why We Use It)
-
-*   **Next.js 16 (App Router):** Because we like our server components like we like our coffee—highly dynamic and executed in the background.
-*   **Tailwind CSS 4:** Because writing standard vanilla CSS file sheets in 2026 feels like using a typewriter to write an email. *Warning: Class names might occasionally be longer than this README.*
-*   **Framer Motion:** Because static elements are a crime against modern aesthetics. If it doesn't fade, slide, bounce, or spin when you hover on it, it doesn't belong in Rydex!
-*   **Redux Toolkit:** Our single source of truth. It holds user sessions, booking details, and UI configurations. It's like the project's brain, except it doesn't forget where you put your car keys.
-*   **React Leaflet:** Drawing live maps on the canvas. It renders little vehicle icons moving across the streets in real-time, hoping and praying they don't jump into the Pacific Ocean during a socket drop.
-
----
-
-## 📂 Codebase Breakdown
-
-Here is a map to help you navigate through the frontend jungle (`rydexx/src/`):
+## Project Structure
 
 ```
-src/
-├── app/               # Next.js App Router (The URL structure lives here)
-│   ├── api/           # Backend-in-a-trenchcoat: Our API routes & server controllers
-│   ├── page.tsx       # The majestic homepage
-│   └── layout.tsx     # The master HTML layout wrapping all pages
-├── components/        # Reusable UI widgets (Buttons, Modals, Map views, Dashboards)
-├── hooks/             # Custom React hooks (Use these so you don't repeat yourself!)
-├── lib/               # Utility helper functions (Formatters, calculation logic)
-├── middleware.ts      # The strict doorman checking authorization tokens
-├── models/            # Database schema templates mapped to Mongoose
-└── redux/             # State-management central station (Slices, selectors, store)
+rydexx/
+├── src/
+│   ├── app/                            # Next.js App Router
+│   │   ├── page.tsx                    # Root page (role-aware: user/partner/admin)
+│   │   ├── layout.tsx                  # Root layout + SEO metadata + PWA tags
+│   │   ├── globals.css                 # Tailwind + global scroll/font styles
+│   │   ├── robots.ts                   # SEO robots config
+│   │   ├── sitemap.ts                  # Auto-generated sitemap
+│   │   │
+│   │   ├── about/                      # About page
+│   │   ├── bookings/                   # User booking history
+│   │   ├── checkout/                   # Razorpay checkout page
+│   │   ├── contact/                    # Contact page
+│   │   ├── faq/                        # FAQ page
+│   │   ├── fleet/                      # Browse vehicle fleet
+│   │   ├── partner/                    # All partner routes
+│   │   │   ├── active-ride/            # Current active ride view
+│   │   │   ├── bookings/               # Partner booking history
+│   │   │   ├── onboarding/             # 8-step onboarding wizard
+│   │   │   ├── pending-requests/       # Incoming booking requests
+│   │   │   └── vehicle/                # My vehicle management
+│   │   ├── privacy/                    # Privacy policy
+│   │   ├── ride/                       # Live ride tracking view
+│   │   ├── share/                      # Public trip share (no auth)
+│   │   ├── terms/                      # Terms of service
+│   │   ├── user/
+│   │   │   └── book/                   # Vehicle booking wizard
+│   │   ├── video-kyc/                  # Video KYC session page
+│   │   │
+│   │   └── api/                        # ← All API routes (40+)
+│   │       ├── auth/                   # Register, verify-email, NextAuth
+│   │       ├── booking/                # Full booking CRUD & state machine
+│   │       ├── admin/                  # Admin endpoints
+│   │       ├── partner/                # Partner-specific endpoints
+│   │       ├── payment/                # Razorpay create + verify
+│   │       ├── chat/                   # In-ride messaging
+│   │       ├── reviews/                # Post-ride reviews
+│   │       ├── vehicles/               # Vehicle listings + nearby search
+│   │       ├── metrics/                # Search log analytics
+│   │       ├── me/                     # Current user profile
+│   │       └── socket/                 # Socket auth connect
+│   │
+│   ├── components/                     # 25+ React components
+│   │   ├── ── Landing Page ──
+│   │   ├── HeroSection.tsx             # Cinematic hero (parallax, typewriter, CTA)
+│   │   ├── LandingFeatures.tsx         # Dark bento-grid features
+│   │   ├── LandingStats.tsx            # Animated count-up stats
+│   │   ├── LandingHowItWorks.tsx       # 4-step dark how-it-works
+│   │   ├── LandingTestimonials.tsx     # Review cards grid
+│   │   ├── LandingCTA.tsx              # Final CTA with marquee
+│   │   ├── VehicleSlider.tsx           # Scrollable vehicle category cards
+│   │   ├── PublicHome.tsx              # Landing page composer
+│   │   │
+│   │   ├── ── Navigation ──
+│   │   ├── Nav.tsx                     # Smart navbar (role-aware, profile dropdown)
+│   │   ├── Footer.tsx                  # Footer with socials
+│   │   │
+│   │   ├── ── Auth ──
+│   │   ├── AuthModel.tsx               # Sign in / Sign up modal
+│   │   │
+│   │   ├── ── Maps ──
+│   │   ├── LiveTrackingMap.tsx         # Real-time driver tracking (Mapbox)
+│   │   ├── RouteMap.tsx                # Static route display
+│   │   ├── ShareTripMap.tsx            # Public trip share map
+│   │   ├── AdminLiveMap.tsx            # Admin all-drivers map
+│   │   │
+│   │   ├── ── Partner ──
+│   │   ├── PartnerDashboard.tsx        # Partner home (requests + stats)
+│   │   ├── PartnerAnalyticsHub.tsx     # Full analytics (Recharts)
+│   │   ├── PartnerEarningChart.tsx     # Earnings line chart
+│   │   ├── StatusCard.tsx              # Booking status card (ride view)
+│   │   ├── RideChat.tsx                # In-ride chat interface
+│   │   │
+│   │   ├── ── Admin ──
+│   │   ├── AdminDashboard.tsx          # Admin KPI overview
+│   │   ├── AdminEarning.tsx            # Commission charts
+│   │   ├── KPI.tsx                     # KPI metric card
+│   │   │
+│   │   ├── ── Booking ──
+│   │   ├── VehicleBookingCard.tsx      # Vehicle selection card
+│   │   ├── CheckoutClient.tsx          # Razorpay checkout UI
+│   │   ├── AnimateCard.tsx             # Animated card wrapper
+│   │   ├── ContentList.tsx             # Feature list component
+│   │   │
+│   │   ├── ── Utility ──
+│   │   ├── GeoUpdater.tsx              # Partner GPS broadcaster
+│   │   ├── VideoKYCBanner.tsx          # KYC status banner
+│   │   └── InstallPWA.tsx              # Add-to-homescreen prompt
+│   │
+│   ├── lib/                            # Core server-side utilities
+│   │   ├── auth.ts                     # NextAuth config (Google + Credentials)
+│   │   ├── db.ts                       # MongoDB connection singleton
+│   │   ├── matchmaker.ts               # Cascade booking algorithm
+│   │   ├── bookingEvents.ts            # Socket emit helpers
+│   │   ├── socketServer.ts             # HTTP bridge to socket server
+│   │   ├── socket.ts                   # Client-side Socket.IO singleton
+│   │   ├── imagekit.ts                 # Server-side ImageKit auth
+│   │   ├── imagekit-client.ts          # Client-side ImageKit upload
+│   │   ├── razorpay.ts                 # Razorpay instance
+│   │   ├── sendMail.ts                 # Nodemailer send helper
+│   │   └── emailTemplate.ts            # HTML email templates
+│   │
+│   ├── models/                         # Mongoose schemas
+│   │   ├── user.model.ts               # User (all roles)
+│   │   ├── booking.model.ts            # Booking (full state machine)
+│   │   ├── vehicle.model.ts            # Vehicle registration
+│   │   ├── review.model.ts             # Post-ride reviews
+│   │   ├── chatMessage.model.ts        # In-ride chat messages
+│   │   ├── partnerBank.model.ts        # Partner bank details
+│   │   ├── partnerDocs.model.ts        # KYC document storage
+│   │   ├── searchLog.model.ts          # Search analytics
+│   │   └── surgeZone.model.ts          # Dynamic pricing zones
+│   │
+│   ├── redux/                          # Global state management
+│   │   ├── store.ts                    # Redux store
+│   │   ├── userSlice.ts                # User data slice
+│   │   └── ReduxProvider.tsx           # Client-side store provider
+│   │
+│   ├── hooks/                          # Custom React hooks
+│   ├── middleware.ts                   # Route protection (auth guard)
+│   ├── InitUser.tsx                    # Bootstrap user data on mount
+│   ├── Provider.tsx                    # NextAuth SessionProvider
+│   ├── global.d.ts                     # Global type declarations
+│   └── types.d.ts                      # Shared type definitions
+│
+├── public/
+│   ├── heroImage.jpg                   # Landing hero background
+│   ├── logo.png                        # Rydex logo
+│   ├── manifest.json                   # PWA manifest
+│   ├── icon-72x72.png                  # PWA icons (multiple sizes)
+│   ├── icon-96x96.png
+│   ├── icon-144x144.png
+│   ├── icon-192x192.png
+│   ├── icon-512x512.png
+│   ├── apple-touch-icon.png
+│   └── ogimage.webp                    # Open Graph social image
+│
+├── next.config.ts                      # Next.js + Turbopack + PWA config
+├── tailwind.config.ts                  # Tailwind v4 config
+├── tsconfig.json                       # TypeScript config
+└── package.json
 ```
 
 ---
 
-## ⚠️ Known Frontend Phenomenon
+## Page Routes
 
-1.  **Hydration Warnings:** If you get a warning saying the server rendered a `div` that the client didn't expect, take a deep breath. It's not you, it's the client's system clock being 2 milliseconds off. Simply refresh, or pretend you didn't see it.
-2.  **Tailwind Class Fatigue:** Yes, `flex flex-col items-center justify-between p-4 md:p-8 bg-neutral-900 border border-white/10 rounded-2xl shadow-xl transition-all duration-300 hover:scale-[1.02]` is a single CSS class. Deal with it. It looks gorgeous!
-3.  **Map Outages:** If the map is completely grey, check your internet. Or check if Leaflet is angry. (Usually, it's just angry).
+| Route | Auth | Role | Description |
+|---|---|---|---|
+| `/` | No | All | Landing page (role-aware home) |
+| `/about` | No | All | About Rydex |
+| `/contact` | No | All | Contact page |
+| `/faq` | No | All | Frequently asked questions |
+| `/fleet` | No | All | Browse vehicle types |
+| `/privacy` | No | All | Privacy policy |
+| `/terms` | No | All | Terms of service |
+| `/bookings` | ✅ | user | Booking history |
+| `/user/book` | ✅ | user | Book a vehicle |
+| `/checkout` | ✅ | user | Razorpay checkout |
+| `/ride` | ✅ | user | Live ride tracking |
+| `/share/[id]` | No | All | Public trip share |
+| `/partner/pending-requests` | ✅ | partner | Incoming booking requests |
+| `/partner/active-ride` | ✅ | partner | Current ride management |
+| `/partner/bookings` | ✅ | partner | Partner booking history |
+| `/partner/vehicle` | ✅ | partner | My vehicle |
+| `/partner/onboarding/...` | ✅ | partner | 8-step onboarding |
+| `/video-kyc` | ✅ | partner/admin | Video KYC session |
 
 ---
 
-## 🛠 Getting the UI Live
+## Component Architecture
 
-Ready to make things look pretty?
+```mermaid
+graph TD
+    subgraph "Layout (layout.tsx)"
+        ROOT["RootLayout\n(ReduxProvider + SessionProvider + InitUser)"]
+    end
 
-### 1. Configure the Secrets (`.env.local`)
-Create a `.env.local` inside this directory and fill it with your credentials:
+    subgraph "Page (page.tsx)"
+        HOME["Home (server component)"]
+        HOME -->|role = user| PUB["PublicHome"]
+        HOME -->|role = partner| PD["PartnerDashboard"]
+        HOME -->|role = admin| AD["AdminDashboard"]
+    end
+
+    subgraph "PublicHome"
+        PUB --> HERO["HeroSection\n(parallax, typewriter)"]
+        PUB --> FEAT["LandingFeatures\n(bento grid)"]
+        PUB --> STATS["LandingStats\n(count-up)"]
+        PUB --> HOW["LandingHowItWorks\n(4 steps)"]
+        PUB --> VS["VehicleSlider\n(horizontal scroll)"]
+        PUB --> TEST["LandingTestimonials\n(review cards)"]
+        PUB --> CTA["LandingCTA\n(marquee)"]
+    end
+
+    subgraph "Shared"
+        NAV["Nav (role-aware)"]
+        FOOT["Footer"]
+        AUTH["AuthModel (modal)"]
+    end
+```
+
+---
+
+## Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant NA as NextAuth
+    participant DB as MongoDB
+    participant G as Google OAuth
+
+    alt Google Login
+        C->>NA: signIn("google")
+        NA->>G: OAuth redirect
+        G->>NA: user profile callback
+        NA->>DB: findOne({email}) or create new user
+        NA->>C: JWT session (id, email, role, image)
+    end
+
+    alt Credentials Login
+        C->>NA: signIn("credentials", {email, password})
+        NA->>DB: findOne({email})
+        DB->>NA: user document
+        NA->>NA: bcrypt.compare(password, hash)
+        NA->>C: JWT session (id, email, role)
+    end
+
+    Note over NA, DB: Every request refreshes role from DB
+    C->>NA: getSession()
+    NA->>DB: findOne({email}).select("role")
+    NA->>C: Updated session with fresh role
+```
+
+---
+
+## PWA Configuration
+
+Rydex is fully installable as a Progressive Web App:
+
+| Feature | Implementation |
+|---|---|
+| Service Worker | `@ducanh2912/next-pwa` (Workbox) |
+| App Manifest | `/public/manifest.json` |
+| Icons | 72 / 96 / 144 / 192 / 512px PNG + Apple touch |
+| Theme Color | `#0a0a0a` (dark) |
+| Status Bar | `black-translucent` (iOS) |
+| Cache Strategy | Aggressive front-end nav caching |
+| Offline | Service worker caches critical routes |
+
+---
+
+## Key Libraries Deep Dive
+
+### Mapbox GL
+Used for all map views. Three distinct map components:
+- `LiveTrackingMap` — animates driver marker in real-time as Socket.IO pushes coords
+- `RouteMap` — displays static pickup→drop route with polyline
+- `AdminLiveMap` — clusters all active online partners on a single map
+
+### Motion (Framer Motion v12)
+Used throughout for:
+- Parallax scroll on hero (`useScroll` + `useTransform`)
+- `whileInView` entrance animations on every section
+- Spring physics on modal sheets and dropdowns
+- Infinite marquee in CTA section
+
+### Redux Toolkit
+Single slice: `userSlice` — stores the full user document after login. This avoids re-fetching from the DB on every page and keeps the nav/profile panel snappy.
+
+### Recharts
+Used in `PartnerEarningChart` and `PartnerAnalyticsHub` for:
+- Area chart (weekly earnings)
+- Bar chart (trip count by day)
+- Pie chart (vehicle type distribution)
+
+---
+
+## Environment Setup
+
 ```env
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=your_stripe_key
-STRIPE_SECRET_KEY=your_stripe_secret
-NEXT_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_id
-MONGODB_URI=your_mongodb_atlas_uri
-NEXTAUTH_SECRET=your_nextauth_jwt_secret
+# .env.local
+MONGODB_URL=mongodb+srv://...
+AUTH_SECRET=...
+AUTH_GOOGLE_ID=...
+AUTH_GOOGLE_SECRET=...
+SOCKET_SERVER_URL=http://localhost:8000
+IMAGEKIT_PUBLIC_KEY=...
+IMAGEKIT_PRIVATE_KEY=...
+IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/...
+RAZORPAY_KEY_ID=...
+RAZORPAY_KEY_SECRET=...
+ZEGO_APP_ID=...
+ZEGO_SERVER_SECRET=...
+EMAIL_USER=...
+EMAIL_PASS=...
+NEXT_PUBLIC_BASE_URL=http://localhost:3000
+NEXT_PUBLIC_MAPBOX_TOKEN=...
 ```
-
-### 2. Install & Fire It Up
-```bash
-npm install
-npm run dev
-```
-
-Your browser will automatically open [http://localhost:3000](http://localhost:3000). Get ready to be wowed by the sleek layouts!
 
 ---
 
-<div align="center">
-  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3VlMmI5djc2dWc5Ynd2MHVud3drNm82NW43ZHpzaXdyMDNxb21mdSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/L2z7nJQ91E278gAra6/giphy.gif" width="300" alt="Beautiful Interface UI"/>
-  <p>Make it dynamic. Make it premium. Make it Rydex. 🌟</p>
-</div>
+## Running Locally
+
+```bash
+# Install dependencies
+npm install
+
+# Start dev server (Turbopack)
+npm run dev
+# → http://localhost:3000
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+```
+
+> **Note:** `npm run dev` uses Turbopack by default (Next.js 16). The `turbopack: {}` config in `next.config.ts` suppresses the webpack compatibility warning.
