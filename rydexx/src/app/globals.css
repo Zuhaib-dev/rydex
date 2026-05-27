@@ -1,4 +1,23 @@
 @import "tailwindcss";
+
+/* Smooth scroll globally */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better font rendering */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Custom text selection */
+::selection {
+  background: #09090b;
+  color: #ffffff;
+}
+
 /* Hide scrollbar but keep scroll */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* IE and Edge */
