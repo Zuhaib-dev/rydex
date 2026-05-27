@@ -55,7 +55,7 @@ export default function LandingHowItWorks() {
             </div>
             <h2 className="text-4xl sm:text-5xl font-black text-white leading-tight tracking-tight">
               Up and riding{" "}
-              <span className="bg-gradient-to-r from-white/90 to-white/30 bg-clip-text text-transparent">
+              <span className="bg-linear-to-r from-white/90 to-white/30 bg-clip-text text-transparent">
                 in 60 seconds.
               </span>
             </h2>
