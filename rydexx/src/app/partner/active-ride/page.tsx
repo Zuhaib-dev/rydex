@@ -1237,7 +1237,7 @@ function FailedScreen({
 
         <motion.button
           whileTap={{ scale: 0.97 }}
-          onClick={() => (window.location.href = "/partner")}
+          onClick={() => (window.location.href = "/")}
           className="w-full bg-white text-zinc-900 py-4 rounded-2xl text-sm font-bold hover:bg-zinc-100 transition-colors"
         >
           Back to Dashboard
