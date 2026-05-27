@@ -23,7 +23,10 @@ export interface IUser extends Document {
     coordinates:[number,number]
   },
   isOnline:boolean,
-  partnerStatus:"pending" | "approved" | "rejected"
+  partnerStatus:"pending" | "approved" | "rejected";
+  ratingAverage: number;
+  ratingCount: number;
+  praiseTags: Map<string, number>;
 }
 const userSchema = new mongoose.Schema<IUser>(
   {
