@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       title: "3. Third-Party Integrations",
       icon: Fingerprint,
       content:
-        "We connect with secured industry-leading partners: Stripe and Razorpay for payment checkouts, Cloudinary for driver license file hosting, and ZegoCloud for encrypted live audio/video streams during partner onboarding validation procedures.",
+        "We connect with secured industry-leading partners: Stripe and Razorpay for payment checkouts, ImageKit for driver license file hosting, and ZegoCloud for encrypted live audio/video streams during partner onboarding validation procedures.",
     },
     {
       title: "4. Your Rights & GDPR Compliance",

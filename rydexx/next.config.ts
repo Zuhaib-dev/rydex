@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "ik.imagekit.io",
+      },
+      {
+        protocol: "https",
         hostname: "rydexx.netlify.app",
       },
       {

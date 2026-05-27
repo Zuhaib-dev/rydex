@@ -1,5 +1,5 @@
 import { auth } from "@/lib/auth";
-import uploadOnCloudnary from "@/lib/cloudinary";
+import uploadOnImageKit from "@/lib/imagekit";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import PartnerDocs from "@/models/partnerDocs.model";
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       status: "pending",
     };
     if (aadhar) {
-      const url = await uploadOnCloudnary(aadhar);
+      const url = await uploadOnImageKit(aadhar);
       if (!url) {
         return Response.json(
           { message: "aadhar Upload Failed" },
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       updatePayload.aadharUrl = url;
     }
     if (drivingLicense) {
-      const url = await uploadOnCloudnary(drivingLicense);
+      const url = await uploadOnImageKit(drivingLicense);
       if (!url) {
         return Response.json(
           { message: "drivingLicense Upload Failed" },
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
       updatePayload.licenseUrl = url;
     }
     if (rc) {
-      const url = await uploadOnCloudnary(rc);
+      const url = await uploadOnImageKit(rc);
       if (!url) {
         return Response.json({ message: "rc Upload Failed" }, { status: 500 });
       }

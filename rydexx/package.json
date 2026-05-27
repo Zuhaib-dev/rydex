@@ -13,7 +13,7 @@
     "@zegocloud/zego-uikit-prebuilt": "^2.17.3",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
-    "cloudinary": "^2.9.0",
+    "imagekit": "^6.0.0",
     "lucide-react": "^1.6.0",
     "mapbox-gl": "^3.24.0",
     "mongoose": "^9.3.2",

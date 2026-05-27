@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
-import uploadOnCloudnary from "@/lib/cloudinary";
+import uploadOnImageKit from "@/lib/imagekit";
 import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
 import { NextRequest } from "next/server";
@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     vehicle.waitingCharge = waitingCharge;
 
     if (imageFile && imageFile.size > 0) {
-      const imageUrl = await uploadOnCloudnary(imageFile);
+      const imageUrl = await uploadOnImageKit(imageFile);
       if (!imageUrl) {
         return Response.json(
           { message: "Image upload failed" },
