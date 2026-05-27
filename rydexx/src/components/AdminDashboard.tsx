@@ -12,19 +12,21 @@ import {
   Truck,
   LogOut,
   Mail,
+  MapPin
 } from "lucide-react";
 import KPI from "./KPI";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import ContentList from "./ContentList";
 import AdminEarningsChart from "./AdminEarning";
+import AdminLiveMap from "./AdminLiveMap";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { setUserData } from "@/redux/userSlice";
 
-type TabType = "partner" | "kyc" | "vehicle";
+type TabType = "partner" | "kyc" | "vehicle" | "map";
 
 interface PartnerReview {
   _id: string;
@@ -302,17 +304,29 @@ function AdminDashboard() {
               {data?.pendingVehicleReviews?.length || 0}
             </span>
           </button>
+
+          <button 
+            onClick={() => setActiveTab("map")}
+            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+              activeTab === "map" ? "bg-black text-white shadow-md" : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+            }`}
+          >
+            <MapPin size={16} />
+            <span>Control Tower Map</span>
+          </button>
         </section>
 
         {/* Content Area using ContentList */}
         <section className="space-y-4 min-h-[400px]">
           <div className="flex items-center justify-between px-2">
             <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
-              {activeTab === "partner" ? "Partner Reviews Queue" : activeTab === "kyc" ? "Video KYC Queue" : "Vehicle Reviews Queue"}
+              {activeTab === "partner" ? "Partner Reviews Queue" : activeTab === "kyc" ? "Video KYC Queue" : activeTab === "map" ? "Control Tower Map" : "Vehicle Reviews Queue"}
             </h2>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {getItemsCount(activeTab)} items
-            </span>
+            {activeTab !== "map" && (
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                {getItemsCount(activeTab)} items
+              </span>
+            )}
           </div>
 
           <AnimatePresence mode="wait">
@@ -323,7 +337,11 @@ function AdminDashboard() {
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
             >
-              {data && <ContentList data={data} activeTab={activeTab} />}
+              {activeTab === "map" ? (
+                <AdminLiveMap />
+              ) : (
+                data && <ContentList data={data} activeTab={activeTab} />
+              )}
             </motion.div>
           </AnimatePresence>
         </section>
