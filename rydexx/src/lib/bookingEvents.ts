@@ -6,6 +6,8 @@ type BookingEventPayload = {
   paymentStatus?: string;
   driver?: unknown;
   driverMobileNumber?: string;
+  pickupOtp?: string;
+  dropOtp?: string;
 };
 
 type BookingEventTarget = {

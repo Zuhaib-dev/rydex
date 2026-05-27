@@ -3,6 +3,7 @@ import connectDB from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { sendMail } from "@/lib/sendMail";
 import { getOtpEmailTemplate } from "@/lib/emailTemplate";
+import { emitBookingUpdated } from "@/lib/bookingEvents";
 
 
 export async function POST(req: Request) {
@@ -43,6 +44,11 @@ export async function POST(req: Request) {
       );
 
     }
+
+    await emitBookingUpdated(booking, {
+      bookingId: booking._id,
+      dropOtp: otp,
+    });
 
     return NextResponse.json({
       success: true,
