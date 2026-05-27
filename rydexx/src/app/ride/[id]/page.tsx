@@ -56,6 +56,8 @@ interface BookingDetails {
   driverMobileNumber: string;
   pickupOtp?: string;
   dropOtp?: string;
+  sosTriggered?: boolean;
+  sosTriggeredAt?: string | Date;
 }
 
 /* ─── STATUS CONFIG ──────────────────────────────────────────────────── */
@@ -157,6 +159,31 @@ export default function RidePage() {
   const [expanded, setExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(""), 3000);
+  };
+
+  const handleShareTrip = () => {
+    const shareLink = window.location.origin + "/share/" + id;
+    navigator.clipboard.writeText(shareLink);
+    showToast("Share Link Copied!");
+  };
+
+  const handleTriggerSos = async () => {
+    if (!confirm("⚠️ EMERGENCY: Are you in immediate danger? Confirming will trigger an SOS alert directly to our Admin Control Tower and support dispatch.")) return;
+    try {
+      const res = await fetch(`/api/booking/${id}/sos`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to trigger SOS");
+      showToast("🚨 SOS Emergency Alert Activated!");
+      fetchBooking();
+    } catch (err: any) {
+      alert(err.message || "Failed to trigger SOS");
+    }
+  };
 
   /* ── FETCH ── */
   const fetchBooking = async () => {
@@ -311,6 +338,8 @@ export default function RidePage() {
     onCancel: handleCancel,
     onRetryPayment: fetchBooking,
     router,
+    onShareTrip: handleShareTrip,
+    onTriggerSos: handleTriggerSos,
   };
 
   return (
@@ -334,14 +363,36 @@ export default function RidePage() {
             setEtaToDrop(durationToDrop);
           }}
         />
+
+        {/* Pulsing red SOS banner */}
+        {booking.sosTriggered && (
+          <div className="absolute top-4 left-4 right-4 md:left-1/2 md:-translate-x-1/2 md:max-w-md z-50 animate-pulse pointer-events-auto">
+            <div className="bg-red-600/95 backdrop-blur-md px-5 py-3.5 rounded-2xl shadow-xl border border-red-500 flex items-center justify-between text-white animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="w-2.5 h-2.5 rounded-full bg-white animate-ping shrink-0" />
+                <div className="text-left">
+                  <p className="text-xs font-black tracking-wide animate-pulse">🚨 SOS EMERGENCY PANIC ACTIVE</p>
+                  <p className="text-[10px] text-red-200">Support & local authorities are alerted.</p>
+                </div>
+              </div>
+              <a
+                href="tel:112"
+                className="bg-white text-red-600 px-3.5 py-1.5 rounded-xl text-xs font-black hover:bg-red-50 transition-colors shadow-sm"
+              >
+                CALL 112
+              </a>
+            </div>
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: -16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="absolute top-4 left-1/2 -translate-x-1/2 z-500 pointer-events-none"
+          animate={{ opacity: 1, y: booking.sosTriggered ? 68 : 0 }}
+          transition={{ duration: 0.3 }}
+          className="absolute top-4 left-1/2 -translate-x-1/2 z-[40] pointer-events-none"
         >
           <div className="flex items-center gap-2 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-zinc-100">
-            <span className={`w-2 h-2 rounded-full ${cfg.dot} animate-pulse`} />
+            <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot} animate-pulse`} />
             <span className="text-xs font-semibold tracking-wide text-zinc-900">
               {cfg.label}
             </span>
@@ -441,6 +492,21 @@ export default function RidePage() {
           </div>
         </motion.div>
       </div>
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] pointer-events-none"
+          >
+            <div className="bg-zinc-900/90 text-white backdrop-blur-md px-4 py-2.5 rounded-xl shadow-2xl border border-zinc-800 text-xs font-bold flex items-center gap-2">
+              <span>{toastMessage}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -859,6 +925,8 @@ function PanelContent({
   onCancel,
   onRetryPayment,
   router,
+  onShareTrip,
+  onTriggerSos,
 }: any) {
   return (
     <div className="flex flex-col pt-5 pb-6 gap-3">
@@ -1107,7 +1175,89 @@ function PanelContent({
         </div>
       )}
 
+      {/* SAFETY & SHARING PANEL */}
+      {isActive && (
+        <div className="mx-5 lg:mx-6 border-t border-zinc-100 pt-5 mt-2">
+          <p className="text-[10px] text-zinc-400 uppercase tracking-wider font-semibold mb-3">
+            Safety & Sharing
+          </p>
+          <div className="flex flex-col gap-2.5">
+            {/* Share link button */}
+            <button
+              onClick={onShareTrip}
+              className="w-full flex items-center justify-between bg-zinc-50 hover:bg-zinc-100 active:scale-[0.99] border border-zinc-100 px-4 py-3 rounded-xl transition-all"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-zinc-200/50 flex items-center justify-center text-zinc-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98"/><path d="m15.41 6.51-6.82 3.98"/></svg>
+                </div>
+                <div className="text-left">
+                  <p className="text-xs font-bold text-zinc-800">Share Live Location</p>
+                  <p className="text-[10px] text-zinc-400">Let others track your trip in real-time</p>
+                </div>
+              </div>
+              <span className="text-[10px] bg-zinc-200/60 text-zinc-600 font-bold px-2 py-0.5 rounded-md">Copy Link</span>
+            </button>
+
+            {/* SOS Panic Trigger */}
+            {booking.sosTriggered ? (
+              <div className="bg-red-50 border border-red-200/60 p-4 rounded-xl flex flex-col gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600 animate-pulse shrink-o">
+                    <AlertCircle size={16} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-red-700">SOS Panic Mode Active</p>
+                    <p className="text-[10px] text-red-500">Live coordinates are shared with support.</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <a
+                    href="tel:112"
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-black py-2.5 rounded-lg transition-colors shadow-sm text-center"
+                  >
+                    <Phone size={12} /> Call Emergency (112)
+                  </a>
+                  <a
+                    href={`tel:${booking.driverMobileNumber || ""}`}
+                    className="flex-1 flex items-center justify-center gap-1.5 bg-white border border-red-200 text-red-600 hover:bg-red-50 text-xs font-bold py-2.5 rounded-lg transition-colors text-center"
+                  >
+                    Call Driver
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={onTriggerSos}
+                className="w-full flex items-center justify-between bg-red-50 hover:bg-red-100 active:scale-[0.99] border border-red-100/60 px-4 py-3 rounded-xl transition-all group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center text-red-600 group-hover:animate-bounce">
+                    <AlertCircle size={16} />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-red-700">🚨 SOS Emergency Panic</p>
+                    <p className="text-[10px] text-red-400">Instantly alert control room & support</p>
+                  </div>
+                </div>
+                <span className="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded-md">Trigger</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* CANCEL BUTTON */}
+      {["requested", "awaiting_payment", "confirmed", "arriving", "arrived"].includes(status) && (
+        <div className="mx-5 lg:mx-6 mt-4 pt-2">
+          <button
+            onClick={onCancel}
+            className="w-full bg-red-50 hover:bg-red-100 text-red-600 py-3.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-1.5"
+          >
+            <XCircle size={16} /> Cancel Ride
+          </button>
+        </div>
+      )}
     </div>
   );
 }
