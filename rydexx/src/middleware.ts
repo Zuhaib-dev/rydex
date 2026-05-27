@@ -40,7 +40,15 @@ export async function middleware(req: NextRequest) {
   }
 
   // 3. Check for token
-  const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  let token = await getToken({ req, secret: process.env.AUTH_SECRET });
+  
+  if (!token) {
+    token = await getToken({
+      req,
+      secret: process.env.AUTH_SECRET,
+      secureCookie: true,
+    });
+  }
   
   if (!token) {
     // If not logged in, redirect to home (or signin if we had one)
