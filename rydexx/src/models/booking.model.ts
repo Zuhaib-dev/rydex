@@ -53,10 +53,13 @@ export interface IBooking extends Document {
 partnerAmount: number
     pickupOtp: string
 
-pickupOtpExpires: Date
- dropOtp: string
+  pickupOtpExpires: Date
+  dropOtp: string
 
-dropOtpExpires: Date
+  dropOtpExpires: Date
+  attemptedDrivers: Types.ObjectId[];
+  vehicleType: string;
+  driverAssignedAt: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -143,10 +146,24 @@ dropOtpExpires: {
       trim: true,
     },
 
-    driverMobileNumber: { 
+        driverMobileNumber: { 
       type: String, 
       required: true,
       trim: true,
+    },
+    attemptedDrivers: {
+      type: [Schema.Types.ObjectId],
+      ref: "User",
+      default: [],
+    },
+    vehicleType: {
+      type: String,
+      enum: ["bike", "car", "truck", "loading", "auto"],
+      default: "car",
+    },
+    driverAssignedAt: {
+      type: Date,
+      default: Date.now,
     },
   },
   { timestamps: true }
