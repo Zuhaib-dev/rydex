@@ -364,75 +364,7 @@ function CheckoutContent() {
                   </motion.div>
                 )}
 
-                {/* ── REQUESTED ── */}
-                {status === "requested" && (
-                  <motion.div key="requested"
-                    initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.35 }}
-                    className="flex flex-col flex-1 items-center justify-center gap-6 text-center"
-                  >
-                    {/* Pulsing ring */}
-                    <div className="relative">
-                      <motion.div
-                        animate={{ scale: [1, 1.5, 1], opacity: [0.3, 0, 0.3] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="absolute inset-0 rounded-full bg-zinc-900"
-                      />
-                      <div className="relative w-20 h-20 rounded-full bg-zinc-100 border-2 border-zinc-200 flex items-center justify-center">
-                        <Loader2 size={28} className="text-zinc-900 animate-spin" />
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-black text-zinc-900 mb-1">Finding Your Driver</h3>
-                      <p className="text-zinc-400 text-sm font-medium">Waiting for driver to accept…</p>
-                    </div>
-                    {/* Animated dots */}
-                    <div className="flex gap-1.5">
-                      {[0, 1, 2].map(i => (
-                        <motion.div key={i}
-                          animate={{ opacity: [0.2, 1, 0.2] }}
-                          transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.3 }}
-                          className="w-2 h-2 rounded-full bg-zinc-400"
-                        />
-                      ))}
-                    </div>
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleCancelBooking}
-                      className="flex items-center gap-2 text-xs font-bold text-zinc-400 hover:text-zinc-900 transition-colors border border-zinc-200 hover:border-zinc-400 px-4 py-2.5 rounded-xl"
-                    >
-                      <XCircle size={13} /> Cancel Request
-                    </motion.button>
-                  </motion.div>
-                )}
 
-                {/* ── AWAITING PAYMENT ── */}
-                {status === "awaiting_payment" && (
-                  <motion.div key="awaiting_payment"
-                    initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-                    transition={{ duration: 0.35 }}
-                    className="flex flex-col flex-1 items-center justify-center gap-5 text-center"
-                  >
-                    <motion.div
-                      initial={{ scale: 0 }} animate={{ scale: 1 }}
-                      transition={{ type: "spring", stiffness: 260, damping: 16 }}
-                      className="w-20 h-20 rounded-full bg-zinc-100 border-2 border-zinc-200 flex items-center justify-center"
-                    >
-                      <CheckCircle2 size={36} className="text-zinc-900" />
-                    </motion.div>
-                    <div>
-                      <h3 className="text-xl font-black text-zinc-900 mb-1">Driver Accepted!</h3>
-                      <p className="text-zinc-400 text-sm font-medium">Preparing payment options…</p>
-                    </div>
-                    <div className="w-48 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }} animate={{ width: "100%" }}
-                        transition={{ duration: 2 }}
-                        className="h-full bg-zinc-900 rounded-full"
-                      />
-                    </div>
-                  </motion.div>
-                )}
 
                 {/* ── PAYMENT ── */}
                 {status === "payment" && (
