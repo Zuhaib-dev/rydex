@@ -286,7 +286,7 @@ export default function PartnerAnalyticsHub() {
                   <button
                     key={t}
                     onClick={() => setTimeframe(t)}
-                    className={`px-3 py-1.5 text-2xs font-bold uppercase tracking-wider rounded-lg transition-all capitalize ${
+                    className={`px-3 py-1.5 text-2xs font-bold tracking-wider rounded-lg transition-all capitalize ${
                       timeframe === t
                         ? "bg-white text-zinc-900 shadow-sm"
                         : "text-gray-400 hover:text-zinc-900"
@@ -462,7 +462,7 @@ export default function PartnerAnalyticsHub() {
                   Your Active Targets
                 </h4>
 
-                <div className="bg-gradient-to-br from-amber-50 to-orange-50/50 border border-amber-100 rounded-2xl p-5 space-y-4">
+                <div className="bg-linear-to-br from-amber-50 to-orange-50/50 border border-amber-100 rounded-2xl p-5 space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-md">
                       <Flame size={20} className="animate-pulse" />
