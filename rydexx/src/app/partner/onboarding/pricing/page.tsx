@@ -165,7 +165,7 @@ export default function PricingPage() {
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="relative w-full aspect-[16/9] rounded-2xl border-2 border-dashed border-gray-300 overflow-hidden hover:border-gray-400 transition group bg-gray-50"
+              className="relative w-full aspect-video rounded-2xl border-2 border-dashed border-gray-300 overflow-hidden hover:border-gray-400 transition group bg-gray-50"
             >
               {imagePreview ? (
                 <>
