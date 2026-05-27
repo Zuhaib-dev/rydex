@@ -166,7 +166,7 @@ export default function PartnerAnalyticsHub() {
             {/* Quick Balance Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               
-              <div className="bg-gradient-to-br from-zinc-900 to-zinc-800 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
+              <div className="bg-linear-to-br from-zinc-900 to-zinc-800 text-white rounded-2xl p-5 shadow-lg relative overflow-hidden">
                 <div className="absolute right-4 top-4 bg-white/10 p-2 rounded-xl text-white/70">
                   <Wallet size={18} />
                 </div>
