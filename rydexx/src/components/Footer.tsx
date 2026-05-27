@@ -27,10 +27,9 @@ const GitHubIcon = () => (
 );
 
 const SOCIALS = [
-  { icon: XIcon, href: "https://twitter.com", label: "X / Twitter" },
-  { icon: InstagramIcon, href: "https://instagram.com", label: "Instagram" },
-  { icon: LinkedInIcon, href: "https://linkedin.com", label: "LinkedIn" },
-  { icon: GitHubIcon, href: "https://github.com", label: "GitHub" },
+  { icon: XIcon, href: "https://x.com/xuhaib_x9", label: "X / Twitter" },
+  { icon: LinkedInIcon, href: "https://www.linkedin.com/in/zuhaib-rashid-661345318/", label: "LinkedIn" },
+  { icon: GitHubIcon, href: "https://github.com/Zuhaib-dev", label: "GitHub" },
 ];
 
 const NAV = [

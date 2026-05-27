@@ -34,8 +34,9 @@ export const metadata: Metadata = {
     "truck rental",
     "ride booking app",
   ],
-  authors: [{ name: "Rydex" }],
-  creator: "Rydex",
+  authors: [{ name: "Zuhaib Rashid", url: "https://github.com/Zuhaib-dev" }],
+  creator: "Zuhaib Rashid",
+  publisher: "Zuhaib Rashid",
   robots: {
     index: true,
     follow: true,
@@ -82,11 +83,25 @@ export default function RootLayout({
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@type": "Person",
+        "@id": "https://rydexx.netlify.app/#creator",
+        "name": "Zuhaib Rashid",
+        "url": "https://github.com/Zuhaib-dev",
+        "sameAs": [
+          "https://github.com/Zuhaib-dev",
+          "https://www.linkedin.com/in/zuhaib-rashid-661345318/",
+          "https://x.com/xuhaib_x9"
+        ]
+      },
+      {
         "@type": "Organization",
         "@id": "https://rydexx.netlify.app/#organization",
         "name": "Rydex",
         "url": "https://rydexx.netlify.app",
         "logo": "https://rydexx.netlify.app/logo.png",
+        "founder": {
+          "@id": "https://rydexx.netlify.app/#creator"
+        },
         "sameAs": [
           "https://github.com/Zuhaib-dev",
           "https://www.linkedin.com/in/zuhaib-rashid-661345318/",
@@ -101,6 +116,9 @@ export default function RootLayout({
         "description": "Rydex lets you book bikes, cars, and trucks instantly. Fast, affordable, and reliable vehicle booking at your fingertips.",
         "publisher": {
           "@id": "https://rydexx.netlify.app/#organization"
+        },
+        "author": {
+          "@id": "https://rydexx.netlify.app/#creator"
         }
       },
       {
@@ -109,6 +127,9 @@ export default function RootLayout({
         "name": "Rydex App",
         "operatingSystem": "All",
         "applicationCategory": "TravelApplication",
+        "author": {
+          "@id": "https://rydexx.netlify.app/#creator"
+        },
         "offers": {
           "@type": "Offer",
           "price": "0",
