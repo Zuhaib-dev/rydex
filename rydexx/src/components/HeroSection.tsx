@@ -118,7 +118,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
           Book
           <br />
           <span className="relative">
-            <span className="bg-gradient-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
+            <span className="bg-linear-to-r from-white via-white/90 to-white/60 bg-clip-text text-transparent">
               {displayed}
             </span>
             <span className="animate-pulse text-white/60">|</span>
