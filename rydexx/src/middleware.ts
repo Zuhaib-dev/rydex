@@ -59,6 +59,9 @@ export async function middleware(req: NextRequest) {
 
   // Partner & KYC Routes
   if (pathname.startsWith("/partner") || pathname.startsWith("/video-kyc")) {
+    if (pathname.startsWith("/partner/onboarding") || pathname.startsWith("/video-kyc")) {
+      return NextResponse.next();
+    }
     if (role === "partner" || role === "admin") return NextResponse.next();
     return NextResponse.redirect(new URL("/", req.url));
   }
