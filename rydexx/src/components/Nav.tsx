@@ -41,7 +41,7 @@ type ProfileUser = {
   createdAt?: string | Date | null;
   ratingAverage?: number;
   ratingCount?: number;
-  praiseTags?: Record<string, number>;
+  praiseTags?: Record<string, number> | Map<string, number> | any;
 };
 
 type ProfileContentProps = {
@@ -566,20 +566,29 @@ function ProfileContent({
         {joinedDate && (
           <ProfileDetail icon={<CalendarDays size={16} />} label="Joined" value={joinedDate} />
         )}
-        {userData.praiseTags && Object.keys(userData.praiseTags).length > 0 && (
-          <div className="pt-3 border-t border-gray-200/50 mt-1.5">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Top Praise Badges</p>
-            <div className="flex flex-wrap gap-1.5">
-              {Object.entries(userData.praiseTags)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 4)
-                .map(([tag, count]) => (
-                  <span key={tag} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                    👍 {tag} ({count})
-                  </span>
-                ))}
-            </div>
-          </div>
+        {userData.praiseTags && (
+          (() => {
+            const tagsObj = userData.praiseTags instanceof Map
+              ? Object.fromEntries(userData.praiseTags)
+              : userData.praiseTags;
+            const entries = Object.entries(tagsObj || {});
+            if (entries.length === 0) return null;
+            return (
+              <div className="pt-3 border-t border-gray-200/50 mt-1.5">
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Top Praise Badges</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {entries
+                    .sort((a: any, b: any) => b[1] - a[1])
+                    .slice(0, 4)
+                    .map(([tag, count]: any) => (
+                      <span key={tag} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                        👍 {tag} ({count})
+                      </span>
+                    ))}
+                </div>
+              </div>
+            );
+          })()
         )}
       </div>
 
