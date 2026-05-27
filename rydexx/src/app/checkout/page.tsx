@@ -55,6 +55,7 @@ function CheckoutContent() {
           pickupLocation: { type: "Point", coordinates: [pickupLng, pickupLat] },
           dropLocation:   { type: "Point", coordinates: [dropLng,   dropLat]   },
           fare, mobileNumber,
+          vehicleType: vehicle,
         }),
       });
       const data = await res.json();
