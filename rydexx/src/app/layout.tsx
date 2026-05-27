@@ -4,6 +4,7 @@ import "./globals.css";
 import Provider from "@/Provider";
 import ReduxProvider from "@/redux/ReduxProvider";
 import InitUser from "@/InitUser";
+import InstallPWA from "@/components/InstallPWA";
 
 
 const geistSans = Geist({
@@ -184,6 +185,7 @@ export default function RootLayout({
           <Provider>
             <InitUser />
             {children}
+            <InstallPWA />
           </Provider>
         </ReduxProvider>
       </body>
