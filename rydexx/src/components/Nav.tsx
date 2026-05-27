@@ -192,6 +192,13 @@ export default function Nav() {
               </span>
             )}
           </Link>
+
+          <Link
+            href="/partner/vehicle"
+            className="relative text-sm font-medium text-gray-300 hover:text-white transition"
+          >
+            My Vehicle
+          </Link>
         </>
       );
     }
@@ -386,6 +393,14 @@ export default function Nav() {
                   </span>
                 )}
               </Link>
+
+              <Link
+                href="/partner/vehicle"
+                className="flex justify-between items-center px-6 py-4 text-gray-300 hover:bg-white/5"
+                onClick={() => setMenuOpen(false)}
+              >
+                <span>My Vehicle</span>
+              </Link>
             </>
           ) : (
             NAV_ITEMS.map((item) => {
@@ -557,6 +572,17 @@ function ProfileContent({
         >
           <VehicleStack />
           Become a Partner
+          <ChevronRight size={16} className="ml-auto text-gray-400" />
+        </button>
+      )}
+
+      {role === "partner" && (
+        <button
+          onClick={() => router.push("/partner/vehicle")}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
+        >
+          <VehicleStack />
+          My Vehicle
           <ChevronRight size={16} className="ml-auto text-gray-400" />
         </button>
       )}
