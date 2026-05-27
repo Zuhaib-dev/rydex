@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   CalendarDays,
   ClipboardList,
+  Star,
 } from "lucide-react";
 import AuthModal from "./AuthModel";
 import { useDispatch, useSelector } from "react-redux";
@@ -38,6 +39,9 @@ type ProfileUser = {
   partnerStatus?: string | null;
   isEmailVerified?: boolean | null;
   createdAt?: string | Date | null;
+  ratingAverage?: number;
+  ratingCount?: number;
+  praiseTags?: Record<string, number>;
 };
 
 type ProfileContentProps = {
