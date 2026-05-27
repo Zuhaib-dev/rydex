@@ -41,6 +41,7 @@ export async function GET() {
     const vehicleType = vehicle?.type || "car";
 
     // 3. Overall Stats Calculations
+    const totalRides = bookings.length;
     let totalEarnings = 0;
     let stripePayouts = 0;
     let cashCollected = 0;
