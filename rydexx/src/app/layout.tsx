@@ -37,6 +37,13 @@ export const metadata: Metadata = {
   authors: [{ name: "Zuhaib Rashid", url: "https://zuhaibrashid.com" }],
   creator: "Zuhaib Rashid",
   publisher: "Zuhaib Rashid",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Rydex",
+    startupImage: "/apple-touch-icon.png",
+  },
   robots: {
     index: true,
     follow: true,
@@ -69,8 +76,15 @@ export const metadata: Metadata = {
     google: "PhC4G2XmPO_iZ5yQFaXvkOkJHHJEwRRJsjygMozyteA",
   },
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+    icon: [
+      { url: "/icon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/icon-192x192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512x512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/icon-192x192.png",
   },
 };
 
@@ -150,6 +164,20 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
+        {/* PWA Meta Tags */}
+        <meta name="application-name" content="Rydex" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Rydex" />
+        <meta name="theme-color" content="#0a0a0a" />
+        <meta name="msapplication-TileColor" content="#0a0a0a" />
+        <meta name="msapplication-TileImage" content="/icon-144x144.png" />
+        <meta name="msapplication-tap-highlight" content="no" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/icon-144x144.png" />
+        <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
+        <link rel="manifest" href="/manifest.json" />
       </head>
       <body>
         <ReduxProvider>
