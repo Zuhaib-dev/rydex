@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
-import Booking from "@/models/booking.model";
 import { auth } from "@/lib/auth";
-import { emitBookingUpdated } from "@/lib/bookingEvents";
+import { cascadeBooking } from "@/lib/matchmaker";
 
 export async function POST(
   req: NextRequest,
@@ -16,29 +15,14 @@ export async function POST(
 
   const driverId = session.user.id;
 
-  const booking = await Booking.findOneAndUpdate(
-    {
-      _id: id,
-      driver: driverId,
-      status: "requested",
-    },
-    {
-      status: "rejected",
-    },
-    { new: true }
-  );
+  const result = await cascadeBooking(id, driverId);
 
-  if (!booking) {
+  if (!result.success) {
     return NextResponse.json(
-      { message: "Ride already processed or invalid" },
+      { message: result.message || "Ride already processed or invalid" },
       { status: 400 }
     );
   }
 
-  await emitBookingUpdated(booking, {
-    bookingId: booking._id,
-    status: "rejected",
-  });
-
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, cascaded: result.cascaded });
 }
