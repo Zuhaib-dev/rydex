@@ -50,6 +50,11 @@ export default function VehicleBookingCard({
   const { label, Icon } = TYPE_CONFIG[type] ?? TYPE_CONFIG.car;
   const estimated = Math.round(baseFare + distanceKm * perKmRate);
 
+  const ownerObj = typeof owner === "object" && owner ? owner : null;
+  const ratingDisplay = ownerObj && ownerObj.ratingCount && ownerObj.ratingCount > 0
+    ? `${ownerObj.ratingAverage?.toFixed(1)} (${ownerObj.ratingCount})`
+    : "New Driver";
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -105,8 +110,8 @@ export default function VehicleBookingCard({
 
         {/* Rating pill — bottom left */}
         <div className="absolute bottom-3 left-3 z-20 flex items-center gap-1 bg-white border border-zinc-200 text-zinc-700 text-[10px] font-bold px-2.5 py-1.5 rounded-full shadow-sm">
-          <Star size={9} className="fill-zinc-900 text-zinc-900" />
-          4.8
+          <Star size={9} className="fill-amber-400 text-amber-400" />
+          {ratingDisplay}
         </div>
       </div>
 
@@ -149,10 +154,22 @@ export default function VehicleBookingCard({
             </div>
             <p className="text-zinc-900 text-sm font-black">
               ₹{waitingCharge}
-              <span className="text-zinc-400 text-[10px] font-normal">/min</span>
-            </p>
           </div>
         </div>
+
+        {/* Praise Tags */}
+        {ownerObj?.praiseTags && Object.keys(ownerObj.praiseTags).length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {Object.entries(ownerObj.praiseTags)
+              .sort((a: any, b: any) => b[1] - a[1])
+              .slice(0, 3)
+              .map(([tag, count]: any) => (
+                <span key={tag} className="bg-zinc-100/80 text-zinc-600 text-[10px] font-bold px-2.5 py-1 rounded-lg border border-zinc-200/50">
+                  👍 {tag} ({count})
+                </span>
+              ))}
+          </div>
+        )}
 
         {/* FARE + BOOK */}
         <div className="flex items-end justify-between pt-3 border-t border-zinc-100">
