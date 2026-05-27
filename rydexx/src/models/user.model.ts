@@ -106,6 +106,19 @@ const userSchema = new mongoose.Schema<IUser>(
       type:Boolean,
       default:false,
       index:true
+    },
+    ratingAverage: {
+      type: Number,
+      default: 0,
+    },
+    ratingCount: {
+      type: Number,
+      default: 0,
+    },
+    praiseTags: {
+      type: Map,
+      of: Number,
+      default: {},
     }
   },
   { timestamps: true },
