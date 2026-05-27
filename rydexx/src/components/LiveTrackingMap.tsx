@@ -227,7 +227,7 @@ export default function LiveRideMap({
         )}
 
         {/* Path: Pickup -> Drop (Main Route - Background Track) */}
-        {routePD && status !== "ongoing" && (
+        {routePD && (
           <Source type="geojson" data={routePD}>
             <Layer
               id="route-pd-bg"
@@ -246,7 +246,7 @@ export default function LiveRideMap({
               paint={{
                 "line-color": "#000",
                 "line-width": 4,
-                "line-opacity": 0.8,
+                "line-opacity": status === "ongoing" ? 0.35 : 0.8,
               }}
             />
           </Source>

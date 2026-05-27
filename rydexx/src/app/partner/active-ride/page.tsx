@@ -162,12 +162,14 @@ export default function DriverRidePage() {
   const [loadingOtp, setLoadingOtp] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpError, setOtpError] = useState("");
+  const [sendingPickupOtp, setSendingPickupOtp] = useState(false);
 
   /* Drop OTP */
   const [dropOtpMode, setDropOtpMode] = useState(false);
   const [dropOtp, setDropOtp] = useState("");
   const [loadingDropOtp, setLoadingDropOtp] = useState(false);
   const [dropOtpError, setDropOtpError] = useState("");
+  const [sendingDropOtp, setSendingDropOtp] = useState(false);
 
   /* Chat & Sheet */
   const [chatOpen, setChatOpen] = useState(false);
@@ -266,11 +268,18 @@ export default function DriverRidePage() {
   /* ── OTP HANDLERS ── */
   const sendPickupOtp = async () => {
     if (!booking?._id) return;
-    await fetch("/api/partner/bookings/send-pickup-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bookingId: booking._id }),
-    }).catch(console.error);
+    setSendingPickupOtp(true);
+    try {
+      await fetch("/api/partner/bookings/send-pickup-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking._id }),
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSendingPickupOtp(false);
+    }
   };
 
   const handleVerifyOtp = async () => {
@@ -302,11 +311,18 @@ export default function DriverRidePage() {
 
   const sendDropOtp = async () => {
     if (!booking?._id) return;
-    await fetch("/api/partner/bookings/send-drop-otp", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bookingId: booking._id }),
-    }).catch(console.error);
+    setSendingDropOtp(true);
+    try {
+      await fetch("/api/partner/bookings/send-drop-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: booking._id }),
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setSendingDropOtp(false);
+    }
   };
 
   const handleVerifyDropOtp = async () => {
@@ -451,6 +467,8 @@ export default function DriverRidePage() {
     setDropOtpError,
     handleVerifyDropOtp,
     sendDropOtp,
+    sendingPickupOtp,
+    sendingDropOtp,
     chatOpen,
     onChatToggle: () => canChat && setChatOpen((v) => !v),
   };
@@ -615,6 +633,8 @@ function ActionBar({
   setDropOtpError,
   handleVerifyDropOtp,
   sendDropOtp,
+  sendingPickupOtp,
+  sendingDropOtp,
 }: any) {
   const canVerifyPickup = ["confirmed", "arriving", "arrived"].includes(status);
   if (![...["confirmed", "arriving", "arrived"], "started"].includes(status)) return null;
@@ -629,14 +649,24 @@ function ActionBar({
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
+            disabled={sendingPickupOtp}
             onClick={async () => {
               await sendPickupOtp();
               setOtpMode(true);
             }}
-            className="w-full bg-zinc-900 hover:bg-zinc-800 active:scale-[0.97] text-white py-4 rounded-2xl font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2"
+            className="w-full bg-zinc-900 hover:bg-zinc-800 disabled:opacity-50 active:scale-[0.97] text-white py-4 rounded-2xl font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2"
           >
-            <MapPin size={16} /> I've Arrived at Pickup{" "}
-            <ArrowRight size={15} className="ml-1" />
+            {sendingPickupOtp ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Sending OTP…
+              </span>
+            ) : (
+              <>
+                <MapPin size={16} /> I've Arrived at Pickup{" "}
+                <ArrowRight size={15} className="ml-1" />
+              </>
+            )}
           </motion.button>
         )}
 
@@ -737,13 +767,23 @@ function ActionBar({
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
+            disabled={sendingDropOtp}
             onClick={async () => {
               await sendDropOtp();
               setDropOtpMode(true);
             }}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-[0.97] text-white py-4 rounded-2xl font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2"
+            className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 active:scale-[0.97] text-white py-4 rounded-2xl font-bold text-sm tracking-wide transition-all flex items-center justify-center gap-2"
           >
-            <Navigation size={16} /> Mark as Dropped <ArrowRight size={15} />
+            {sendingDropOtp ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Sending OTP…
+              </span>
+            ) : (
+              <>
+                <Navigation size={16} /> Mark as Dropped <ArrowRight size={15} />
+              </>
+            )}
           </motion.button>
         )}
 
