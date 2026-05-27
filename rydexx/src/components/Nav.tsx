@@ -530,6 +530,15 @@ function ProfileContent({
           <div className="min-w-0 flex-1">
             <p className="truncate text-lg font-semibold leading-tight">{profileName}</p>
             <p className="mt-1 truncate text-sm text-white/65">{email}</p>
+            {userData.ratingCount && userData.ratingCount > 0 ? (
+              <div className="mt-2 flex items-center gap-1.5 text-xs text-amber-400">
+                <Star size={12} className="fill-amber-400" />
+                <span className="font-bold text-white">{userData.ratingAverage?.toFixed(1)}</span>
+                <span className="text-white/65">({userData.ratingCount} reviews)</span>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-white/45">No ratings yet</p>
+            )}
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider text-black">
                 {role}
@@ -556,6 +565,21 @@ function ProfileContent({
         )}
         {joinedDate && (
           <ProfileDetail icon={<CalendarDays size={16} />} label="Joined" value={joinedDate} />
+        )}
+        {userData.praiseTags && Object.keys(userData.praiseTags).length > 0 && (
+          <div className="pt-3 border-t border-gray-200/50 mt-1.5">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Top Praise Badges</p>
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(userData.praiseTags)
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 4)
+                .map(([tag, count]) => (
+                  <span key={tag} className="inline-flex items-center gap-1 bg-gray-50 border border-gray-200 text-gray-700 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                    👍 {tag} ({count})
+                  </span>
+                ))}
+            </div>
+          </div>
         )}
       </div>
 
