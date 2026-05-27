@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getOptimizedImageUrl } from "@/lib/imagekit";
+import { getOptimizedImageUrl } from "@/lib/imagekit-client";
 import {
   ArrowLeft,
   Car,

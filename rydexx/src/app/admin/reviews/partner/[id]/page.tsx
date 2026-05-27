@@ -20,7 +20,7 @@ import {
 import AnimateCard from "@/components/AnimateCard";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
-import { getOptimizedImageUrl } from "@/lib/imagekit";
+import { getOptimizedImageUrl } from "@/lib/imagekit-client";
 
 interface PartnerData {
   partner: {

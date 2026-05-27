@@ -18,7 +18,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
-import { getOptimizedImageUrl } from "@/lib/imagekit";
+import { getOptimizedImageUrl } from "@/lib/imagekit-client";
 
 interface VehicleReviewData {
   _id: string;

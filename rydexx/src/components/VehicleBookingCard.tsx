@@ -6,7 +6,7 @@ import {
   IndianRupee, Clock, Gauge,
   ArrowRight, Star
 } from "lucide-react";
-import { getOptimizedImageUrl } from "@/lib/imagekit";
+import { getOptimizedImageUrl } from "@/lib/imagekit-client";
 
 interface VehicleProps {
   vehicle: {

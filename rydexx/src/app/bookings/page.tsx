@@ -15,7 +15,7 @@ import {
 import axios from "axios";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { getOptimizedImageUrl } from "@/lib/imagekit";
+import { getOptimizedImageUrl } from "@/lib/imagekit-client";
 
 interface Booking {
   _id: string;
