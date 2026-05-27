@@ -154,6 +154,8 @@ export default function VehicleBookingCard({
             </div>
             <p className="text-zinc-900 text-sm font-black">
               ₹{waitingCharge}
+              <span className="text-zinc-400 text-[10px] font-normal">/min</span>
+            </p>
           </div>
         </div>
 
