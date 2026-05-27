@@ -53,7 +53,7 @@ export default function LandingCTA({
               <h2 className="text-4xl sm:text-5xl lg:text-6xl font-black text-zinc-900 leading-[0.92] tracking-tight">
                 Your next ride
                 <br />
-                <span className="bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-400 bg-clip-text text-transparent">
+                <span className="bg-linear-to-r from-zinc-900 via-zinc-700 to-zinc-400 bg-clip-text text-transparent">
                   starts here.
                 </span>
               </h2>
