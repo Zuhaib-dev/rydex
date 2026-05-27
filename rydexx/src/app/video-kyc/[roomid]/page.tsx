@@ -38,14 +38,15 @@ export default function VideoKYCRoom() {
   // Extract partner ID from roomId ("kyc-{partnerId}-{timestamp}")
   const partnerId = roomid?.split("-").slice(1, -1).join("-") ?? "";
 
-  const isInitializing = useRef(false);
+  const isInitializing = useRef<string | null>(null);
 
   const startCall = async () => {
     if (!containerRef.current || !roomid || zpRef.current || isInitializing.current) {
       return;
     }
     
-    isInitializing.current = true;
+    const callId = Math.random().toString();
+    isInitializing.current = callId;
     setCallState("connecting");
 
     try {
@@ -54,9 +55,9 @@ export default function VideoKYCRoom() {
         "@zegocloud/zego-uikit-prebuilt"
       );
 
-      // Check if we were unmounted while waiting for the import
-      if (!isInitializing.current) {
-        console.log("Zego initialization aborted: component unmounted during import");
+      // Check if we were unmounted or another startCall session was initiated while waiting for the import
+      if (isInitializing.current !== callId) {
+        console.log("Zego initialization aborted: component unmounted or session changed during import");
         return;
       }
 
@@ -66,7 +67,7 @@ export default function VideoKYCRoom() {
       if (!appId || !serverSecret) {
         console.error("Missing Zego environment variables!");
         setCallState("idle");
-        isInitializing.current = false;
+        isInitializing.current = null;
         return;
       }
 
@@ -107,7 +108,7 @@ export default function VideoKYCRoom() {
     } catch (error) {
       console.error("Zego Error:", error);
       setCallState("idle");
-      isInitializing.current = false;
+      isInitializing.current = null;
     }
   };
 
@@ -127,7 +128,7 @@ export default function VideoKYCRoom() {
         }
         zpRef.current = null;
       }
-      isInitializing.current = false;
+      isInitializing.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData?._id, userData?.role, roomid]);
