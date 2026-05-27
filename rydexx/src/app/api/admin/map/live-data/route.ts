@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     // 2. Fetch active rides
     const activeRides = await Booking.find({
       status: { $in: ["arriving", "started"] }
-    }).select("pickupLocation dropLocation driver status user").lean();
+    }).select("pickupLocation dropLocation driver status user sosTriggered sosTriggeredAt").lean();
 
     // 3. Fetch active surge zones
     const surgeZones = await SurgeZone.find({ isActive: true }).lean();

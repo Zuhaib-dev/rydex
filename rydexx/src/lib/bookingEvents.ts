@@ -8,6 +8,8 @@ type BookingEventPayload = {
   driverMobileNumber?: string;
   pickupOtp?: string;
   dropOtp?: string;
+  sosTriggered?: boolean;
+  sosTriggeredAt?: string | Date;
 };
 
 type BookingEventTarget = {

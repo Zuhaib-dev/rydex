@@ -60,6 +60,8 @@ partnerAmount: number
   attemptedDrivers: Types.ObjectId[];
   vehicleType: string;
   driverAssignedAt: Date;
+  sosTriggered: boolean;
+  sosTriggeredAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -164,6 +166,13 @@ dropOtpExpires: {
     driverAssignedAt: {
       type: Date,
       default: Date.now,
+    },
+    sosTriggered: {
+      type: Boolean,
+      default: false,
+    },
+    sosTriggeredAt: {
+      type: Date,
     },
   },
   { timestamps: true }
