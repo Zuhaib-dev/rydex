@@ -1,106 +1,286 @@
 <div align="center">
 
-# 🔌 Rydex Socket Engine (`socketServer`)
-### *The Telemetry Heartbeat & Real-Time Logistics Overlord*
+# `socketServer` — Rydex Real-time Engine
 
-[![Runtime: Node.js](https://img.shields.io/badge/Runtime-Node.js-339933?style=for-the-badge&logo=node.js)](https://nodejs.org/)
-[![Library: Socket.io](https://img.shields.io/badge/Library-Socket.io-010101?style=for-the-badge&logo=socket.io)](https://socket.io/)
-[![Database: MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?style=for-the-badge&logo=mongodb)](https://www.mongodb.com/)
+### Node.js · Express · Socket.IO · MongoDB
 
----
+[![Node.js](https://img.shields.io/badge/Node.js-24.x-339933?style=flat-square&logo=node.js)](https://nodejs.org/)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?style=flat-square&logo=socket.io)](https://socket.io/)
+[![Express](https://img.shields.io/badge/Express-4.x-000000?style=flat-square&logo=express)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb)](https://mongoosejs.com/)
 
-<img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExbzhxNmY2ajdwbXg3NXc5ZjRwczVyeHZsMHN0dWRicGdzbzVmdXBpcyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKSjRrfIPjei1nG/giphy.gif" width="500" alt="Flashing Server GIF"/>
-
-*Our Socket Server when 10,000 drivers send GPS coordinates at the same millisecond.*
-
----
+*The nervous system of Rydex. Handles all real-time events — GPS coordinates, booking dispatches, in-ride chat, and the matchmaker cascade timer.*
 
 </div>
 
-## 🧠 What does this server do?
+---
 
-If the **Rydex Frontend** is the gorgeous face of the application, then the **Socket Engine** is the nervous system. It handles the high-intensity, zero-latency, chaotic stream of live data.
+## Why a Separate Server?
 
-Without this server:
-*   Drivers would be driving in the dark.
-*   Users would have to refresh their page 50 times just to see if their driver moved 2 meters.
-*   The in-app chat would feel like sending a postcard via snail mail.
+Next.js API routes are **stateless and serverless** — they can't hold long-lived WebSocket connections or maintain in-memory state like timers between requests. This dedicated Node.js server solves that by:
+
+1. Maintaining **persistent WebSocket connections** with every connected client
+2. Storing **active matchmaker timers** in a `Map` (memory-safe, per-booking)
+3. **Broadcasting** targeted events to specific users by looking up their `socketId` in MongoDB
+4. Acting as a **bridge** — the Next.js app POSTs to `/emit`, and this server dispatches to the right WebSocket
 
 ---
 
-## ⚡ The Event Pipeline (How the Magic Works)
+## Architecture Role
 
-This server manages bidirectional event routing like a high-speed traffic controller. Here is a breakdown of the events it handles:
+```mermaid
+graph LR
+    subgraph "Next.js App"
+        API["API Route Handler"]
+        MM["Matchmaker Engine"]
+    end
 
-*   **`identity`:** When a client connects, they present their database ID. The server whispers to MongoDB: *"Hey, mark this user online and associate them with socket ID XYZ."*
-*   **`join-booking`:** Joins a private virtual room prefixed with `booking-${bookingId}`. Both the user and driver enter this secret chatroom.
-*   **`driver-location-update`:** Broadcasts the driver's real-time latitude and longitude to everyone in the booking room. The map coordinates wiggle, and the car icon moves!
-*   **`chat-message`:** Forwards messages back and forth instantly within the booking room. No database lags, just pure, immediate communication.
-*   **`update-location`:** Saves the driver's active GPS coordinate to MongoDB using standard GeoJSON `Point` formatting so users can find close-by rides.
+    subgraph "Socket Server"
+        EX["Express HTTP :8000"]
+        IO["Socket.IO Engine"]
+        TM["Timer Map\n(bookingId → setTimeout)"]
+    end
+
+    subgraph "Clients"
+        U["User Browser"]
+        P["Partner Browser"]
+    end
+
+    DB[("MongoDB")]
+
+    API -->|POST /emit| EX
+    EX --> IO
+    IO -->|new-booking event| P
+    IO -->|booking-updated event| U
+    P <-->|WebSocket| IO
+    U <-->|WebSocket| IO
+    IO <--> DB
+    MM -->|POST /cascade| API
+    TM -->|triggers after 20s| MM
+```
 
 ---
 
-## 🚧 The CORS Shield (Security Guard)
-
-We have implemented a strict CORS shield. Only trusted origins are allowed to connect:
-*   `https://rydexx.netlify.app` (Production)
-*   `http://localhost:3000` (Local testing)
-*   Custom domains listed in `process.env.NEXT_BASE_URL` & `process.env.CLIENT_URL`
-
-*If your connection is rejected with `Socket.IO CORS` error, do not throw your mouse. Simply check your environment variables!*
-
----
-
-## 📡 The Secret API Endpoint: `/emit`
-
-We have built a powerful bridge between our HTTP web app and our real-time websocket connections. 
-
-By sending a `POST` request to `/emit` with a `userId`, `event`, and `data`, the socket server will automatically track down that specific user's socket ID in the database and push the message directly to their active screen. 
-
-*It's like having a heat-seeking missile for websocket notifications!*
-
----
-
-## 📂 File Architecture
+## Project Structure
 
 ```
 socketServer/
-├── index.js          # The grand orchestra: WebSockets, CORS, and Express routing
-├── models/           # Mongoose models mapped straight to the database
-│   └── user.models.js# User schematics detailing active sockets, status, and GeoJSON locations
-├── package.json      # Node dependency registry
-└── .env              # Secrets and port assignments
+├── index.js              # Entry point — everything lives here
+│   ├── Express app setup
+│   ├── MongoDB connection
+│   ├── CORS config
+│   ├── Socket.IO server
+│   ├── /health endpoint
+│   ├── /emit endpoint (with cascade timer logic)
+│   └── WebSocket event handlers
+│
+├── models/
+│   └── user.models.js    # Lightweight User model
+│                         # (only what the socket server needs:
+│                          #  socketId, isOnline, location)
+│
+├── .env                  # Environment variables
+├── package.json
+└── README.md             # ← You are here
 ```
 
 ---
 
-## 🛠 Spin Up the Engine
+## Socket Events
 
-Ready to make things real-time?
+### Client → Server (incoming)
 
-### 1. Fill the Environment Variables (`.env`)
-Create a `.env` file in this directory:
-```env
-PORT=8000
-MONGODB_URL=mongodb+srv://...
-NEXT_BASE_URL=http://localhost:3000
-```
+| Event | Payload | Description |
+|---|---|---|
+| `identity` | `userId: string` | Register this socket connection with a user ID. Updates `socketId` and `isOnline` in MongoDB. |
+| `join-booking` | `bookingId: string` | Join the private room `booking-{bookingId}`. Both driver and user call this to enter the same room. |
+| `driver-location-update` | `{ bookingId, latitude, longitude }` | Driver broadcasts their GPS coordinates. Server fans out to all members of the booking room. |
+| `chat-message` | `{ rideId, message, sender, ... }` | Send a message within the booking room. Server relays to all room members. |
+| `update-location` | `{ latitude, longitude }` | Driver continuously updates their GeoJSON location in MongoDB (for nearby-driver search). |
+| `disconnect` | — | Automatic. Server marks user `isOnline = false` and clears `socketId`. |
 
-### 2. Start the Server
+### Server → Client (outgoing)
+
+| Event | Sent To | Payload | Description |
+|---|---|---|---|
+| `driver-location` | Booking room | `{ latitude, longitude, status }` | Live driver position for the map marker. |
+| `chat-message` | Booking room | Full message object | In-ride chat message relay. |
+| `new-booking` | Specific partner | Full booking object | New ride request dispatched to a driver. |
+| `booking-updated` | Specific user/partner | `{ bookingId, status, ... }` | Booking state change notification. |
+
+---
+
+## HTTP Endpoints
+
+### `GET /health`
+Health check. Returns `{ success: true }`.
+
 ```bash
-npm install
-npm run dev
+curl http://localhost:8000/health
+# {"success":true}
 ```
 
-If you see:
-```text
+---
+
+### `POST /emit`
+**The bridge endpoint.** Called by the Next.js API to push a WebSocket event to a specific user.
+
+**Request body:**
+```json
+{
+  "userId": "64abc123...",
+  "event": "new-booking",
+  "data": { "...booking object..." }
+}
+```
+
+**Logic:**
+1. Looks up the user by `_id` in MongoDB
+2. Grabs their `socketId`
+3. Emits the event directly to that socket
+
+**Extra behavior for `new-booking` events:**
+- Starts a **20-second countdown timer** for that booking
+- If the timer fires (driver didn't accept), POSTs to `{NEXT_BASE_URL}/api/booking/{id}/cascade`
+- The cascade triggers the matchmaker to try the next nearest driver
+
+**Extra behavior for `booking-updated` events:**
+- If `status !== "requested"`, **clears the timer** (booking was accepted/cancelled, no cascade needed)
+
+---
+
+## The Cascade Timer System
+
+```mermaid
+sequenceDiagram
+    participant API as Next.js API
+    participant SS as Socket Server
+    participant TM as Timer Map
+    participant P as Partner Client
+
+    API->>SS: POST /emit {event: "new-booking", userId: driverId}
+    SS->>P: Emit "new-booking"
+    SS->>TM: Set timer (bookingId → 20s timeout)
+
+    alt Driver accepts within 20s
+        P->>API: POST /booking/:id/accept
+        API->>SS: POST /emit {event: "booking-updated", data: {status: "confirmed"}}
+        SS->>TM: Clear timer (status ≠ "requested")
+    end
+
+    alt Driver ignores (20s pass)
+        TM->>API: POST /api/booking/:id/cascade {driverId}
+        API->>API: Find next driver (MongoDB $near)
+        API->>SS: POST /emit {event: "new-booking", userId: nextDriverId}
+        SS->>TM: New 20s timer for new driver
+    end
+```
+
+**Key implementation detail:** Timers are stored in a `Map<bookingId, TimeoutHandle>`. This means:
+- Multiple bookings can have simultaneous countdown timers
+- Each booking has exactly one active timer at any time
+- Old timers are always cleared before setting new ones (no duplicates)
+
+---
+
+## CORS Configuration
+
+Only trusted origins are allowed to establish WebSocket connections:
+
+```js
+const allowedOrigins = [
+  process.env.NEXT_BASE_URL,    // e.g. http://localhost:3000
+  process.env.CLIENT_URL,       // custom override
+  "https://rydexx.netlify.app", // production
+  "http://localhost:3000",      // local dev
+]
+```
+
+Trailing slashes are normalized (`normalizeOrigin`) to prevent false rejections from misconfigured clients.
+
+---
+
+## MongoDB Usage
+
+This server has a **minimal MongoDB footprint** — it only touches the `User` collection for two purposes:
+
+| Operation | When | Fields |
+|---|---|---|
+| **Read** `socketId` | On `/emit` to find where to send | `socketId` |
+| **Write** `socketId`, `isOnline = true` | On `identity` event | `socketId`, `isOnline` |
+| **Write** `isOnline = false`, `socketId = null` | On `disconnect` | `isOnline`, `socketId` |
+| **Write** `location` (GeoJSON) | On `update-location` event | `location.coordinates` |
+
+The `location` field uses MongoDB's **2dsphere index**, enabling `$near` geo queries from the Next.js matchmaker.
+
+---
+
+## Environment Variables
+
+```env
+# .env
+PORT=8000
+MONGODB_URL=mongodb+srv://<user>:<pass>@cluster.mongodb.net/rydex
+NEXT_BASE_URL=http://localhost:3000
+CLIENT_URL=http://localhost:3000
+```
+
+---
+
+## Running Locally
+
+```bash
+# Install dependencies
+npm install
+
+# Start with nodemon (auto-restart on change)
+npm run dev
+
+# Start without nodemon (production)
+node index.js
+```
+
+**Expected output:**
+```
+◇ injected env (3) from .env
 server started at 8000
 ```
-Congratulations! The real-time engine is listening and ready to steer coordinates across the net. 🚀
 
 ---
 
-<div align="center">
-  <img src="https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExZndjN3JpcjE3NXYwZnZ4ODV5djR1N2t3a2s2ZjNqdGF3MHpsdnZtciZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/9Kmq3Qs2Ct1Yc/giphy.gif" width="300" alt="Funny Cat Typing"/>
-  <p>Live tracking, live chats, zero friction. Rydex is moving fast! ⚡</p>
-</div>
+## Deployment Notes
+
+> **Important:** This server **must** be deployed to a platform that supports persistent long-lived processes with WebSocket support.
+
+| Platform | WebSocket Support | Notes |
+|---|---|---|
+| **Railway** | ✅ | Recommended. Free tier available. |
+| **Render** | ✅ | Free tier spins down after 15min inactivity |
+| **Fly.io** | ✅ | Excellent for always-on WebSocket apps |
+| **VPS (DigitalOcean, etc.)** | ✅ | Full control |
+| Vercel Functions | ❌ | Serverless — no persistent connections |
+| Netlify Functions | ❌ | Serverless — no persistent connections |
+
+**Set these environment variables on your hosting platform:**
+```
+PORT=8000
+MONGODB_URL=<your-atlas-uri>
+NEXT_BASE_URL=https://your-nextjs-app.netlify.app
+```
+
+---
+
+## Dependencies
+
+```json
+{
+  "express": "^4.x",
+  "socket.io": "^4.x",
+  "mongoose": "^9.x",
+  "axios": "^1.x",
+  "dotenv": "*",
+  "nodemon": "^3.x"
+}
+```
+
+> No TypeScript here — kept intentionally simple as a lean Node.js service. The only responsibility is connection management, event routing, and timer orchestration.
