@@ -28,7 +28,7 @@ function FitBounds({ p1, p2 }: { p1: [number, number]; p2: [number, number] }) {
 
       map.fitBounds(
         [[minLng, minLat], [maxLng, maxLat]],
-        { padding: 72, maxZoom: 15, duration: 1000 }
+        { padding: 72, maxZoom: 15.5, pitch: 65, duration: 2000, essential: true }
       );
     }
   }, [p1, p2, map]);
@@ -160,20 +160,42 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
   };
 
   return (
-    <div className="relative h-full w-full bg-zinc-100">
+    <div className="relative h-full w-full bg-[#e8eae9]">
 
       {/* ── MAP ── */}
       <Map
         mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={{
-          longitude: p1 ? p1[1] : 78.9629,
-          latitude: p1 ? p1[0] : 20.5937,
-          zoom: p1 ? 13 : 5,
+          longitude: p1 ? p1[1] : 74.7973, // Srinagar coordinates fallback
+          latitude: p1 ? p1[0] : 34.0837,
+          zoom: p1 ? 14 : 12,
+          pitch: 65,
+          bearing: -20,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="mapbox://styles/mapbox/light-v11"
+        mapStyle="mapbox://styles/mapbox/navigation-day-v1"
+        terrain={{ source: "mapbox-dem", exaggeration: 1.5 }}
         interactive={true}
       >
+        <Source
+          id="mapbox-dem"
+          type="raster-dem"
+          url="mapbox://mapbox.mapbox-terrain-dem-v1"
+          tileSize={512}
+          maxzoom={14}
+        />
+        
+        {/* Sky for 3D realism */}
+        <Layer
+          id="sky"
+          type="sky"
+          paint={{
+            "sky-type": "atmosphere",
+            "sky-atmosphere-sun": [0.0, 90.0],
+            "sky-atmosphere-sun-intensity": 15
+          }}
+        />
+
         {p1 && p2 && <FitBounds p1={p1} p2={p2} />}
 
         {p1 && (
@@ -183,11 +205,12 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
             draggable
             onDragEnd={onDragPickup}
             anchor="bottom"
+            pitchAlignment="map"
           >
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.22))", cursor: "grab" }}>
-              <div style={{ background: "#0a0a0a", color: "#fff", padding: "5px 14px", borderRadius: "100px", fontSize: "10px", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap", fontFamily: "-apple-system,system-ui,sans-serif", boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>PICKUP</div>
-              <div style={{ width: "2px", height: "10px", background: "#0a0a0a", opacity: 0.4 }}></div>
-              <div style={{ width: "13px", height: "13px", background: "#0a0a0a", borderRadius: "50%", border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.15), 0 3px 10px rgba(0,0,0,0.3)" }}></div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 12px 16px rgba(0,0,0,0.4))", cursor: "grab" }}>
+              <div style={{ background: "#0a0a0a", color: "#fff", padding: "6px 14px", borderRadius: "10px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap", fontFamily: "system-ui", boxShadow: "0 6px 0 #000" }}>PICKUP</div>
+              <div style={{ width: "4px", height: "16px", background: "#0a0a0a", marginTop: "-2px" }}></div>
+              <div style={{ width: "16px", height: "16px", background: "#0a0a0a", borderRadius: "50%", border: "4px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.15), 0 3px 10px rgba(0,0,0,0.3)" }}></div>
             </div>
           </Marker>
         )}
@@ -199,35 +222,36 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
             draggable
             onDragEnd={onDragDrop}
             anchor="bottom"
+            pitchAlignment="map"
           >
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.2))", cursor: "grab" }}>
-              <div style={{ background: "#fff", color: "#0a0a0a", padding: "5px 14px", borderRadius: "100px", fontSize: "10px", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap", fontFamily: "-apple-system,system-ui,sans-serif", border: "1.5px solid #0a0a0a", boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}>DROP</div>
-              <div style={{ width: "2px", height: "10px", background: "#0a0a0a", opacity: 0.4 }}></div>
-              <div style={{ width: "13px", height: "13px", background: "#fff", borderRadius: "50%", border: "3px solid #0a0a0a", boxShadow: "0 0 0 2px rgba(0,0,0,0.08), 0 3px 10px rgba(0,0,0,0.2)" }}></div>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 12px 16px rgba(0,0,0,0.4))", cursor: "grab" }}>
+              <div style={{ background: "#fff", color: "#0a0a0a", padding: "6px 14px", borderRadius: "10px", fontSize: "11px", fontWeight: 900, letterSpacing: "0.1em", textTransform: "uppercase", whiteSpace: "nowrap", fontFamily: "system-ui", border: "2px solid #0a0a0a", boxShadow: "0 6px 0 rgba(0,0,0,0.25)" }}>DROP</div>
+              <div style={{ width: "4px", height: "16px", background: "#0a0a0a", marginTop: "-2px" }}></div>
+              <div style={{ width: "16px", height: "16px", background: "#fff", borderRadius: "50%", border: "4px solid #0a0a0a", boxShadow: "0 0 0 2px rgba(0,0,0,0.08), 0 3px 10px rgba(0,0,0,0.2)" }}></div>
             </div>
           </Marker>
         )}
 
-        {/* Route — black triple layer on white map */}
+        {/* Route — glowing blue layer on navigation map */}
         {route && (
           <Source type="geojson" data={route}>
             <Layer
               id="route-bg"
               type="line"
               layout={{ "line-join": "round", "line-cap": "round" }}
-              paint={{ "line-color": "#0a0a0a", "line-width": 14, "line-opacity": 0.05 }}
+              paint={{ "line-color": "#2563eb", "line-width": 16, "line-opacity": 0.15 }}
             />
             <Layer
               id="route-mg"
               type="line"
               layout={{ "line-join": "round", "line-cap": "round" }}
-              paint={{ "line-color": "#0a0a0a", "line-width": 6, "line-opacity": 0.12 }}
+              paint={{ "line-color": "#3b82f6", "line-width": 8, "line-opacity": 0.4 }}
             />
             <Layer
               id="route-fg"
               type="line"
               layout={{ "line-join": "round", "line-cap": "round" }}
-              paint={{ "line-color": "#0a0a0a", "line-width": 3.5, "line-opacity": 1 }}
+              paint={{ "line-color": "#1d4ed8", "line-width": 4.5, "line-opacity": 1 }}
             />
           </Source>
         )}
@@ -242,7 +266,7 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.45 }}
-            className="absolute inset-0 z-999 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center gap-4"
+            className="absolute inset-0 z-[999] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center gap-4"
           >
             <div className="relative w-14 h-14 flex items-center justify-center">
               <motion.div
