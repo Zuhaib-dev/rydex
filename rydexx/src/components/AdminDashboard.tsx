@@ -72,19 +72,26 @@ function AdminDashboard() {
   const profileRole = userData?.role || session?.user?.role || "admin";
   const profileImage = userData?.image || session?.user?.image || null;
 
-  const handleGetData = async () => {
+  const handleGetData = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const response = await axios.get("/api/admin/dashboard");
       setData(response.data);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
   useEffect(() => {
-    handleGetData();
+    handleGetData(true);
+
+    const interval = setInterval(() => {
+      handleGetData(false);
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

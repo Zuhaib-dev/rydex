@@ -242,15 +242,31 @@ export default function AdminLiveMap() {
             </Source>
 
             {/* Online Drivers Markers */}
-            {drivers.map((driver) => {
-              if (!driver.location) return null;
+            {drivers.map((driver, index) => {
+              const location = driver.location;
+              if (!location) return null;
+              
+              const [origLng, origLat] = location.coordinates;
+              
+              // Prevent exact overlapping by adding a tiny index-based offset if sharing location
+              const hasOverlap = drivers.some((d, idx) => 
+                idx !== index && 
+                d.location && 
+                d.location.coordinates[0] === origLng &&
+                d.location.coordinates[1] === origLat
+              );
+              const offsetAngle = (index * 2 * Math.PI) / (drivers.length || 1);
+              const jitterDistance = 0.00015; // tiny offset distance (~15m)
+              const lng = origLng + (hasOverlap ? Math.cos(offsetAngle) * jitterDistance : 0);
+              const lat = origLat + (hasOverlap ? Math.sin(offsetAngle) * jitterDistance : 0);
+              
               const isActive = activeRides.some(r => r.driver === driver._id);
               
               return (
                 <Marker
                   key={driver._id}
-                  longitude={driver.location.coordinates[0]}
-                  latitude={driver.location.coordinates[1]}
+                  longitude={lng}
+                  latitude={lat}
                   anchor="center"
                 >
                   <div className={`relative flex h-10 w-10 items-center justify-center rounded-full border-2 bg-black text-white shadow-lg transition-transform hover:scale-110 ${isActive ? 'border-blue-500 shadow-blue-500/50' : 'border-gray-500'}`}>
