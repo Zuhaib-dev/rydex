@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       status: "approved",
       isActive: true,
       ...(vehicleType && { type: vehicleType })
-    }).lean()
+    }).populate("owner", "name ratingAverage ratingCount praiseTags mobileNumber image").lean()
 
     return NextResponse.json({
       success: true,
