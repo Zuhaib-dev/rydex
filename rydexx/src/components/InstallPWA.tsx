@@ -65,7 +65,7 @@ export default function InstallPWA() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 120, opacity: 0 }}
           transition={{ type: "spring", stiffness: 340, damping: 36 }}
-          className="fixed bottom-4 left-4 right-4 z-[9999] sm:left-auto sm:right-4 sm:w-[340px]"
+          className="fixed bottom-4 left-4 right-4 z-999] sm:left-auto sm:right-4 sm:w-[340px]"
         >
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 shadow-2xl backdrop-blur-xl">
             <div className="flex items-start gap-3">
