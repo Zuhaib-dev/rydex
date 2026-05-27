@@ -164,7 +164,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             disabled={status === "loading" && !userData}
-            onClick={handleBook}
+            onClick={handleBook}  
             className="group relative flex items-center gap-3 overflow-hidden rounded-full bg-white px-8 py-4 text-sm font-bold text-black shadow-[0_0_40px_rgba(255,255,255,0.2)] transition-shadow hover:shadow-[0_0_60px_rgba(255,255,255,0.35)] disabled:opacity-60"
           >
             <span>Book a Ride</span>
@@ -174,7 +174,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
             />
             {/* shine sweep */}
             <motion.span
-              className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent skew-x-12"
+              className="absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/20 to-transparent skew-x-12"
               animate={{ x: ["−100%", "200%"] }}
               transition={{ repeat: Infinity, duration: 2.5, repeatDelay: 1.5, ease: "easeInOut" }}
             />
@@ -202,7 +202,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
         <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">
           Scroll
         </span>
-        <div className="h-10 w-[1px] bg-gradient-to-b from-white/30 to-transparent" />
+        <div className="h-10 w-[1px] bg-linear-to-b from-white/30 to-transparent" />
       </motion.div>
     </div>
   );
