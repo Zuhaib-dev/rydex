@@ -140,7 +140,7 @@ export default function PartnerAnalyticsHub() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-xs font-black uppercase tracking-wider rounded-xl transition-all duration-300 capitalize shrink-0 ${
+              className={`px-4 py-2 text-xs font-black  tracking-wider rounded-xl transition-all duration-300 capitalize shrink-0 ${
                 activeTab === tab
                   ? "bg-white text-zinc-900 shadow-sm"
                   : "text-gray-400 hover:text-zinc-900"
