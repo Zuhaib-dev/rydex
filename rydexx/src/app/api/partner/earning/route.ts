@@ -17,6 +17,7 @@ export async function GET() {
   const bookings = await Booking.find({
     driver: driverId,
     paymentStatus: { $in: ["paid", "cash"] },
+    status: "completed",
   }).sort({ createdAt: 1 });
 
   const earningsMap: Record<string, number> = {};
@@ -31,7 +32,13 @@ export async function GET() {
       earningsMap[date] = 0;
     }
 
-    earningsMap[date] += booking.partnerAmount || 0;
+    let pAmount = booking.partnerAmount;
+    if (pAmount == null) {
+      const adminCommission = (booking.fare || 0) * 0.10;
+      pAmount = (booking.fare || 0) - adminCommission;
+    }
+
+    earningsMap[date] += pAmount;
   });
 
   const earnings = Object.entries(earningsMap).map(([date, earnings]) => ({

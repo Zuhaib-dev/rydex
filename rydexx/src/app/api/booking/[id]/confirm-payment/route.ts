@@ -18,6 +18,13 @@ export async function POST(
   booking.status = "confirmed";
   booking.paymentStatus = method === "cash" ? "cash" : "paid";
   booking.paymentDeadline = undefined;
+  
+  if (method === "cash") {
+    const adminCommission = booking.fare * 0.10;
+    const partnerAmount = booking.fare - adminCommission;
+    booking.adminCommission = adminCommission;
+    booking.partnerAmount = partnerAmount;
+  }
 
   await booking.save();
 

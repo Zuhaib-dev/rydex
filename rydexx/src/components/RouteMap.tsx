@@ -1,16 +1,12 @@
 "use client";
 
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polyline,
-  useMap,
-} from "react-leaflet";
-import L from "leaflet";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import Map, { Marker, Source, Layer, useMap } from "react-map-gl/mapbox";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, Navigation2 } from "lucide-react";
+import { MapPin, Navigation2, Plus, Minus } from "lucide-react";
+
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
 type Props = {
   pickup: string;
@@ -19,80 +15,41 @@ type Props = {
   onChange?: (pickup: string, drop: string) => void;
 };
 
-/* ─── ICONS ── black/white theme ─────────────────────────────────── */
-
-const pickupIcon = new L.DivIcon({
-  html: `
-    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.22))">
-      <div style="
-        background:#0a0a0a;color:#fff;
-        padding:5px 14px;border-radius:100px;
-        font-size:10px;font-weight:800;letter-spacing:0.14em;
-        text-transform:uppercase;white-space:nowrap;
-        font-family:-apple-system,system-ui,sans-serif;
-        box-shadow:0 2px 12px rgba(0,0,0,0.25);
-      ">PICKUP</div>
-      <div style="width:2px;height:10px;background:#0a0a0a;opacity:0.4"></div>
-      <div style="
-        width:13px;height:13px;background:#0a0a0a;border-radius:50%;
-        border:3px solid #fff;
-        box-shadow:0 0 0 2px rgba(0,0,0,0.15), 0 3px 10px rgba(0,0,0,0.3);
-      "></div>
-    </div>`,
-  className: "",
-  iconSize: [90, 58],
-  iconAnchor: [45, 58],
-});
-
-const dropIcon = new L.DivIcon({
-  html: `
-    <div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 6px 18px rgba(0,0,0,0.2))">
-      <div style="
-        background:#fff;color:#0a0a0a;
-        padding:5px 14px;border-radius:100px;
-        font-size:10px;font-weight:800;letter-spacing:0.14em;
-        text-transform:uppercase;white-space:nowrap;
-        font-family:-apple-system,system-ui,sans-serif;
-        border:1.5px solid #0a0a0a;
-        box-shadow:0 2px 12px rgba(0,0,0,0.15);
-      ">DROP</div>
-      <div style="width:2px;height:10px;background:#0a0a0a;opacity:0.4"></div>
-      <div style="
-        width:13px;height:13px;background:#fff;border-radius:50%;
-        border:3px solid #0a0a0a;
-        box-shadow:0 0 0 2px rgba(0,0,0,0.08), 0 3px 10px rgba(0,0,0,0.2);
-      "></div>
-    </div>`,
-  className: "",
-  iconSize: [80, 58],
-  iconAnchor: [40, 58],
-});
-
 /* ─── FIT BOUNDS ──────────────────────────────────────────────────── */
 function FitBounds({ p1, p2 }: { p1: [number, number]; p2: [number, number] }) {
-  const map = useMap();
+  const { current: map } = useMap();
   useEffect(() => {
-    map.invalidateSize();
-    map.fitBounds([p1, p2], { padding: [72, 72], maxZoom: 15, animate: true, duration: 1 });
+    if (map && p1 && p2) {
+      // Calculate bounds
+      const minLng = Math.min(p1[1], p2[1]);
+      const maxLng = Math.max(p1[1], p2[1]);
+      const minLat = Math.min(p1[0], p2[0]);
+      const maxLat = Math.max(p1[0], p2[0]);
+
+      map.fitBounds(
+        [[minLng, minLat], [maxLng, maxLat]],
+        { padding: 72, maxZoom: 15, duration: 1000 }
+      );
+    }
   }, [p1, p2, map]);
   return null;
 }
 
-/* ─── ZOOM CONTROLS (inside MapContainer) ────────────────────────── */
+/* ─── ZOOM CONTROLS ───────────────────────────────────────────────── */
 function ZoomControlsWrapper() {
-  const map = useMap();
+  const { current: map } = useMap();
   return (
     <div
       style={{ position: "absolute", bottom: 24, right: 16, zIndex: 500, display: "flex", flexDirection: "column", gap: 6 }}
       onClick={e => e.stopPropagation()}
     >
       {[
-        { label: "+", action: () => map.zoomIn()  },
-        { label: "−", action: () => map.zoomOut() },
-      ].map(({ label, action }) => (
+        { icon: <Plus size={18} />, action: () => map?.zoomIn() },
+        { icon: <Minus size={18} />, action: () => map?.zoomOut() },
+      ].map((btn, i) => (
         <button
-          key={label}
-          onClick={action}
+          key={i}
+          onClick={btn.action}
           style={{
             width: 40, height: 40,
             background: "#fff",
@@ -100,13 +57,12 @@ function ZoomControlsWrapper() {
             borderRadius: 12,
             display: "flex", alignItems: "center", justifyContent: "center",
             cursor: "pointer", color: "#0a0a0a",
-            fontSize: 18, fontWeight: 400,
             boxShadow: "0 2px 12px rgba(0,0,0,0.1)",
             transition: "background 0.15s, box-shadow 0.15s",
           }}
           onMouseEnter={e => { e.currentTarget.style.background = "#f4f4f5"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.14)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "#fff";    e.currentTarget.style.boxShadow = "0 2px 12px rgba(0,0,0,0.1)";  }}
-        >{label}</button>
+        >{btn.icon}</button>
       ))}
     </div>
   );
@@ -116,41 +72,61 @@ function ZoomControlsWrapper() {
 export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) {
   const [p1,    setP1]    = useState<[number, number] | null>(null);
   const [p2,    setP2]    = useState<[number, number] | null>(null);
-  const [route, setRoute] = useState<[number, number][]>([]);
+  const [route, setRoute] = useState<any>(null);
   const [ready, setReady] = useState(false);
   const [km,    setKm]    = useState<number | null>(null);
 
   const geocode = async (q: string): Promise<[number, number] | null> => {
-    const r = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1`);
-    const d = await r.json();
-    if (!d?.features?.length) return null;
-    const [lon, lat] = d.features[0].geometry.coordinates;
-    return [lat, lon];
+    if (!MAPBOX_TOKEN) return null;
+    try {
+      const r = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
+      const d = await r.json();
+      if (!d?.features?.length) return null;
+      const [lon, lat] = d.features[0].center;
+      return [lat, lon];
+    } catch {
+      return null;
+    }
   };
 
   const reverseGeocode = async (lat: number, lon: number): Promise<string> => {
-    const r = await fetch(`https://photon.komoot.io/reverse?lat=${lat}&lon=${lon}&limit=1`);
-    const d = await r.json();
-    if (!d?.features?.length) return "";
-    const p = d.features[0].properties;
-    return [p.name, p.city, p.state, p.country].filter(Boolean).join(", ");
+    if (!MAPBOX_TOKEN) return "";
+    try {
+      const r = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
+      const d = await r.json();
+      if (!d?.features?.length) return "";
+      return d.features[0].place_name;
+    } catch {
+      return "";
+    }
   };
 
   const loadRoute = async (a: [number, number], b: [number, number]) => {
-    const r = await fetch(
-      `https://router.project-osrm.org/route/v1/driving/${a[1]},${a[0]};${b[1]},${b[0]}?overview=full&geometries=geojson`
-    );
-    const d = await r.json();
-    if (!d?.routes?.length) return;
-    setRoute(d.routes[0].geometry.coordinates.map(([lon, lat]: number[]) => [lat, lon]));
-    const distKm = +((d.routes[0].distance / 1000).toFixed(2));
-    setKm(distKm);
-    onDistance?.(distKm);
+    if (!MAPBOX_TOKEN) return;
+    try {
+      const r = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/driving/${a[1]},${a[0]};${b[1]},${b[0]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`
+      );
+      const d = await r.json();
+      if (!d?.routes?.length) return;
+      
+      setRoute({
+        type: "Feature",
+        properties: {},
+        geometry: d.routes[0].geometry,
+      });
+      
+      const distKm = +((d.routes[0].distance / 1000).toFixed(2));
+      setKm(distKm);
+      onDistance?.(distKm);
+    } catch (err) {
+      console.warn("Mapbox Route failed", err);
+    }
   };
 
   useEffect(() => {
     setReady(false);
-    setRoute([]);
+    setRoute(null);
     (async () => {
       const a = await geocode(pickup);
       const b = await geocode(drop);
@@ -161,16 +137,24 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
     })();
   }, [pickup, drop]);
 
-  const onDragPickup = async (lat: number, lon: number) => {
-    const addr = await reverseGeocode(lat, lon);
+  const onDragPickup = async (e: any) => {
+    const lngLat = e.lngLat;
+    const lat = lngLat.lat;
+    const lon = lngLat.lng;
+    
     setP1([lat, lon]);
+    const addr = await reverseGeocode(lat, lon);
     onChange?.(addr, drop);
     if (p2) loadRoute([lat, lon], p2);
   };
 
-  const onDragDrop = async (lat: number, lon: number) => {
-    const addr = await reverseGeocode(lat, lon);
+  const onDragDrop = async (e: any) => {
+    const lngLat = e.lngLat;
+    const lat = lngLat.lat;
+    const lon = lngLat.lng;
+    
     setP2([lat, lon]);
+    const addr = await reverseGeocode(lat, lon);
     onChange?.(pickup, addr);
     if (p1) loadRoute(p1, [lat, lon]);
   };
@@ -179,51 +163,77 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
     <div className="relative h-full w-full bg-zinc-100">
 
       {/* ── MAP ── */}
-      <MapContainer
-        center={p1 ?? [20.5937, 78.9629]}
-        zoom={p1 ? 13 : 5}
-        style={{ height: "100%", width: "100%" }}
-        scrollWheelZoom
-        dragging
-        zoomControl={false}
+      <Map
+        mapboxAccessToken={MAPBOX_TOKEN}
+        initialViewState={{
+          longitude: p1 ? p1[1] : 78.9629,
+          latitude: p1 ? p1[0] : 20.5937,
+          zoom: p1 ? 13 : 5,
+        }}
+        style={{ width: "100%", height: "100%" }}
+        mapStyle="mapbox://styles/mapbox/light-v11"
+        interactive={true}
       >
-        {/* CartoDB light — clean white/grey streets */}
-        <TileLayer
-          attribution='&copy; <a href="https://carto.com">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-        />
-
         {p1 && p2 && <FitBounds p1={p1} p2={p2} />}
 
         {p1 && (
           <Marker
-            position={p1}
-            icon={pickupIcon}
+            longitude={p1[1]}
+            latitude={p1[0]}
             draggable
-            eventHandlers={{ dragend: e => { const m = e.target.getLatLng(); onDragPickup(m.lat, m.lng); } }}
-          />
+            onDragEnd={onDragPickup}
+            anchor="bottom"
+          >
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.22))", cursor: "grab" }}>
+              <div style={{ background: "#0a0a0a", color: "#fff", padding: "5px 14px", borderRadius: "100px", fontSize: "10px", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap", fontFamily: "-apple-system,system-ui,sans-serif", boxShadow: "0 2px 12px rgba(0,0,0,0.25)" }}>PICKUP</div>
+              <div style={{ width: "2px", height: "10px", background: "#0a0a0a", opacity: 0.4 }}></div>
+              <div style={{ width: "13px", height: "13px", background: "#0a0a0a", borderRadius: "50%", border: "3px solid #fff", boxShadow: "0 0 0 2px rgba(0,0,0,0.15), 0 3px 10px rgba(0,0,0,0.3)" }}></div>
+            </div>
+          </Marker>
         )}
 
         {p2 && (
           <Marker
-            position={p2}
-            icon={dropIcon}
+            longitude={p2[1]}
+            latitude={p2[0]}
             draggable
-            eventHandlers={{ dragend: e => { const m = e.target.getLatLng(); onDragDrop(m.lat, m.lng); } }}
-          />
+            onDragEnd={onDragDrop}
+            anchor="bottom"
+          >
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 6px 18px rgba(0,0,0,0.2))", cursor: "grab" }}>
+              <div style={{ background: "#fff", color: "#0a0a0a", padding: "5px 14px", borderRadius: "100px", fontSize: "10px", fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", whiteSpace: "nowrap", fontFamily: "-apple-system,system-ui,sans-serif", border: "1.5px solid #0a0a0a", boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}>DROP</div>
+              <div style={{ width: "2px", height: "10px", background: "#0a0a0a", opacity: 0.4 }}></div>
+              <div style={{ width: "13px", height: "13px", background: "#fff", borderRadius: "50%", border: "3px solid #0a0a0a", boxShadow: "0 0 0 2px rgba(0,0,0,0.08), 0 3px 10px rgba(0,0,0,0.2)" }}></div>
+            </div>
+          </Marker>
         )}
 
         {/* Route — black triple layer on white map */}
-        {route.length > 0 && (
-          <>
-            <Polyline positions={route} pathOptions={{ color: "#0a0a0a", weight: 14, opacity: 0.05, lineCap: "round", lineJoin: "round" }} />
-            <Polyline positions={route} pathOptions={{ color: "#0a0a0a", weight: 6,  opacity: 0.12, lineCap: "round", lineJoin: "round" }} />
-            <Polyline positions={route} pathOptions={{ color: "#0a0a0a", weight: 3.5, opacity: 1,  lineCap: "round", lineJoin: "round" }} />
-          </>
+        {route && (
+          <Source type="geojson" data={route}>
+            <Layer
+              id="route-bg"
+              type="line"
+              layout={{ "line-join": "round", "line-cap": "round" }}
+              paint={{ "line-color": "#0a0a0a", "line-width": 14, "line-opacity": 0.05 }}
+            />
+            <Layer
+              id="route-mg"
+              type="line"
+              layout={{ "line-join": "round", "line-cap": "round" }}
+              paint={{ "line-color": "#0a0a0a", "line-width": 6, "line-opacity": 0.12 }}
+            />
+            <Layer
+              id="route-fg"
+              type="line"
+              layout={{ "line-join": "round", "line-cap": "round" }}
+              paint={{ "line-color": "#0a0a0a", "line-width": 3.5, "line-opacity": 1 }}
+            />
+          </Source>
         )}
 
         <ZoomControlsWrapper />
-      </MapContainer>
+      </Map>
 
       {/* ── LOADING OVERLAY ── */}
       <AnimatePresence>
@@ -232,7 +242,7 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.45 }}
-            className="absolute inset-0 z-[999] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center gap-4"
+            className="absolute inset-0 z-999 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center gap-4"
           >
             <div className="relative w-14 h-14 flex items-center justify-center">
               <motion.div
@@ -263,7 +273,7 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute bottom-6 left-4 z-[500] flex items-center gap-2 bg-white border border-zinc-200 px-3.5 py-2 rounded-xl shadow-lg"
+            className="absolute bottom-6 left-4 z-500 flex items-center gap-2 bg-white border border-zinc-200 px-3.5 py-2 rounded-xl shadow-lg"
           >
             <Navigation2 size={13} className="text-zinc-900" />
             <span className="text-zinc-900 text-xs font-bold">{km} km</span>
@@ -299,7 +309,7 @@ function DragHintBadge() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
           transition={{ delay: 0.5, duration: 0.35 }}
-          className="absolute top-14 left-1/2 -translate-x-1/2 z-[500] pointer-events-none flex items-center gap-2 bg-white border border-zinc-200 shadow-md px-3 py-1.5 rounded-full"
+          className="absolute top-14 left-1/2 -translate-x-1/2 z-500 pointer-events-none flex items-center gap-2 bg-white border border-zinc-200 shadow-md px-3 py-1.5 rounded-full"
         >
           <motion.div
             animate={{ x: [0, 4, 0, -4, 0] }}

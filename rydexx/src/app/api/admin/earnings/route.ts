@@ -12,6 +12,7 @@ export async function GET() {
 
   const bookings = await Booking.find({
     paymentStatus: { $in: ["paid", "cash"] },
+    status: "completed",
   }).sort({ createdAt: 1 });
 
   const earningsMap: Record<string, number> = {};
@@ -23,7 +24,13 @@ export async function GET() {
     });
 
     earningsMap[date] ||= 0;
-    earningsMap[date] += booking.adminCommission || 0;
+    
+    let aCommission = booking.adminCommission;
+    if (aCommission == null) {
+      aCommission = (booking.fare || 0) * 0.10;
+    }
+    
+    earningsMap[date] += aCommission;
   });
 
   const earnings = Object.entries(earningsMap).map(([date, earnings]) => ({
