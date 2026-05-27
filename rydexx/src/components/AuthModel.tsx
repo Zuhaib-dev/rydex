@@ -280,7 +280,7 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                             id={`otp-${i}`}
                             value={digit}
                             maxLength={1}
-                            className="w-10 h-12 sm:w-12 text-center text-lg rounded-xl font-semibold bg-white border border-black/20 outline-none"
+                            className="w-10 h-12 sm:w-12 text-center text-lg rounded-xl font-semibold bg-white border border-black/20 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all shadow-sm"
                             onChange={(e) => handleChangeOtp(i, e.target.value)}
                           />
                         ))}

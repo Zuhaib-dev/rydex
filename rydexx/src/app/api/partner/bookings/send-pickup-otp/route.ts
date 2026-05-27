@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { sendMail } from "@/lib/sendMail";
+import { getOtpEmailTemplate } from "@/lib/emailTemplate";
 
 
 export async function POST(req: Request) {
@@ -38,23 +39,7 @@ export async function POST(req: Request) {
       await sendMail(
         booking.user.email,
         "Your Pickup OTP - RYDEX",
-        `
-        <div style="font-family:sans-serif;padding:20px">
-          <h2>Ride OTP</h2>
-
-          <p>Your pickup OTP is:</p>
-
-          <h1 style="letter-spacing:6px">${otp}</h1>
-
-          <p>This OTP is valid for 5 minutes.</p>
-
-          <p>Share this OTP with your driver to start the ride.</p>
-
-          <br/>
-
-          <b>RYDEX</b>
-        </div>
-        `
+        getOtpEmailTemplate(otp, "Your driver has arrived! Share this OTP with your driver to start the ride.", "Pickup OTP")
       );
 
     }

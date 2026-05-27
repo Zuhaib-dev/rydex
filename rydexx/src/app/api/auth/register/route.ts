@@ -2,6 +2,7 @@ import connectDb from "@/lib/db";
 import { sendMail } from "@/lib/sendMail";
 import User from "@/models/user.model";
 import bcrypt from "bcryptjs";
+import { getOtpEmailTemplate } from "@/lib/emailTemplate";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -40,7 +41,9 @@ export async function POST(req: NextRequest) {
       });
     }
     await sendMail(
-      email,"Verify Your Email",`Your OTP is ${otp}`
+      email,
+      "Verify Your Email - Rydex",
+      getOtpEmailTemplate(otp, "Thank you for registering with Rydex! Please use the following OTP to verify your email address.", "Verify Your Email")
     )
     
     const userResponse = {
