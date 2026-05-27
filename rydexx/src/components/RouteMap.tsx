@@ -134,6 +134,15 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
       setP1(a); setP2(b);
       await loadRoute(a, b);
       setReady(true);
+
+      // Log search for heatmap
+      try {
+        await fetch("/api/metrics/search-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ latitude: a[0], longitude: a[1] })
+        });
+      } catch (e) {}
     })();
   }, [pickup, drop]);
 
