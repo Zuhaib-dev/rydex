@@ -91,7 +91,12 @@ function Footer() {
 
         {/* Bottom row */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-6 text-xs text-white/25">
-          <p>© {new Date().getFullYear()} Rydex. All rights reserved.</p>
+          <p>
+            © {new Date().getFullYear()} Rydex. All rights reserved. Created by{" "}
+            <a href="https://zuhaibrashid.com" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline font-medium">
+              Zuhaib Rashid
+            </a>.
+          </p>
           <div className="flex items-center gap-4">
             <Link href="/privacy" className="hover:text-white/50 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-white/50 transition-colors">Terms</Link>

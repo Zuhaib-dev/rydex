@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     "truck rental",
     "ride booking app",
   ],
-  authors: [{ name: "Zuhaib Rashid", url: "https://github.com/Zuhaib-dev" }],
+  authors: [{ name: "Zuhaib Rashid", url: "https://zuhaibrashid.com" }],
   creator: "Zuhaib Rashid",
   publisher: "Zuhaib Rashid",
   robots: {
@@ -86,8 +86,9 @@ export default function RootLayout({
         "@type": "Person",
         "@id": "https://rydexx.netlify.app/#creator",
         "name": "Zuhaib Rashid",
-        "url": "https://github.com/Zuhaib-dev",
+        "url": "https://zuhaibrashid.com",
         "sameAs": [
+          "https://zuhaibrashid.com",
           "https://github.com/Zuhaib-dev",
           "https://www.linkedin.com/in/zuhaib-rashid-661345318/",
           "https://x.com/xuhaib_x9"
