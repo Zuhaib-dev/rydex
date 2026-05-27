@@ -9,7 +9,7 @@ import { ArrowLeft, ChevronRight, UploadCloud, CheckCircle2, AlertCircle, Loader
 interface DocumentState {
   file: File | null;
   status: "idle" | "uploading" | "done";
-}
+} 
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 18 },
