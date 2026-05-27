@@ -202,7 +202,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
         <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-white/30">
           Scroll
         </span>
-        <div className="h-10 w-[1px] bg-linear-to-b from-white/30 to-transparent" />
+        <div className="h-10 w-px bg-linear-to-b from-white/30 to-transparent" />
       </motion.div>
     </div>
   );
