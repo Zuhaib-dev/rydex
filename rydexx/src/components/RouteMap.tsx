@@ -266,7 +266,7 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.45 }}
-            className="absolute inset-0 z-[999] bg-white/90 backdrop-blur-md flex flex-col items-center justify-center gap-4"
+            className="absolute inset-0 z-999 bg-white/90 backdrop-blur-md flex flex-col items-center justify-center gap-4"
           >
             <div className="relative w-14 h-14 flex items-center justify-center">
               <motion.div
