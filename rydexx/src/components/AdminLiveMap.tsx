@@ -7,7 +7,6 @@ import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import useSWR from "swr";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { Car, Bike, Truck, Navigation, Save, X, Activity } from "lucide-react";
-import { toast } from "sonner";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -101,15 +100,15 @@ export default function AdminLiveMap() {
         }),
       });
       if (res.ok) {
-        toast.success("Surge zone created!");
+        alert("Surge zone created!");
         setActiveFeature(null);
         setZoneName("");
         if (drawRef.current) drawRef.current.deleteAll();
       } else {
-        toast.error("Failed to create zone");
+        alert("Failed to create zone");
       }
     } catch (err) {
-      toast.error("Error creating zone");
+      alert("Error creating zone");
     }
   };
 
