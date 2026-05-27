@@ -7,7 +7,7 @@ import { useSpring } from "framer-motion";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-type Props = {
+export type ShareTripMapProps = {
   driverLocation: [number, number] | null;
   pickupLocation: [number, number];
   dropLocation: [number, number];
@@ -15,6 +15,8 @@ type Props = {
   sosActive?: boolean;
   vehicleType?: string;
 };
+
+type Props = ShareTripMapProps;
 
 /* ── Auto-follow driver ─────────────────────────────────────────────── */
 function AutoFollow({ pos }: { pos: [number, number] | null }) {

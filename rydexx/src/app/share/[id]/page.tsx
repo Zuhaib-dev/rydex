@@ -1,23 +1,22 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
+import type { ComponentType } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  MapPin,
   Navigation,
   Car,
   Bike,
   Truck,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   User2,
   Star,
   IndianRupee,
 } from "lucide-react";
-import type { Metadata } from "next";
+import type { ShareTripMapProps } from "@/components/ShareTripMap";
 
 /* ── Types ─────────────────────────────────────────────────────────────── */
 interface ShareBooking {
@@ -46,14 +45,17 @@ interface ShareBooking {
 }
 
 /* ── Lazy Mapbox ────────────────────────────────────────────────────────── */
-const ShareMap = dynamic(() => import("@/components/ShareTripMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-full bg-zinc-900 animate-pulse flex items-center justify-center">
-      <Car size={36} className="text-zinc-700 animate-bounce" />
-    </div>
-  ),
-});
+const ShareMap = dynamic<ShareTripMapProps>(
+  () => import("@/components/ShareTripMap") as Promise<{ default: ComponentType<ShareTripMapProps> }>,
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-full bg-zinc-900 animate-pulse flex items-center justify-center">
+        <Car size={36} className="text-zinc-700 animate-bounce" />
+      </div>
+    ),
+  }
+);
 
 /* ── Status helpers ─────────────────────────────────────────────────────── */
 const STATUS_INFO: Record<string, { label: string; color: string; dot: string }> = {
@@ -69,7 +71,7 @@ const STATUS_INFO: Record<string, { label: string; color: string; dot: string }>
   expired: { label: "Request expired", color: "text-orange-400", dot: "bg-orange-400" },
 };
 
-const VEHICLE_ICON: Record<string, JSX.Element> = {
+const VEHICLE_ICON: Record<string, React.ReactElement> = {
   bike: <Bike size={18} className="text-white" />,
   truck: <Truck size={18} className="text-white" />,
   loading: <Truck size={18} className="text-white" />,
