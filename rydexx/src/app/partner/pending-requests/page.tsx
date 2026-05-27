@@ -56,7 +56,10 @@ export default function VendorPendingPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-   const router=useRouter()
+  const handleTimeout = (bookingId: string) => {
+    setBookings((prev) => prev.filter((b) => b._id !== bookingId));
+  };
+
   const fetchPendingBookings = async () => {
     if (!session?.user) {
       setLoading(false);
