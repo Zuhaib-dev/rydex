@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import StatusCard from "./StatusCard";
 import VideoKYCBanner from "./VideoKYCBanner";
 import axios from "axios";
-import PartnerEarningsChart from "./PartnerEarningChart";
+import PartnerAnalyticsHub from "./PartnerAnalyticsHub";
 
 function PartnerDashboard() {
   type step = {
@@ -315,32 +315,9 @@ function PartnerDashboard() {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, ease: "easeOut" }}
-            className="mt-8 grid grid-cols-1 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)] gap-6"
+            className="mt-8"
           >
-            <PartnerEarningsChart />
-            <div className="bg-zinc-900 text-white rounded-[28px] p-6 shadow-[0_14px_40px_rgba(0,0,0,0.16)] flex flex-col justify-between min-h-[360px]">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] text-white/45 font-black mb-2">
-                  Partner Growth
-                </p>
-                <h2 className="text-3xl font-black tracking-tight leading-tight">
-                  Keep rides moving, keep earnings climbing.
-                </h2>
-                <p className="text-sm text-white/60 leading-relaxed mt-4">
-                  Your daily earnings panel updates from paid and cash bookings as rides complete.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3 pt-8">
-                <div className="rounded-2xl bg-white/10 px-4 py-3">
-                  <p className="text-2xl font-black">{completedSteps}/{TOTAL_STEPS}</p>
-                  <p className="text-[10px] uppercase tracking-widest text-white/45 font-bold mt-1">Steps</p>
-                </div>
-                <div className="rounded-2xl bg-emerald-400 text-zinc-950 px-4 py-3">
-                  <p className="text-2xl font-black">Live</p>
-                  <p className="text-[10px] uppercase tracking-widest font-black mt-1">Status</p>
-                </div>
-              </div>
-            </div>
+            <PartnerAnalyticsHub />
           </motion.section>
         )}
       </div>
