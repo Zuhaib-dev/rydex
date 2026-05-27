@@ -97,7 +97,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-1.5 backdrop-blur-sm"
+          className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-1.5 backdrop-blur-sm" style={{ backgroundColor: 'rgba(255,255,255,0.06)' }}
         >
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
@@ -145,7 +145,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
           {pills.map(({ icon: Icon, label }) => (
             <div
               key={label}
-              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/6 px-3 py-1.5 backdrop-blur-sm"
+              className="flex items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 backdrop-blur-sm" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}
             >
               <Icon size={12} className="text-white/60" />
               <span className="text-xs font-medium text-white/60">{label}</span>
