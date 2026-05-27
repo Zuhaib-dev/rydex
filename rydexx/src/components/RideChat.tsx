@@ -7,7 +7,8 @@ import axios from "axios";
 import { getSocket } from "@/lib/socket";
 
 interface Message {
-  id: string;
+  _id?: string;
+  id?: string;
   text: string;
   sender: "user" | "driver";
   createdAt: Date | string;
@@ -57,11 +58,15 @@ export default function RideChat({
 
   useEffect(() => {
     const socket = getSocket();
+    
+    // Join the booking room for this specific ride
+    socket.emit("join-booking", rideId);
+    
     socket.on("chat-message", (message: Message) => {
       setMessages(prev => [...prev, message]);
     });
     return () => { socket.off("chat-message"); };
-  }, []);
+  }, [rideId]);
 
   const sendMessage = async (text: string) => {
     const socket = getSocket();
@@ -170,7 +175,7 @@ export default function RideChat({
 
               return (
                 <motion.div
-                  key={msg.id}
+                  key={msg._id || msg.id || idx}
                   initial={{ opacity: 0, y: 8, scale: 0.97 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
