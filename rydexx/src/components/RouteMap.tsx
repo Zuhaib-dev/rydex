@@ -173,7 +173,7 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
           bearing: -20,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="mapbox://styles/mapbox/navigation-day-v1"
+        mapStyle="mapbox://styles/mapbox/streets-v12"
         terrain={{ source: "mapbox-dem", exaggeration: 1.5 }}
         interactive={true}
       >
