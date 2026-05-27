@@ -456,7 +456,47 @@ function CompletedScreen({
   router: any;
 }) {
   const [selectedRating, setSelectedRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [comment, setComment] = useState("");
+  const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  const DRIVER_PRAISE_TAGS = ["Clean Ride", "Safe Driver", "Punctual", "Polite", "Helpful", "Great Navigation"];
+
+  const toggleTag = (tag: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleSubmitReview = async () => {
+    if (selectedRating === 0) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          bookingId: booking._id,
+          rating: selectedRating,
+          praiseTags: selectedTags,
+          comment,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to submit review");
+      }
+      setSubmitted(true);
+    } catch (err: any) {
+      setError(err.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -518,7 +558,7 @@ function CompletedScreen({
           {/* Driver card */}
           {booking.driver && (
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-xl bg-zinc-800 flex items-center justify-center shrink-o">
+              <div className="w-11 h-11 rounded-xl bg-zinc-800 flex items-center justify-center shrink-0">
                 <User2 size={20} className="text-zinc-400" />
               </div>
               <div className="flex-1 min-w-0">
@@ -530,7 +570,7 @@ function CompletedScreen({
                 </p>
               </div>
               {booking.vehicle && (
-                <div className="shrink-o bg-zinc-800 px-2.5 py-1.5 rounded-lg">
+                <div className="shrink-0 bg-zinc-800 px-2.5 py-1.5 rounded-lg">
                   <p className="text-zinc-300 text-xs font-black tracking-widest font-mono">
                     {booking.vehicle.number}
                   </p>
@@ -542,7 +582,7 @@ function CompletedScreen({
           {/* Route */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden mb-6">
             <div className="flex gap-3 p-4 border-b border-zinc-800">
-              <div className="flex flex-col items-center shrink-o pt-1">
+              <div className="flex flex-col items-center shrink-0 pt-1">
                 <div className="w-2.5 h-2.5 rounded-full bg-zinc-500 border-2 border-zinc-900" />
                 <div className="w-px bg-zinc-700 mt-1" style={{ height: 18 }} />
               </div>
@@ -556,7 +596,7 @@ function CompletedScreen({
               </div>
             </div>
             <div className="flex gap-3 p-4">
-              <div className="shrink-o pt-1">
+              <div className="shrink-0 pt-1">
                 <div className="w-2.5 h-2.5 rounded-sm bg-emerald-400 border-2 border-zinc-900" />
               </div>
               <div className="flex-1 min-w-0">
@@ -573,44 +613,116 @@ function CompletedScreen({
           {/* Rating */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 mb-4">
             <p className="text-zinc-400 text-sm font-semibold text-center mb-3">
-              How was your experience?
+              How was your experience with {booking.driver?.name || "the driver"}?
             </p>
-            <div className="flex justify-center gap-2 mb-3">
-              {[1, 2, 3, 4, 5].map((n) => (
-                <button
-                  key={n}
-                  onClick={() => !submitted && setSelectedRating(n)}
-                  className={`w-12 h-12 rounded-xl text-xl transition-all active:scale-90 ${
-                    selectedRating >= n
-                      ? "bg-amber-400 text-zinc-900"
-                      : "bg-zinc-800 hover:bg-zinc-700 text-zinc-500"
-                  }`}
-                >
-                  ★
-                </button>
-              ))}
+            
+            {/* Stars Selector */}
+            <div 
+              className="flex justify-center gap-2 mb-4"
+              onMouseLeave={() => setHoveredRating(0)}
+            >
+              {[1, 2, 3, 4, 5].map((n) => {
+                const active = (hoveredRating || selectedRating) >= n;
+                return (
+                  <button
+                    key={n}
+                    type="button"
+                    onMouseEnter={() => !submitted && setHoveredRating(n)}
+                    onClick={() => !submitted && setSelectedRating(n)}
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                      active
+                        ? "bg-amber-400/10 border-2 border-amber-400 text-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.15)] scale-105"
+                        : "bg-zinc-800/50 border-2 border-transparent text-zinc-600 hover:text-zinc-400 hover:bg-zinc-800 hover:scale-102"
+                    }`}
+                  >
+                    <Star size={24} className={active ? "fill-amber-400" : ""} />
+                  </button>
+                );
+              })}
             </div>
+
             <AnimatePresence>
               {selectedRating > 0 && !submitted && (
-                <motion.button
-                  initial={{ opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setSubmitted(true)}
-                  className="w-full bg-white text-zinc-900 py-3 rounded-xl text-sm font-bold hover:bg-zinc-100 transition-colors"
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden space-y-4 pt-2"
                 >
-                  Submit Rating
-                </motion.button>
+                  {/* Praise Tags */}
+                  <div className="space-y-2">
+                    <p className="text-zinc-500 text-[10px] uppercase tracking-wider font-semibold text-center">
+                      What went well?
+                    </p>
+                    <div className="flex flex-wrap justify-center gap-1.5">
+                      {DRIVER_PRAISE_TAGS.map((tag) => {
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            className={`text-xs font-bold px-3 py-1.5 rounded-full border transition-all duration-200 ${
+                              isSelected
+                                ? "bg-amber-400/20 border-amber-400 text-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.1)]"
+                                : "bg-zinc-800/40 border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-300"
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Feedback Comment */}
+                  <div className="space-y-1.5">
+                    <textarea
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      placeholder="Share a comment about the driver (optional)..."
+                      rows={3}
+                      className="w-full bg-zinc-950/60 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-xs text-zinc-300 placeholder-zinc-600 focus:outline-none focus:border-zinc-700 focus:ring-1 focus:ring-zinc-700 resize-none transition-colors"
+                    />
+                  </div>
+
+                  {/* Error display */}
+                  {error && (
+                    <p className="text-red-500 text-xs text-center font-medium">
+                      {error}
+                    </p>
+                  )}
+
+                  {/* Submit Button */}
+                  <button
+                    type="button"
+                    onClick={handleSubmitReview}
+                    disabled={loading}
+                    className="w-full bg-white text-zinc-900 py-3 rounded-xl text-sm font-bold hover:bg-zinc-100 transition-colors flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <div className="w-5 h-5 rounded-full border-2 border-zinc-900 border-t-transparent animate-spin" />
+                    ) : (
+                      "Submit Feedback"
+                    )}
+                  </button>
+                </motion.div>
               )}
+
               {submitted && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex items-center justify-center gap-2 py-2"
+                  className="flex flex-col items-center justify-center gap-1.5 py-4"
                 >
-                  <CheckCircle2 size={16} className="text-emerald-400" />
-                  <p className="text-emerald-400 text-sm font-semibold">
-                    Thanks for your feedback!
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center mb-1">
+                    <CheckCircle2 size={20} className="text-emerald-400" />
+                  </div>
+                  <p className="text-emerald-400 text-sm font-bold">
+                    Feedback Submitted!
+                  </p>
+                  <p className="text-zinc-500 text-[11px] text-center max-w-xs">
+                    Your rating and selected tags have been applied to the driver's profile.
                   </p>
                 </motion.div>
               )}
