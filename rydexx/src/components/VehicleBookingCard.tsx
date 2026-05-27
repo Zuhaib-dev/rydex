@@ -44,7 +44,7 @@ export default function VehicleBookingCard({
 }: VehicleProps) {
   const {
     type, vehicleModel, vehicleNumber,
-    imageUrl, baseFare = 0, perKmRate = 0, waitingCharge = 0,
+    imageUrl, baseFare = 0, perKmRate = 0, waitingCharge = 0, owner
   } = vehicle;
 
   const { label, Icon } = TYPE_CONFIG[type] ?? TYPE_CONFIG.car;
