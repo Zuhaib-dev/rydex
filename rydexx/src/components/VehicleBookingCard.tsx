@@ -18,6 +18,13 @@ interface VehicleProps {
     baseFare?: number;
     perKmRate?: number;
     waitingCharge?: number;
+    owner?: {
+      _id: string;
+      name: string;
+      ratingAverage?: number;
+      ratingCount?: number;
+      praiseTags?: Record<string, number>;
+    } | string;
   };
   distanceKm?: number;
   isRecommended?: boolean;
