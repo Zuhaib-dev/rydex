@@ -222,19 +222,21 @@ function SearchContent() {
           </AnimatePresence>
 
           {/* VEHICLE GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {vehicles.map((v, i) => (
+          <div className="flex justify-center max-w-md mx-auto">
+            {vehicles.length > 0 && (
               <motion.div
-                key={v._id}
+                key={vehicles[0]._id}
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
+                className="w-full"
               >
                 <VehicleBookingCard
-                  vehicle={v}
+                  vehicle={vehicles[0]}
                   distanceKm={km ?? undefined}
-                  isRecommended={i === 0}
+                  isRecommended={true}
                   onBook={() => {
+                    const v = vehicles[0];
                     const url = new URLSearchParams({
                       pickup, drop,
                       vehicle:    v.type,
@@ -251,7 +253,7 @@ function SearchContent() {
                   }}
                 />
               </motion.div>
-            ))}
+            )}
           </div>
 
         </div>
