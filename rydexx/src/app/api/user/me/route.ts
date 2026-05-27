@@ -31,6 +31,15 @@ export async function GET(req: Request) {
         },
       );
     }
+    
+    // Automatically initialize location for partners if missing to enable search/booking matching
+    if (user.role === "partner" && (!user.location || !user.location.coordinates || user.location.coordinates.length === 0)) {
+      user.location = {
+        type: "Point",
+        coordinates: [74.76157380380525, 33.92588798182483],
+      };
+      await user.save();
+    }
     return Response.json(
       { user },
       {

@@ -21,6 +21,15 @@ export async function GET(req: NextRequest) {
                 { status: 400 }
             )
         }
+
+        // Automatically initialize location for partners if missing to enable search/booking matching
+        if (user.role === "partner" && (!user.location || !user.location.coordinates || user.location.coordinates.length === 0)) {
+            user.location = {
+                type: "Point",
+                coordinates: [74.76157380380525, 33.92588798182483],
+            };
+            await user.save();
+        }
         return NextResponse.json(
             user,
             { status: 200 }
