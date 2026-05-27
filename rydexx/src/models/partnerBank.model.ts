@@ -18,6 +18,7 @@ const partnerBankSchema = new mongoose.Schema<IpartnerBank>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
     accountNumber: {
       type: String,
@@ -32,6 +33,9 @@ const partnerBankSchema = new mongoose.Schema<IpartnerBank>(
     bankName: {
       type: String,
       required: true,
+    },
+    upi: {
+      type: String,
     },
     accountHolderName: {
       type: String,

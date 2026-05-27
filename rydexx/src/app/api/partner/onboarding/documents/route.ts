@@ -20,12 +20,35 @@ export async function POST(req: NextRequest) {
     const aadhar = (formdata.get("aadhar") as Blob) || null;
     const drivingLicense = (formdata.get("drivingLicense") as Blob) || null;
     const rc = (formdata.get("rc") as Blob) || null;
+    
     if (!aadhar || !drivingLicense || !rc) {
       return Response.json(
         { message: "All documents are required" },
         { status: 400 },
       );
     }
+
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+
+    const validateFile = (file: Blob, name: string) => {
+      if (file.size > MAX_FILE_SIZE) {
+        return `${name} size must be less than 5MB`;
+      }
+      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+        return `${name} must be a valid image (JPEG, PNG, WEBP) or PDF document`;
+      }
+      return null;
+    };
+
+    const aadharError = validateFile(aadhar, "Aadhaar Card");
+    if (aadharError) return Response.json({ message: aadharError }, { status: 400 });
+
+    const licenseError = validateFile(drivingLicense, "Driving License");
+    if (licenseError) return Response.json({ message: licenseError }, { status: 400 });
+
+    const rcError = validateFile(rc, "Registration Certificate (RC)");
+    if (rcError) return Response.json({ message: rcError }, { status: 400 });
     const updatePayload: any = {
       status: "pending",
     };

@@ -20,6 +20,7 @@ import {
 import AnimateCard from "@/components/AnimateCard";
 import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
+import { getOptimizedImageUrl } from "@/lib/imagekit";
 
 interface PartnerData {
   partner: {
@@ -199,7 +200,7 @@ function Page() {
                   <div key={idx} className="group border border-gray-100 rounded-3xl p-4 bg-gray-50 hover:bg-white hover:shadow-xl hover:shadow-black/5 transition-all">
                     <div className="aspect-video bg-gray-200 rounded-xl mb-4 overflow-hidden relative border border-gray-200">
                         {doc.url ? (
-                            <Image src={doc.url} alt={doc.label} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <Image src={getOptimizedImageUrl(doc.url, 400)} alt={doc.label} fill unoptimized className="object-cover group-hover:scale-105 transition-transform duration-500" />
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-400">No Image</div>
                         )}

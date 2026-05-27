@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { getOptimizedImageUrl } from "@/lib/imagekit";
 import {
   ArrowLeft,
   Car,
@@ -148,7 +149,7 @@ export default function PartnerVehiclePage() {
                 <div className="aspect-video w-full bg-zinc-100 relative border-b border-zinc-200 overflow-hidden flex items-center justify-center">
                   {vehicle.imageUrl ? (
                     <Image
-                      src={vehicle.imageUrl}
+                      src={getOptimizedImageUrl(vehicle.imageUrl, 600)}
                       alt={vehicle.vehicleModel}
                       fill
                       unoptimized

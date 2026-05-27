@@ -43,10 +43,26 @@ export default function PricingPage() {
   }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImageFile(file);
-    setImagePreview(URL.createObjectURL(file));
+     const file = e.target.files?.[0];
+     if (!file) return;
+ 
+     const MAX_SIZE = 5 * 1024 * 1024; // 5MB
+     const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
+ 
+     if (file.size > MAX_SIZE) {
+       alert("File size exceeds the 5MB limit. Please choose a smaller image.");
+       if (e.target) e.target.value = "";
+       return;
+     }
+ 
+     if (!ALLOWED.includes(file.type)) {
+       alert("Invalid file type. Only JPG, PNG, and WEBP image files are allowed.");
+       if (e.target) e.target.value = "";
+       return;
+     }
+ 
+     setImageFile(file);
+     setImagePreview(URL.createObjectURL(file));
   };
 
   const validate = () => {

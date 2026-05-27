@@ -7,23 +7,43 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { name, email, password } = await req.json();
+    const body = await req.json();
+    const name = typeof body.name === "string" ? body.name.trim() : "";
+    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const password = typeof body.password === "string" ? body.password : "";
+
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { message: "Name, email, and password are required" },
+        { status: 400 },
+      );
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { message: "Invalid email format" },
+        { status: 400 },
+      );
+    }
+
+    if (password.length < 6) {
+      return NextResponse.json(
+        { message: "Password must be at least 6 characters" },
+        { status: 400 },
+      );
+    }
+
     await connectDb();
     let user = await User.findOne({ email });
     if (user && user.isEmailVerified) {
       return NextResponse.json(
-        { message: "Email already Exists!" },
+        { message: "Email already exists!" },
         { status: 400 },
       );
     }
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiryAt = new Date(Date.now() + 10 * 60 * 1000);
-    if (password.length < 6) {
-      return NextResponse.json(
-        { message: "Password must be more than 6 charecters" },
-        { status: 400 },
-      );
-    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     if (user && !user.isEmailVerified) {

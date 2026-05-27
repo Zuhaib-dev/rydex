@@ -12,14 +12,13 @@ export async function POST(req: NextRequest) {
       return Response.json({ message: "User unauthorized" }, { status: 400 });
     }
 
-    const {
-      upi,
-      accountNumber,
-      ifscCode,
-      accountHolderName,
-      bankName,
-      mobileNumber,
-    } = await req.json();
+    const body = await req.json();
+    const upi = typeof body.upi === "string" ? body.upi.trim() : "";
+    const accountNumber = typeof body.accountNumber === "string" ? body.accountNumber.trim() : "";
+    const ifscCode = typeof body.ifscCode === "string" ? body.ifscCode.trim().toUpperCase() : "";
+    const accountHolderName = typeof body.accountHolderName === "string" ? body.accountHolderName.trim() : "";
+    const bankName = typeof body.bankName === "string" ? body.bankName.trim() : "";
+    const mobileNumber = typeof body.mobileNumber === "string" ? body.mobileNumber.trim() : "";
 
     if (
       !accountHolderName ||
@@ -33,6 +32,46 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
+
+    // Input Validation Regexes
+    const ifscRegex = /^[A-Z]{4}0[A-Z0-9]{6}$/;
+    if (!ifscRegex.test(ifscCode)) {
+      return Response.json({ message: "Invalid IFSC code format" }, { status: 400 });
+    }
+
+    const mobileRegex = /^[6-9]\d{9}$/;
+    if (!mobileRegex.test(mobileNumber)) {
+      return Response.json({ message: "Invalid Indian mobile number (must be 10 digits)" }, { status: 400 });
+    }
+
+    const accountRegex = /^\d{9,18}$/;
+    if (!accountRegex.test(accountNumber)) {
+      return Response.json({ message: "Invalid bank account number (must be 9 to 18 digits)" }, { status: 400 });
+    }
+
+    if (upi) {
+      const upiRegex = /^[\w.-]+@[\w.-]+$/;
+      if (!upiRegex.test(upi)) {
+        return Response.json({ message: "Invalid UPI ID format" }, { status: 400 });
+      }
+    }
+
+    // HTML/Script Escaping for Text Inputs (Prevent XSS/Injection)
+    const sanitizeString = (str: string) => {
+      return str.replace(/[&<>"']/g, (m) => {
+        switch (m) {
+          case "&": return "&amp;";
+          case "<": return "&lt;";
+          case ">": return "&gt;";
+          case "\"": return "&quot;";
+          case "'": return "&#039;";
+          default: return m;
+        }
+      });
+    };
+
+    const sanitizedHolderName = sanitizeString(accountHolderName);
+    const sanitizedBankName = sanitizeString(bankName);
 
     const user = await User.findOne({ email: session.user.email });
     if (!user) {
@@ -51,8 +90,8 @@ export async function POST(req: NextRequest) {
 
     partnerBank.accountNumber = accountNumber;
     partnerBank.ifscCode = ifscCode;
-    partnerBank.bankName = bankName;
-    partnerBank.accountHolderName = accountHolderName;
+    partnerBank.bankName = sanitizedBankName;
+    partnerBank.accountHolderName = sanitizedHolderName;
     if (upi) {
       partnerBank.upi = upi;
     }

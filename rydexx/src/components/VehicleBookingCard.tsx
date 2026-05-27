@@ -6,6 +6,7 @@ import {
   IndianRupee, Clock, Gauge,
   ArrowRight, Star
 } from "lucide-react";
+import { getOptimizedImageUrl } from "@/lib/imagekit";
 
 interface VehicleProps {
   vehicle: {
@@ -81,7 +82,7 @@ export default function VehicleBookingCard({
 
         {/* Vehicle image */}
         <motion.img
-          src={imageUrl || "https://images.unsplash.com/photo-1549924231-f129b911e442?w=400&q=80"}
+          src={getOptimizedImageUrl(imageUrl, 400) || "https://images.unsplash.com/photo-1549924231-f129b911e442?w=400&q=80"}
           alt={vehicleModel}
           className="relative z-10 h-32 w-full object-contain"
           style={{ filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.14))" }}

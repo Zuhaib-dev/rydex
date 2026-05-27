@@ -49,6 +49,22 @@ export async function POST(req: NextRequest) {
     vehicle.waitingCharge = waitingCharge;
 
     if (imageFile && imageFile.size > 0) {
+      const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+      const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+      if (imageFile.size > MAX_IMAGE_SIZE) {
+        return Response.json(
+          { message: "Vehicle photo size must be less than 5MB" },
+          { status: 400 },
+        );
+      }
+      if (!ALLOWED_IMAGE_TYPES.includes(imageFile.type)) {
+        return Response.json(
+          { message: "Vehicle photo must be a valid image (JPEG, PNG, WEBP)" },
+          { status: 400 },
+        );
+      }
+
       const imageUrl = await uploadOnImageKit(imageFile);
       if (!imageUrl) {
         return Response.json(

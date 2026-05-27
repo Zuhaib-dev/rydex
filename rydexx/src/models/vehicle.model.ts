@@ -23,6 +23,7 @@ const vehicleSchema = new mongoose.Schema<IVehicle>(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
+      index: true,
     },
     type: {
       type: String,

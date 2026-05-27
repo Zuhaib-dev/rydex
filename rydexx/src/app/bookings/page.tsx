@@ -15,6 +15,7 @@ import {
 import axios from "axios";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { getOptimizedImageUrl } from "@/lib/imagekit";
 
 interface Booking {
   _id: string;
@@ -174,7 +175,7 @@ export default function MyBookingsPage() {
                       <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 shrink-0 border border-gray-300">
                         {booking.vehicle?.imageUrl ? (
                           <Image
-                            src={booking.vehicle.imageUrl}
+                            src={getOptimizedImageUrl(booking.vehicle.imageUrl, 128, 128)}
                             alt={booking.vehicle.vehicleModel}
                             width={64}
                             height={64}

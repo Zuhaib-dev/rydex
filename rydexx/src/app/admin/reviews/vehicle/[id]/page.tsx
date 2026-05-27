@@ -18,6 +18,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
+import { getOptimizedImageUrl } from "@/lib/imagekit";
 
 interface VehicleReviewData {
   _id: string;
@@ -213,7 +214,7 @@ export default function VehicleReviewPage() {
             </h2>
             <div className="flex-1 w-full bg-white rounded-2xl border border-gray-200 overflow-hidden relative flex items-center justify-center min-h-[250px]">
               {data.imageUrl ? (
-                <Image src={data.imageUrl} alt={data.vehicleModel} fill className="object-contain p-4" unoptimized />
+                <Image src={getOptimizedImageUrl(data.imageUrl, 800)} alt={data.vehicleModel} fill className="object-contain p-4" unoptimized />
               ) : (
                 <div className="flex flex-col items-center justify-center text-gray-400 gap-2">
                   <ImageIcon size={32} className="opacity-50" />
