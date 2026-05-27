@@ -169,6 +169,17 @@ useEffect(() => {
                 transition={{ duration: 0.25 }}
                 className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition"
               >
+                {/* Timer Header */}
+                <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-6">
+                  <span className="text-xs font-bold text-gray-400 font-mono tracking-wider">
+                    REQUEST ID: {booking._id.slice(-6).toUpperCase()}
+                  </span>
+                  <RequestTimer
+                    driverAssignedAt={booking.driverAssignedAt}
+                    onTimeout={() => handleTimeout(booking._id)}
+                  />
+                </div>
+
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
 
                   {/* Left Info */}
