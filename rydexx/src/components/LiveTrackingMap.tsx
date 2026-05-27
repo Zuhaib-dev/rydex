@@ -184,7 +184,7 @@ export default function LiveRideMap({
           bearing: -20,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="mapbox://styles/mapbox/navigation-day-v1"
+        mapStyle="mapbox://styles/mapbox/streets-v12"
         terrain={{ source: "mapbox-dem", exaggeration: 1.5 }}
         onLoad={() => setMapLoaded(true)}
       >
@@ -325,7 +325,6 @@ export default function LiveRideMap({
               </div>
             </div>
             
-            {/* Live ETA Tooltip floating above car */}
             <div style={{
               position: "absolute",
               top: "-42px",
@@ -334,11 +333,11 @@ export default function LiveRideMap({
               display: "flex",
               alignItems: "center",
               gap: "8px",
-              padding: "6px 12px",
+              padding: "6px 14px",
               background: "white",
               color: "black",
               borderRadius: "100px",
-              fontSize: "12px",
+              fontSize: "11px",
               fontWeight: 900,
               letterSpacing: "0.05em",
               boxShadow: "0 8px 16px rgba(0,0,0,0.15)",
@@ -346,7 +345,7 @@ export default function LiveRideMap({
               border: "2px solid #e5e7eb"
             }}>
               <div style={{ width: "8px", height: "8px", background: "#3b82f6", borderRadius: "50%" }} className="animate-pulse" />
-              {currentEta > 0 ? `${Math.ceil(currentEta)} MIN AWAY` : "ARRIVING"}
+              {currentEta > 0 ? `Arriving in ${Math.ceil(currentEta)} min` : "Arriving now"}
             </div>
           </Marker>
         )}
