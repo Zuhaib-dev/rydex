@@ -21,7 +21,35 @@ type Booking = {
   dropAddress: string;
   fare: number;
   createdAt: string;
+  driverAssignedAt?: string;
 };
+
+function RequestTimer({ driverAssignedAt, onTimeout }: { driverAssignedAt?: string; onTimeout: () => void }) {
+  const [secondsLeft, setSecondsLeft] = useState(20);
+
+  useEffect(() => {
+    const calculateTime = () => {
+      const assigned = driverAssignedAt ? new Date(driverAssignedAt).getTime() : Date.now();
+      const elapsed = Math.floor((Date.now() - assigned) / 1000);
+      const remaining = Math.max(0, 20 - elapsed);
+      setSecondsLeft(remaining);
+      if (remaining <= 0) {
+        onTimeout();
+      }
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, [driverAssignedAt, onTimeout]);
+
+  return (
+    <div className="flex items-center gap-1.5 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full text-amber-700 text-[11px] font-bold shadow-sm">
+      <Clock size={12} className="animate-pulse shrink-0" />
+      <span>Expires in {secondsLeft}s</span>
+    </div>
+  );
+}
 
 export default function VendorPendingPage() {
   const { data: session } = useSession();
