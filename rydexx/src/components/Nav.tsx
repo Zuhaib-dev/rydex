@@ -25,6 +25,7 @@ import { AppDispatch, RootState } from "@/redux/store";
 import { signOut, useSession } from "next-auth/react";
 import { setUserData } from "@/redux/userSlice";
 import axios from "axios";
+import { getSocket } from "@/lib/socket";
 
 const NAV_ITEMS = ["Home", "Bookings", "Fleet", "FAQ", "Contact"];
 const subscribeHydration = () => () => {};
@@ -81,7 +82,7 @@ export default function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  /* Fetch vendor counts */
+  /* Fetch vendor counts and listen for realtime updates */
   useEffect(() => {
     if (userData?.role !== "partner") return;
 
@@ -94,7 +95,24 @@ export default function Nav() {
     };
 
     fetchCounts();
+
+    const socket = getSocket();
+
+    const handleNewBooking = () => {
+      setTimeout(fetchCounts, 500);
+    };
+
+    const handleBookingUpdated = () => {
+      setTimeout(fetchCounts, 500);
+    };
+
+    socket.on("new-booking", handleNewBooking);
+    socket.on("booking-updated", handleBookingUpdated);
  
+    return () => {
+      socket.off("new-booking", handleNewBooking);
+      socket.off("booking-updated", handleBookingUpdated);
+    };
   }, [userData]);
 
   /* Close on route change */
