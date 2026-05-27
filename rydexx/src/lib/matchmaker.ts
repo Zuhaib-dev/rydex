@@ -23,7 +23,7 @@ export async function cascadeBooking(bookingId: string, currentDriverId: string)
   const oldDriverId = booking.driver;
 
   // Add current driver to attempted list if not already there
-  const attempted = booking.attemptedDrivers.map(id => String(id));
+  const attempted = booking.attemptedDrivers.map((id: any) => String(id));
   if (!attempted.includes(String(currentDriverId))) {
     booking.attemptedDrivers.push(new mongoose.Types.ObjectId(currentDriverId));
   }
