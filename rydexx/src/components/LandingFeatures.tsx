@@ -115,7 +115,7 @@ export default function LandingFeatures() {
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.07, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
                 whileHover={{ y: -4, scale: 1.01 }}
-                className={`group relative rounded-3xl border border-white/6 bg-white/[0.03] p-6 backdrop-blur-sm overflow-hidden cursor-default transition-all duration-300 hover:border-white/12 hover:bg-white/[0.06] ${
+                className={`group relative rounded-3xl border border-white/6 bg-white/3 p-6 backdrop-blur-sm overflow-hidden cursor-default transition-all duration-300 hover:border-white/12 hover:bg-white/6 ${
                   sizeMap[f.size as keyof typeof sizeMap]
                 }`}
               >
