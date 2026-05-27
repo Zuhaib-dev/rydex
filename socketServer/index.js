@@ -47,6 +47,8 @@ app.get("/health", (req, res) => {
   res.json({ success: true });
 });
 
+const activeTimers = new Map();
+
 app.post("/emit", async (req, res) => {
   const { userId, event, data } = req.body;
 
@@ -57,8 +59,44 @@ app.post("/emit", async (req, res) => {
       io.to(user.socketId).emit(event, data);
     }
 
+    // Matchmaker queue countdown hook
+    if (event === "new-booking" && data?._id && data?.driver) {
+      const bookingId = String(data._id);
+      const driverId = String(data.driver);
+
+      if (activeTimers.has(bookingId)) {
+        clearTimeout(activeTimers.get(bookingId));
+      }
+
+      console.log(`Starting 20s matchmaker countdown for booking ${bookingId}, targeting driver ${driverId}`);
+
+      const timer = setTimeout(async () => {
+        try {
+          console.log(`Booking ${bookingId} dispatch timed out for driver ${driverId}. Triggering cascade...`);
+          const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
+          await axios.post(`${nextBaseUrl.replace(/\/+$/, "")}/api/booking/${bookingId}/cascade`, { driverId });
+        } catch (err) {
+          console.warn(`Error running cascade for booking ${bookingId}:`, err.message);
+        } finally {
+          activeTimers.delete(bookingId);
+        }
+      }, 20000);
+
+      activeTimers.set(bookingId, timer);
+    } else if (event === "booking-updated" && data?.bookingId && data?.status) {
+      const bookingId = String(data.bookingId);
+      const status = String(data.status);
+
+      if (status !== "requested" && activeTimers.has(bookingId)) {
+        console.log(`Clearing matchmaking timer for booking ${bookingId} (status updated to ${status})`);
+        clearTimeout(activeTimers.get(bookingId));
+        activeTimers.delete(bookingId);
+      }
+    }
+
     res.json({ success: true });
   } catch (error) {
+    console.error("Emit handler error:", error);
     res.status(500).json({ success: false });
   }
 });
