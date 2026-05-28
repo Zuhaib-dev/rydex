@@ -15,11 +15,13 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import { getSocket } from "@/lib/socket";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
 import RideChat from "@/components/RideChat";
+import { useRideSocket } from "@/hooks/useRideSocket";
+import type { RideMapPhase } from "@/components/LiveTrackingMap";
+import { Wifi, WifiOff } from "lucide-react";
 
 const LiveRideMap = dynamic(() => import("@/components/LiveTrackingMap"), {
   ssr: false,
@@ -89,8 +91,8 @@ const STATUS_CONFIG: Record<
     mapStatus: "arriving",
   },
   arriving: {
-    label: "Driver on the Way",
-    sublabel: "Driver is heading to pickup",
+    label: "Driver Approaching",
+    sublabel: "Your driver is on the way to pickup",
     dot: "bg-emerald-400",
     mapStatus: "arriving",
   },
@@ -101,7 +103,7 @@ const STATUS_CONFIG: Record<
     mapStatus: "arriving",
   },
   started: {
-    label: "On the Way",
+    label: "Trip in Progress",
     sublabel: "Heading to your destination",
     dot: "bg-blue-400",
     mapStatus: "ongoing",
@@ -147,7 +149,6 @@ export default function RidePage() {
   const router = useRouter();
 
   const [booking, setBooking] = useState<BookingDetails | null>(null);
-  const [driverPos, setDriverPos] = useState<[number, number] | null>(null);
   const [pickupPos, setPickupPos] = useState<[number, number] | null>(null);
   const [dropPos, setDropPos] = useState<[number, number] | null>(null);
   const [distanceToPickup, setDistanceToPickup] = useState(0);
