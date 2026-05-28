@@ -238,7 +238,7 @@ export default function RouteMap({
           <Marker
             longitude={p1[1]}
             latitude={p1[0]}
-            draggable
+            draggable={pickupDraggable}
             onDragEnd={onDragPickup}
             anchor="bottom"
             pitchAlignment="map"
@@ -255,7 +255,7 @@ export default function RouteMap({
           <Marker
             longitude={p2[1]}
             latitude={p2[0]}
-            draggable
+            draggable={dropDraggable}
             onDragEnd={onDragDrop}
             anchor="bottom"
             pitchAlignment="map"
@@ -345,10 +345,11 @@ export default function RouteMap({
         )}
       </AnimatePresence>
 
-      {/* ── DRAG HINT ── */}
-      <AnimatePresence>
-        {ready && <DragHintBadge />}
-      </AnimatePresence>
+      {!previewMode && (
+        <AnimatePresence>
+          {ready && <DragHintBadge />}
+        </AnimatePresence>
+      )}
     </div>
   );
 }
