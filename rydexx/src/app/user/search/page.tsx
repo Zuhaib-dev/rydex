@@ -29,6 +29,8 @@ function SearchContent() {
   const [drop,     setDrop]     = useState(params.get("drop") || "");
   const [km,       setKm]       = useState<number | null>(null);
   const [vehicles, setVehicles] = useState<any[]>([]);
+  const [nearbyCount, setNearbyCount] = useState(0);
+  const [searchRadiusKm, setSearchRadiusKm] = useState<number | null>(null);
   const [loading,  setLoading]  = useState(false);
 
   const vehicle      = params.get("vehicle") || "";
@@ -47,7 +49,15 @@ function SearchContent() {
         body: JSON.stringify({ latitude: lat, longitude: lng, vehicleType: vehicle }),
       });
       const data = await res.json();
-      if (data.success) setVehicles(data.vehicles);
+      if (data.success) {
+        const list = (data.vehicles || []).sort(
+          (a: { distanceMeters?: number }, b: { distanceMeters?: number }) =>
+            (a.distanceMeters ?? 0) - (b.distanceMeters ?? 0),
+        );
+        setVehicles(list);
+        setNearbyCount(data.nearbyCount ?? list.length);
+        setSearchRadiusKm(data.searchRadiusKm ?? null);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -157,13 +167,14 @@ function SearchContent() {
               <h2 className="text-zinc-900 text-lg font-black tracking-tight">
                 {loading
                   ? "Finding vehicles…"
-                  : vehicles.length > 0
-                  ? `${vehicles.length} Available`
+                  : nearbyCount > 0
+                  ? `${nearbyCount} rider${nearbyCount === 1 ? "" : "s"} nearby`
                   : "No vehicles nearby"}
               </h2>
               {meta && (
                 <p className="text-zinc-400 text-xs mt-0.5">
-                  {meta.label} rides near your pickup
+                  {meta.label} rides
+                  {searchRadiusKm ? ` within ${searchRadiusKm} km` : " near your pickup"}
                 </p>
               )}
             </div>
@@ -233,7 +244,12 @@ function SearchContent() {
               >
                 <VehicleBookingCard
                   vehicle={vehicles[0]}
-                  distanceKm={km ?? undefined}
+                  distanceKm={
+                    vehicles[0].distanceKm ??
+                    (vehicles[0].distanceMeters
+                      ? vehicles[0].distanceMeters / 1000
+                      : km ?? undefined)
+                  }
                   isRecommended={true}
                   onBook={() => {
                     const v = vehicles[0];
