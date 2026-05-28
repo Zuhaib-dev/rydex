@@ -182,27 +182,30 @@ function CheckoutContent() {
     setStatus("cancelled");
   };
 
+  const [liveBooking, setLiveBooking] = useState<{
+    _id: string;
+    status: Status;
+  } | null>(null);
+
+  useEffect(() => {
+    if (bookingId) setLiveBooking({ _id: bookingId, status });
+  }, [bookingId, status]);
+
   useBookingRealtime<{ _id: string; status: Status }>({
     bookingId: bookingId ?? undefined,
     enabled: Boolean(bookingId),
-    setBooking: (updater) => {
-      setBookingId((prevId) => {
-        const base = prevId ? { _id: prevId, status } : null;
-        const next =
-          typeof updater === "function"
-            ? (updater as (p: typeof base) => typeof base)(base)
-            : updater;
-        if (next?.status) setStatus(next.status as Status);
-        return next?._id ?? prevId;
-      });
-    },
-    onStatusChange: (nextStatus, id) => {
+    setBooking: setLiveBooking,
+    onStatusChange: (nextStatus, bid) => {
+      setStatus(nextStatus as Status);
       if (nextStatus === "awaiting_payment") setStatus("awaiting_payment");
       if (nextStatus === "rejected") setStatus("rejected");
-      if (nextStatus === "confirmed" || nextStatus === "arriving") {
-        router.push(`/ride/${id}`);
+      if (
+        nextStatus === "confirmed" ||
+        nextStatus === "arriving" ||
+        nextStatus === "started"
+      ) {
+        router.push(`/ride/${bid}`);
       }
-      if (nextStatus === "started") router.push(`/ride/${id}`);
     },
   });
 

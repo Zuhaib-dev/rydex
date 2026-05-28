@@ -10,7 +10,7 @@ export async function POST(
   await connectDb();
    const id=(await context.params).id
   const { method } = await req.json();
-  const booking = await Booking.findById(id);
+  const booking = await Booking.findById(id).populate("driver vehicle");
 
   if (!booking || booking.status !== "awaiting_payment")
     return NextResponse.json({ message: "Invalid" }, { status: 400 });

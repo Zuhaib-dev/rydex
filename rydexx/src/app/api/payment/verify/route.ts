@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     return Response.json({ success:false, message:"Invalid signature" })
   }
 
-  const booking = await Booking.findById(bookingId)
+  const booking = await Booking.findById(bookingId).populate("driver vehicle")
 
   if (!booking) {
     return Response.json({ success:false })
