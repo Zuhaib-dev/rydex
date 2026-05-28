@@ -32,7 +32,7 @@ export async function cascadeBooking(bookingId: string, currentDriverId: string)
     number,
   ];
 
-  const attempted = booking.attemptedDrivers.map((id) => String(id));
+  const attempted = booking.attemptedDrivers.map((id: unknown) => String(id));
   if (!attempted.includes(String(currentDriverId))) {
     booking.attemptedDrivers.push(
       new mongoose.Types.ObjectId(currentDriverId),
@@ -43,7 +43,7 @@ export async function cascadeBooking(bookingId: string, currentDriverId: string)
   let radiusMeters =
     booking.matchRadiusMeters ?? getRadiusTier(tierIndex);
 
-  const excludeIds = booking.attemptedDrivers.map((id) => String(id));
+  const excludeIds = booking.attemptedDrivers.map((id: unknown) => String(id));
 
   let match = await findClosestEligiblePartner({
     pickupCoordinates,
