@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { ElementType, useRef, useState } from "react";
 import { motion } from "motion/react";
+import { EASE, SectionLabel, SectionTitle } from "./landing/ui";
 
 type Vehicle = {
   title: string;
@@ -23,237 +24,180 @@ type Vehicle = {
 };
 
 const vehicles: Vehicle[] = [
-  {
-    title: "All Vehicles",
-    desc: "Browse the full fleet",
-    icon: LayoutGrid,
-    tag: "popular",
-  },
-  {
-    title: "Bikes",
-    desc: "Fast & affordable rides",
-    icon: Bike,
-    tag: "solo",
-  },
-  {
-    title: "Cars",
-    desc: "Comfortable city travel",
-    icon: Car,
-    tag: "comfort",
-  },
-  {
-    title: "SUVs",
-    desc: "Premium & spacious",
-    icon: CarFront,
-    tag: "premium",
-  },
-  {
-    title: "Vans",
-    desc: "Group & family trips",
-    icon: Bus,
-    tag: "family",
-  },
-  {
-    title: "Trucks",
-    desc: "Heavy cargo & delivery",
-    icon: Truck,
-    tag: "cargo",
-  },
-  {
-    title: "Minivans",
-    desc: "Seat up to 8 passengers",
-    icon: Users,
-    tag: "family",
-  },
+  { title: "All Vehicles", desc: "Browse the full fleet", icon: LayoutGrid, tag: "Popular" },
+  { title: "Bikes", desc: "Fast & affordable", icon: Bike, tag: "Solo" },
+  { title: "Cars", desc: "Comfortable city travel", icon: Car, tag: "Comfort" },
+  { title: "SUVs", desc: "Premium & spacious", icon: CarFront, tag: "Premium" },
+  { title: "Vans", desc: "Group & family trips", icon: Bus, tag: "Family" },
+  { title: "Trucks", desc: "Heavy cargo & delivery", icon: Truck, tag: "Cargo" },
+  { title: "Minivans", desc: "Up to 8 passengers", icon: Users, tag: "Group" },
 ];
 
-const SCROLL_AMOUNT = 300;
+const SCROLL_AMOUNT = 280;
 
 function VehicleSlider() {
-  const [hovered, setHovered] = useState<number | null>(1); // "Bikes" active by default like the image
+  const [active, setActive] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const scrollLeft = () => {
-    scrollRef.current?.scrollBy({ left: -SCROLL_AMOUNT, behavior: "smooth" });
-  };
-  const scrollRight = () => {
-    scrollRef.current?.scrollBy({ left: SCROLL_AMOUNT, behavior: "smooth" });
+  const scroll = (dir: "left" | "right") => {
+    scrollRef.current?.scrollBy({
+      left: dir === "left" ? -SCROLL_AMOUNT : SCROLL_AMOUNT,
+      behavior: "smooth",
+    });
   };
 
   return (
-    <section className="w-full bg-white py-16 sm:py-24 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
-
-        {/* ── Header row ── */}
+    <section className="landing-section overflow-hidden bg-[#fafafa]">
+      <div className="landing-container">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-          className="flex items-start justify-between mb-10 sm:mb-14"
+          transition={{ duration: 0.55, ease: EASE }}
+          className="mb-10 flex items-end justify-between gap-6 sm:mb-14"
         >
-          {/* Left: title */}
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <div className="h-px w-8 bg-zinc-900" />
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                Fleet
-              </span>
-            </div>
-            <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-zinc-900 leading-tight">
-              Vehicles
-              <br />
-              <span className="relative inline-block">
-                Categories
-                <motion.span
-                  initial={{ scaleX: 0 }}
-                  whileInView={{ scaleX: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.55, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute -bottom-1 left-0 right-0 h-[2px] bg-zinc-900 origin-left block"
-                />
-              </span>
-            </h2>
-            <p className="text-zinc-500 mt-4 text-sm">
-              Choose the ride that fits your journey
+            <SectionLabel>Fleet</SectionLabel>
+            <SectionTitle className="mt-4">
+              Every ride type,{" "}
+              <span className="text-zinc-400">one tap away.</span>
+            </SectionTitle>
+            <p className="mt-3 max-w-sm text-sm text-zinc-500">
+              Choose the vehicle that fits your journey — from solo commutes to
+              full cargo loads.
             </p>
           </div>
 
-          {/* Right: arrows */}
-          <div className="hidden sm:flex items-center gap-2 mt-1">
+          <div className="hidden shrink-0 gap-2 sm:flex">
             <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={scrollLeft}
-              className="w-11 h-11 rounded-2xl border border-zinc-200 bg-white flex items-center justify-center text-zinc-700 hover:bg-zinc-900 hover:border-zinc-900 hover:text-white transition-all shadow-sm"
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              onClick={() => scroll("left")}
+              aria-label="Scroll fleet left"
+              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:border-zinc-900 hover:bg-zinc-950 hover:text-white"
             >
               <ChevronLeft size={18} strokeWidth={2.5} />
             </motion.button>
             <motion.button
-              whileTap={{ scale: 0.88 }}
-              onClick={scrollRight}
-              className="w-11 h-11 rounded-2xl border border-zinc-200 bg-white flex items-center justify-center text-zinc-700 hover:bg-zinc-900 hover:border-zinc-900 hover:text-white transition-all shadow-sm"
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              onClick={() => scroll("right")}
+              aria-label="Scroll fleet right"
+              className="flex h-11 w-11 items-center justify-center rounded-2xl border border-zinc-200 bg-white text-zinc-700 shadow-sm transition hover:border-zinc-900 hover:bg-zinc-950 hover:text-white"
             >
               <ChevronRight size={18} strokeWidth={2.5} />
             </motion.button>
           </div>
         </motion.div>
 
-        {/* ── Cards slider ── */}
         <div
           ref={scrollRef}
-          className="flex gap-4 overflow-x-auto scroll-smooth pt-8 pb-4"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          className="scrollbar-hide -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 pt-2 sm:-mx-0 sm:px-0"
         >
           {vehicles.map((v, i) => {
             const Icon = v.icon;
-            const isActive = hovered === i;
+            const isActive = active === i;
             return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 28 }}
+              <motion.button
+                type="button"
+                key={v.title}
+                initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{
-                  delay: i * 0.07,
-                  duration: 0.45,
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-                onHoverStart={() => setHovered(i)}
-                onHoverEnd={() => setHovered(null)}
-                whileHover={{ y: -6 }}
-                onClick={() => setHovered(i)}
-                className="shrink-0 w-[200px] sm:w-[220px] cursor-pointer"
+                transition={{ delay: i * 0.05, duration: 0.45, ease: EASE }}
+                onMouseEnter={() => setActive(i)}
+                onFocus={() => setActive(i)}
+                onClick={() => setActive(i)}
+                whileHover={{ y: -4 }}
+                className="shrink-0 w-[200px] text-left sm:w-[220px]"
               >
                 <motion.div
                   animate={{
                     backgroundColor: isActive ? "#09090b" : "#ffffff",
-                    borderColor: isActive ? "#09090b" : "#e4e4e7",
+                    borderColor: isActive ? "#09090b" : "rgba(0,0,0,0.08)",
                     boxShadow: isActive
-                      ? "0 20px 50px rgba(0,0,0,0.22)"
-                      : "0 2px 12px rgba(0,0,0,0.06)",
+                      ? "0 24px 50px rgba(0,0,0,0.18)"
+                      : "0 4px 20px rgba(0,0,0,0.04)",
                   }}
-                  transition={{ duration: 0.22 }}
-                  className="rounded-3xl border p-6 h-full flex flex-col gap-8"
+                  transition={{ duration: 0.25, ease: EASE }}
+                  className="flex h-full min-h-[220px] flex-col gap-8 rounded-3xl border p-6"
                 >
-                  {/* Tag badge */}
-                  <div className="flex items-center gap-1.5">
-                    <motion.span
-                      animate={{
-                        backgroundColor: isActive ? "rgba(255,255,255,0.12)" : "#f4f4f5",
-                        color: isActive ? "#ffffff" : "#71717a",
-                      }}
-                      transition={{ duration: 0.22 }}
-                      className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full"
-                    >
-                      <Sparkles size={9} className="opacity-70" />
-                      {v.tag}
-                    </motion.span>
-                  </div>
-
-                  {/* Icon */}
-                  <motion.div
-                    animate={{ color: isActive ? "#ffffff" : "#09090b" }}
-                    transition={{ duration: 0.22 }}
+                  <span
+                    className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-widest ${
+                      isActive
+                        ? "bg-white/10 text-white/70"
+                        : "bg-zinc-100 text-zinc-500"
+                    }`}
                   >
-                    <Icon size={32} strokeWidth={1.5} />
-                  </motion.div>
+                    <Sparkles size={9} className="opacity-70" />
+                    {v.tag}
+                  </span>
 
-                  {/* Text */}
+                  <Icon
+                    size={32}
+                    strokeWidth={1.5}
+                    className={isActive ? "text-white" : "text-zinc-900"}
+                  />
+
                   <div className="mt-auto">
-                    <motion.p
-                      animate={{ color: isActive ? "#ffffff" : "#09090b" }}
-                      transition={{ duration: 0.22 }}
-                      className="font-bold text-base leading-tight"
+                    <p
+                      className={`font-display text-base font-semibold ${
+                        isActive ? "text-white" : "text-zinc-900"
+                      }`}
                     >
                       {v.title}
-                    </motion.p>
-                    <motion.p
-                      animate={{ color: isActive ? "rgba(255,255,255,0.55)" : "#71717a" }}
-                      transition={{ duration: 0.22 }}
-                      className="text-xs mt-1 leading-relaxed"
+                    </p>
+                    <p
+                      className={`mt-1 text-xs leading-relaxed ${
+                        isActive ? "text-white/50" : "text-zinc-500"
+                      }`}
                     >
                       {v.desc}
-                    </motion.p>
+                    </p>
                   </div>
                 </motion.div>
-              </motion.div>
+              </motion.button>
             );
           })}
         </div>
 
-        {/* Mobile arrows */}
-        <div className="flex sm:hidden items-center justify-center gap-3 mt-6">
+        <div className="mt-8 flex justify-center gap-3 sm:hidden">
           <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={scrollLeft}
-            className="w-10 h-10 rounded-xl border border-zinc-200 flex items-center justify-center text-zinc-700 hover:bg-zinc-900 hover:text-white transition-all"
+            type="button"
+            whileTap={{ scale: 0.92 }}
+            onClick={() => scroll("left")}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200"
+            aria-label="Scroll left"
           >
-            <ChevronLeft size={16} strokeWidth={2.5} />
+            <ChevronLeft size={16} />
           </motion.button>
           <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={scrollRight}
-            className="w-10 h-10 rounded-xl border border-zinc-200 flex items-center justify-center text-zinc-700 hover:bg-zinc-900 hover:text-white transition-all"
+            type="button"
+            whileTap={{ scale: 0.92 }}
+            onClick={() => scroll("right")}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200"
+            aria-label="Scroll right"
           >
-            <ChevronRight size={16} strokeWidth={2.5} />
+            <ChevronRight size={16} />
           </motion.button>
         </div>
 
-        {/* ── Stats row ── */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.4, duration: 0.5 }}
-          className="flex items-center gap-8 mt-12 pt-8 border-t border-zinc-100"
+          transition={{ delay: 0.2, duration: 0.5 }}
+          className="mt-12 flex flex-wrap items-center gap-8 border-t border-zinc-200/80 pt-8"
         >
           {[
             { value: "6+", label: "Categories" },
             { value: "10+", label: "Vehicle types" },
             { value: "24/7", label: "Availability" },
           ].map((s) => (
-            <div key={s.label} className="flex items-baseline gap-1.5">
-              <span className="text-xl font-black text-zinc-900">{s.value}</span>
+            <div key={s.label} className="flex items-baseline gap-2">
+              <span className="font-display text-xl font-bold text-zinc-950">
+                {s.value}
+              </span>
               <span className="text-sm text-zinc-400">{s.label}</span>
             </div>
           ))}
