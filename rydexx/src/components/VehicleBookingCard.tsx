@@ -40,7 +40,11 @@ const TYPE_CONFIG = {
 };
 
 export default function VehicleBookingCard({
-  vehicle, distanceKm = 0, isRecommended, onBook,
+  vehicle,
+  distanceKm = 0,
+  isRecommended,
+  bookingDisabled = false,
+  onBook,
 }: VehicleProps) {
   const {
     type, vehicleModel, vehicleNumber,

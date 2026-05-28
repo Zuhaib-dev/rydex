@@ -252,6 +252,7 @@ function SearchContent() {
               >
                 <VehicleBookingCard
                   vehicle={vehicles[0]}
+                  bookingDisabled={lockingFare}
                   distanceKm={
                     vehicles[0].distanceKm ??
                     (vehicles[0].distanceMeters
@@ -259,27 +260,48 @@ function SearchContent() {
                       : km ?? undefined)
                   }
                   isRecommended={true}
-                  onBook={() => {
+                  onBook={async () => {
                     const v = vehicles[0];
-                    const tripKm = km ?? 0;
-                    const quotedFare = Math.round(
-                      (v.baseFare ?? 0) + tripKm * (v.perKmRate ?? 0),
-                    );
-                    const url = new URLSearchParams({
-                      pickup, drop,
-                      vehicle:    v.type,
-                      driverId:   v.owner?._id || v.owner,
-                      vehicleId:  v._id,
-                      fare:       String(quotedFare),
-                      tripDistanceKm: String(tripKm),
-                      km: String(tripKm),
-                      pickupLat:  String(pickupLat),
-                      pickupLng:  String(pickupLng),
-                      dropLat:    params.get("dropLat") || "",
-                      dropLng:    params.get("dropLng") || "",
-                      mobileNumber,
-                    });
-                    router.push(`/checkout?${url.toString()}`);
+                    const dropLatNum = Number(params.get("dropLat"));
+                    const dropLngNum = Number(params.get("dropLng"));
+                    if (!pickupLat || !pickupLng || !dropLatNum || !dropLngNum) {
+                      alert("Missing route coordinates");
+                      return;
+                    }
+                    try {
+                      setLockingFare(true);
+                      const res = await fetch("/api/booking/quote", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          pickupAddress: pickup,
+                          dropAddress: drop,
+                          pickupLat,
+                          pickupLng,
+                          dropLat: dropLatNum,
+                          dropLng: dropLngNum,
+                          vehicleId: v._id,
+                          driverId:
+                            typeof v.owner === "object"
+                              ? v.owner?._id
+                              : v.owner,
+                        }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok || !data.quoteId) {
+                        alert(data.message || "Could not lock fare");
+                        return;
+                      }
+                      const url = new URLSearchParams({
+                        quoteId: data.quoteId,
+                        mobileNumber,
+                      });
+                      router.push(`/checkout?${url.toString()}`);
+                    } catch {
+                      alert("Could not lock fare. Try again.");
+                    } finally {
+                      setLockingFare(false);
+                    }
                   }}
                 />
               </motion.div>
