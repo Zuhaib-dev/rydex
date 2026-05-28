@@ -23,6 +23,10 @@ export type BookingClientPayload = {
   matchRadiusKm?: number;
   dispatchEtaMinutes?: number;
   searchingMessage?: string;
+  tripDistanceKm?: number;
+  durationMinutes?: number;
+  routePolyline?: GeoJSON.LineString;
+  pricingSnapshot?: Record<string, unknown>;
   driver?: { _id?: string; name?: string } | null;
   vehicle?: {
     _id?: string;
@@ -79,6 +83,10 @@ export function serializeBookingForClient(booking: Record<string, unknown>): Boo
           number: (vehicle.number as string) || (vehicle.vehicleNumber as string) || undefined,
         }
       : undefined,
+    tripDistanceKm: booking.tripDistanceKm as number | undefined,
+    durationMinutes: booking.durationMinutes as number | undefined,
+    routePolyline: booking.routePolyline as GeoJSON.LineString | undefined,
+    pricingSnapshot: booking.pricingSnapshot as Record<string, unknown> | undefined,
   };
 }
 

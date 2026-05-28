@@ -32,6 +32,7 @@ function SearchContent() {
   const [nearbyCount, setNearbyCount] = useState(0);
   const [searchRadiusKm, setSearchRadiusKm] = useState<number | null>(null);
   const [loading,  setLoading]  = useState(false);
+  const [lockingFare, setLockingFare] = useState(false);
 
   const vehicle      = params.get("vehicle") || "";
   const mobileNumber = params.get("mobileNumber") || "";
@@ -89,8 +90,15 @@ function SearchContent() {
         <RouteMap
           pickup={pickup}
           drop={drop}
+          pickupCoord={
+            pickupLat && pickupLng ? [pickupLat, pickupLng] : null
+          }
+          dropCoord={dropLat && dropLng ? [dropLat, dropLng] : null}
           onDistance={setKm}
-          onChange={(p, d) => { setPickup(p); setDrop(d); }}
+          onChange={(p, d) => {
+            setPickup(p);
+            setDrop(d);
+          }}
         />
 
         {/* Soft fade at bottom */}
