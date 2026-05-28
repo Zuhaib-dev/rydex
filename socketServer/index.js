@@ -75,14 +75,25 @@ app.post("/emit-admin", (req, res) => {
   }
 });
 
+function emitToBookingRoom(bookingId, event, data) {
+  if (!bookingId) return;
+  const room = `booking-${String(bookingId)}`;
+  io.to(room).emit(event, data);
+}
+
 app.post("/emit", async (req, res) => {
-  const { userId, event, data } = req.body;
+  const { userId, event, data, bookingId: roomFromBody } = req.body;
+  const bookingRoomId = roomFromBody || data?.bookingId;
 
   try {
     const user = await User.findById(userId);
 
     if (user?.socketId) {
       io.to(user.socketId).emit(event, data);
+    }
+
+    if (bookingRoomId) {
+      emitToBookingRoom(bookingRoomId, event, data);
     }
 
     // Matchmaker queue countdown hook

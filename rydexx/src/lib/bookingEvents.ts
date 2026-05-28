@@ -1,21 +1,25 @@
+import connectDb from "./db";
+import Booking from "@/models/booking.model";
 import { notifyAdminDashboard } from "./adminEvents";
+import {
+  createBookingEventId,
+  serializeBookingForClient,
+  type BookingClientPayload,
+} from "./bookingRealtime";
 import { emitToSocketServer } from "./socketServer";
 
-type BookingEventPayload = {
-  bookingId: unknown;
-  status?: string;
-  paymentStatus?: string;
+type BookingDoc = {
+  _id?: unknown;
+  user?: unknown;
   driver?: unknown;
-  driverMobileNumber?: string;
-  pickupOtp?: string;
-  dropOtp?: string;
-  sosTriggered?: boolean;
-  sosTriggeredAt?: string | Date;
+  populate?: (path: string | string[]) => Promise<unknown>;
+  populated?: (path: string) => boolean;
 };
 
 type BookingEventTarget = {
   user?: unknown;
   driver?: unknown;
+  _id?: unknown;
 };
 
 const toId = (value: unknown) => {
@@ -27,10 +31,33 @@ const toId = (value: unknown) => {
   return String(value);
 };
 
-export async function emitBookingUpdated(
+async function ensurePopulated(booking: BookingDoc) {
+  if (typeof booking.populate !== "function") return booking;
+  const needsDriver = booking.driver && !booking.populated?.("driver");
+  if (needsDriver) {
+    await booking.populate([
+      { path: "driver", select: "name mobileNumber" },
+      { path: "vehicle", select: "vehicleModel number type" },
+    ]);
+  }
+  return booking;
+}
+
+async function dispatchBookingEvent(
   booking: BookingEventTarget,
-  data: BookingEventPayload,
+  event: "booking-updated" | "booking-sync",
+  patch: Partial<BookingClientPayload> = {},
 ) {
+  const bookingId = String(booking._id ?? patch.bookingId);
+  const base = serializeBookingForClient(booking as Record<string, unknown>);
+  const data: BookingClientPayload = {
+    ...base,
+    ...patch,
+    bookingId,
+    eventId: patch.eventId ?? createBookingEventId(),
+    at: patch.at ?? Date.now(),
+  };
+
   const userId = toId(booking.user);
   const driverId = toId(booking.driver);
 
@@ -38,15 +65,17 @@ export async function emitBookingUpdated(
     userId
       ? emitToSocketServer({
           userId,
-          event: "booking-updated",
+          event,
           data,
+          bookingId,
         })
       : Promise.resolve(),
     driverId && driverId !== userId
       ? emitToSocketServer({
           userId: driverId,
-          event: "booking-updated",
+          event,
           data,
+          bookingId,
         })
       : Promise.resolve(),
   ]);
@@ -59,6 +88,33 @@ export async function emitBookingUpdated(
 
   await notifyAdminDashboard({
     scope,
-    reason: data.sosTriggered ? "sos" : "booking-updated",
+    reason: data.sosTriggered ? "sos" : event,
   });
+
+  return data;
+}
+
+/** Push a full booking snapshot + optional patch to user, driver, and booking room. */
+export async function emitBookingUpdated(
+  bookingInput: BookingDoc,
+  patch: Partial<BookingClientPayload> = {},
+) {
+  await connectDb();
+  const booking = await ensurePopulated(bookingInput);
+  return dispatchBookingEvent(booking, "booking-updated", patch);
+}
+
+/** Alias for full sync (same transport, explicit intent). */
+export async function emitBookingSync(
+  bookingInput: BookingDoc | string,
+  patch: Partial<BookingClientPayload> = {},
+) {
+  await connectDb();
+  const booking =
+    typeof bookingInput === "string"
+      ? await Booking.findById(bookingInput)
+      : bookingInput;
+  if (!booking) return null;
+  const populated = await ensurePopulated(booking);
+  return dispatchBookingEvent(populated, "booking-sync", patch);
 }
