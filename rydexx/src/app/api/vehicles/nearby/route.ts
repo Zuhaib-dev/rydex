@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const pickupCoordinates: LngLat = [longitude, latitude];
     const resolvedType = vehicleType || "car";
 
-    let radiusMeters = MATCH_RADIUS_TIERS_METERS[0];
+    let radiusMeters: number = MATCH_RADIUS_TIERS_METERS[0];
     let nearbyCount = 0;
 
     for (const tier of MATCH_RADIUS_TIERS_METERS) {

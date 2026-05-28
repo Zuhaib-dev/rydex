@@ -161,6 +161,12 @@ io.on("connection", (socket) => {
     if (user?.role === "admin") {
       socket.join("admin-dashboard");
     }
+
+    if (user?.role === "partner") {
+      await User.findByIdAndUpdate(userId, {
+        isPartnerAvailable: true,
+      });
+    }
   });
 
   socket.on("join-admin", async () => {
