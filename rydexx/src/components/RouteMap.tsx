@@ -11,6 +11,11 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 type Props = {
   pickup: string;
   drop: string;
+  /** When set, skip geocoding and use these coords [lat, lng] */
+  pickupCoord?: [number, number] | null;
+  dropCoord?: [number, number] | null;
+  /** Preview only — no drag / no address reverse-geocode updates */
+  previewMode?: boolean;
   onDistance?: (km: number) => void;
   onChange?: (pickup: string, drop: string) => void;
 };
@@ -69,7 +74,15 @@ function ZoomControlsWrapper() {
 }
 
 /* ─── MAIN ────────────────────────────────────────────────────────── */
-export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) {
+export default function RouteMap({
+  pickup,
+  drop,
+  pickupCoord,
+  dropCoord,
+  previewMode = false,
+  onDistance,
+  onChange,
+}: Props) {
   const [p1,    setP1]    = useState<[number, number] | null>(null);
   const [p2,    setP2]    = useState<[number, number] | null>(null);
   const [route, setRoute] = useState<any>(null);
@@ -128,25 +141,34 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
     setReady(false);
     setRoute(null);
     (async () => {
-      const a = await geocode(pickup);
-      const b = await geocode(drop);
+      let a: [number, number] | null = pickupCoord ?? null;
+      let b: [number, number] | null = dropCoord ?? null;
+
+      if (!a) a = await geocode(pickup);
+      if (!b) b = await geocode(drop);
       if (!a || !b) return;
-      setP1(a); setP2(b);
+      setP1(a);
+      setP2(b);
       await loadRoute(a, b);
       setReady(true);
 
-      // Log search for heatmap
-      try {
-        await fetch("/api/metrics/search-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ latitude: a[0], longitude: a[1] })
-        });
-      } catch (e) {}
+      if (!pickupCoord) {
+        try {
+          await fetch("/api/metrics/search-log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ latitude: a[0], longitude: a[1] }),
+          });
+        } catch {
+          /* ignore */
+        }
+      }
     })();
-  }, [pickup, drop]);
+  }, [pickup, drop, pickupCoord?.[0], pickupCoord?.[1], dropCoord?.[0], dropCoord?.[1]]);
 
-  const onDragPickup = async (e: any) => {
+  const onDragPickup = previewMode
+    ? undefined
+    : async (e: any) => {
     const lngLat = e.lngLat;
     const lat = lngLat.lat;
     const lon = lngLat.lng;
@@ -157,7 +179,9 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
     if (p2) loadRoute([lat, lon], p2);
   };
 
-  const onDragDrop = async (e: any) => {
+  const onDragDrop = previewMode
+    ? undefined
+    : async (e: any) => {
     const lngLat = e.lngLat;
     const lat = lngLat.lat;
     const lon = lngLat.lng;
@@ -167,6 +191,9 @@ export default function RouteMap({ pickup, drop, onDistance, onChange }: Props) 
     onChange?.(pickup, addr);
     if (p1) loadRoute(p1, [lat, lon]);
   };
+
+  const pickupDraggable = !previewMode;
+  const dropDraggable = !previewMode;
 
   return (
     <div className="relative h-full w-full bg-[#e8eae9]">

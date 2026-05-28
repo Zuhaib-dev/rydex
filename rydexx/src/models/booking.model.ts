@@ -38,6 +38,17 @@ export interface IBooking extends Document {
 
   fare: number;
   tripDistanceKm?: number;
+  durationMinutes?: number;
+  routePolyline?: GeoJSON.LineString;
+  pricingSnapshot?: {
+    baseFare: number;
+    perKmRate: number;
+    vehicleType: string;
+    vehicleId: string;
+    pricingVersion: string;
+  };
+  quoteId?: Types.ObjectId;
+  kashmirAdjusted?: boolean;
 
   status: BookingStatus;
   paymentStatus: PaymentStatus;
@@ -105,6 +116,11 @@ const BookingSchema = new Schema<IBooking>(
 
     fare: { type: Number, required: true },
     tripDistanceKm: { type: Number },
+    durationMinutes: { type: Number },
+    routePolyline: { type: Schema.Types.Mixed },
+    pricingSnapshot: { type: Schema.Types.Mixed },
+    quoteId: { type: Schema.Types.ObjectId, ref: "BookingQuote" },
+    kashmirAdjusted: { type: Boolean, default: false },
 
     status: {
       type: String,

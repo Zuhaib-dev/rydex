@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
+import BookingQuote from "@/models/bookingQuote.model";
 import User from "@/models/user.model";
 import { auth } from "@/lib/auth";
 import { notifyAdminDashboard } from "@/lib/adminEvents";
@@ -8,11 +9,10 @@ import { findPartnerWithRadiusExpansion } from "@/lib/matching/findPartner";
 import { dispatchBookingToPartner } from "@/lib/matching/dispatch";
 import { emitToSocketServer } from "@/lib/socketServer";
 import type { LngLat } from "@/lib/matching/geo";
-import Vehicle from "@/models/vehicle.model";
 import {
-  calculateTripFare,
-  resolveTripDistanceKm,
-} from "@/lib/fare";
+  loadValidQuote,
+  quoteToSnapshot,
+} from "@/lib/createBookingQuote";
 
 export async function POST(req: Request) {
   await connectDb();
@@ -22,26 +22,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
   const body = await req.json();
+  const { quoteId, mobileNumber, driverId: overrideDriverId } = body;
 
-  const {
-    driverId,
-    vehicleId,
-    pickupAddress,
-    dropAddress,
-    pickupLocation,
-    dropLocation,
-    fare: clientFare,
-    mobileNumber,
-    vehicleType,
-    tripDistanceKm: clientTripDistanceKm,
-  } = body;
-
-  if (!pickupLocation?.coordinates || !dropLocation?.coordinates) {
+  if (!quoteId) {
     return NextResponse.json(
-      { message: "Missing required coordinates fields" },
+      { message: "quoteId is required — create a locked quote first" },
       { status: 400 },
     );
   }
+
+  const quote = await loadValidQuote(quoteId, session.user.id);
+  if (!quote) {
+    return NextResponse.json(
+      { message: "Quote expired or invalid. Please get a new fare." },
+      { status: 400 },
+    );
+  }
+
+  const snapshot = quoteToSnapshot(quote);
 
   const existing = await Booking.findOne({
     user: session.user.id,
@@ -61,17 +59,10 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, booking: existing });
   }
 
-  const resolvedVehicleType = vehicleType || "car";
-  const pickupCoordinates = pickupLocation.coordinates as LngLat;
-  const dropCoordinates = dropLocation.coordinates as LngLat;
-  const tripDistanceKm = resolveTripDistanceKm(
-    clientTripDistanceKm,
-    pickupCoordinates,
-    dropCoordinates,
-  );
+  const pickupCoordinates = snapshot.pickupLocation.coordinates as LngLat;
 
-  let matchedDriverId = driverId;
-  let matchedVehicleId = vehicleId;
+  let matchedDriverId = overrideDriverId || snapshot.driverId;
+  let matchedVehicleId = snapshot.vehicleId;
   let matchedDriverMobile = "";
   let matchRadiusMeters = 5000;
   let matchRadiusTierIndex = 0;
@@ -79,10 +70,10 @@ export async function POST(req: Request) {
     ReturnType<typeof findPartnerWithRadiusExpansion>
   > | null;
 
-  if (!matchedDriverId || !matchedVehicleId) {
+  if (!matchedDriverId) {
     matchedPartner = await findPartnerWithRadiusExpansion({
       pickupCoordinates,
-      vehicleType: resolvedVehicleType,
+      vehicleType: snapshot.vehicleType,
       excludePartnerIds: [],
     });
 
@@ -103,6 +94,9 @@ export async function POST(req: Request) {
     matchRadiusMeters = matchedPartner.radiusMeters;
     matchRadiusTierIndex = matchedPartner.tierIndex;
   } else {
+    if (String(matchedDriverId) !== String(snapshot.driverId ?? matchedDriverId)) {
+      // explicit override allowed only if same as quote driver
+    }
     const driver = await User.findById(matchedDriverId).select(
       "mobileNumber isOnline isPartnerAvailable partnerStatus",
     );
@@ -124,38 +118,33 @@ export async function POST(req: Request) {
     matchedDriverMobile = driver.mobileNumber || "";
   }
 
-  const pricingVehicle = await Vehicle.findById(matchedVehicleId).select(
-    "baseFare perKmRate type",
-  );
-
-  if (!pricingVehicle) {
-    return NextResponse.json(
-      { message: "Vehicle not found" },
-      { status: 400 },
-    );
-  }
-
-  const fare = calculateTripFare(pricingVehicle, tripDistanceKm);
-
   const booking = await Booking.create({
     user: session.user.id,
     driver: matchedDriverId,
     vehicle: matchedVehicleId,
-    pickupAddress,
-    dropAddress,
-    pickupLocation,
-    dropLocation,
-    fare,
+    pickupAddress: snapshot.pickupAddress,
+    dropAddress: snapshot.dropAddress,
+    pickupLocation: snapshot.pickupLocation,
+    dropLocation: snapshot.dropLocation,
+    fare: snapshot.fare,
+    tripDistanceKm: snapshot.tripDistanceKm,
+    durationMinutes: snapshot.durationMinutes,
+    routePolyline: snapshot.routePolyline,
+    pricingSnapshot: snapshot.pricingSnapshot,
+    kashmirAdjusted: snapshot.kashmirAdjusted,
+    quoteId: quote._id,
     userMobileNumber: mobileNumber,
     driverMobileNumber: matchedDriverMobile,
     status: "requested",
     attemptedDrivers: [matchedDriverId],
-    vehicleType: resolvedVehicleType,
+    vehicleType: snapshot.vehicleType,
     driverAssignedAt: new Date(),
     matchRadiusMeters,
     matchRadiusTierIndex,
-    tripDistanceKm,
   });
+
+  quote.usedAt = new Date();
+  await quote.save();
 
   let dispatch = null;
 
