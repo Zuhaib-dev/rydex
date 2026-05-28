@@ -19,6 +19,10 @@ export type BookingClientPayload = {
   driverMobileNumber?: string;
   sosTriggered?: boolean;
   sosTriggeredAt?: string | Date | null;
+  matchRadiusMeters?: number;
+  matchRadiusKm?: number;
+  dispatchEtaMinutes?: number;
+  searchingMessage?: string;
   driver?: { _id?: string; name?: string } | null;
   vehicle?: {
     _id?: string;
