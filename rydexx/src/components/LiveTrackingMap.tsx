@@ -1,17 +1,33 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Marker, Source, Layer, useMap } from "react-map-gl/mapbox";
+import type { MapRef } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { useSpring } from "framer-motion";
+import {
+  bearingDegrees,
+  distanceMeters,
+  fetchDrivingRoute,
+  routeToGeoJSON,
+  type LatLng,
+} from "@/lib/mapboxRouting";
+import { useSmoothCoords } from "@/hooks/useSmoothCoords";
+import {
+  PickupMarker,
+  DropMarker,
+  DriverMarker,
+} from "@/components/ride/RideMapMarkers";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+const MAP_STYLE = "mapbox://styles/mapbox/navigation-night-v1";
+
+export type RideMapPhase = "arriving" | "ongoing" | "completed" | "searching";
 
 type Props = {
-  driverLocation: [number, number] | null;
-  pickupLocation: [number, number];
-  dropLocation: [number, number];
-  status: "arriving" | "ongoing" | "completed";
+  driverLocation: LatLng | null;
+  pickupLocation: LatLng;
+  dropLocation: LatLng;
+  status: RideMapPhase;
   onStats?: (data: {
     distanceToPickup: number;
     durationToPickup: number;
@@ -20,58 +36,74 @@ type Props = {
   }) => void;
 };
 
-/* ─── HELPERS ──────────────────────────────────────────────────────── */
-
-const toLonLatStr = (coord: [number, number]): string => `${coord[1]},${coord[0]}`;
-
-/* ─── AUTO FOLLOW ─────────────────────────────────────────────────── */
-
-function AutoFollow({ pos, active }: { pos: [number, number] | null; active: boolean }) {
+function FitRouteBounds({
+  points,
+  active,
+  phase,
+}: {
+  points: LatLng[];
+  active: boolean;
+  phase: RideMapPhase;
+}) {
   const { current: map } = useMap();
-  
+  const fittedRef = useRef<string>("");
+
   useEffect(() => {
-    if (pos && active && map) {
-      const z = map.getZoom() < 15 ? 15.5 : map.getZoom();
-      map.flyTo({ center: [pos[1], pos[0]], zoom: z, pitch: 60, duration: 2000, essential: true });
-    }
-  }, [pos, map, active]);
-  
+    if (!map || !active || points.length < 2) return;
+
+    const key = `${phase}-${points.map((p) => p.join(",")).join("|")}`;
+    if (fittedRef.current === key) return;
+    fittedRef.current = key;
+
+    const lngs = points.map((p) => p[1]);
+    const lats = points.map((p) => p[0]);
+
+    map.fitBounds(
+      [
+        [Math.min(...lngs), Math.min(...lats)],
+        [Math.max(...lngs), Math.max(...lats)],
+      ],
+      {
+        padding: { top: 120, bottom: 200, left: 48, right: 48 },
+        pitch: phase === "completed" ? 0 : 52,
+        bearing: -18,
+        duration: 1400,
+        maxZoom: 16,
+      },
+    );
+  }, [map, points, active, phase]);
+
   return null;
 }
 
-/* ─── SMOOTH LOCATION HOOK ────────────────────────────────────────── */
-function useSmoothLocation(location: [number, number] | null) {
-  const latSpring = useSpring(location?.[0] ?? 0, { stiffness: 60, damping: 20 });
-  const lngSpring = useSpring(location?.[1] ?? 0, { stiffness: 60, damping: 20 });
-
-  const [current, setCurrent] = useState<[number, number] | null>(location);
-  const isFirst = useRef(true);
-
-  useEffect(() => {
-    if (location) {
-      if (isFirst.current) {
-        latSpring.set(location[0]);
-        lngSpring.set(location[1]);
-        setCurrent(location);
-        isFirst.current = false;
-      } else {
-        latSpring.set(location[0]);
-        lngSpring.set(location[1]);
-      }
-    }
-  }, [location, latSpring, lngSpring]);
+function FollowDriver({
+  position,
+  enabled,
+}: {
+  position: LatLng | null;
+  enabled: boolean;
+}) {
+  const { current: map } = useMap();
+  const lastFlyRef = useRef(0);
 
   useEffect(() => {
-    const unsubLat = latSpring.on("change", (v) => setCurrent((prev) => prev ? [v, prev[1]] : [v, 0]));
-    const unsubLng = lngSpring.on("change", (v) => setCurrent((prev) => prev ? [prev[0], v] : [0, v]));
-    return () => { unsubLat(); unsubLng(); }
-  }, [latSpring, lngSpring]);
+    if (!map || !position || !enabled) return;
+    const now = Date.now();
+    if (now - lastFlyRef.current < 2200) return;
+    lastFlyRef.current = now;
 
-  return current;
+    const zoom = Math.max(map.getZoom(), 15.2);
+    map.easeTo({
+      center: [position[1], position[0]],
+      zoom,
+      pitch: 58,
+      duration: 1200,
+      essential: true,
+    });
+  }, [map, position?.[0], position?.[1], enabled]);
+
+  return null;
 }
-
-
-/* ─── MAIN ────────────────────────────────────────────────────────── */
 
 export default function LiveRideMap({
   driverLocation,
@@ -80,277 +112,231 @@ export default function LiveRideMap({
   status,
   onStats,
 }: Props) {
-  const [routePD, setRoutePD] = useState<any>(null); // Pickup to Drop
-  const [routeDP, setRouteDP] = useState<any>(null); // Driver to Pickup
-  const [routeDD, setRouteDD] = useState<any>(null); // Driver to Drop
-
+  const mapRef = useRef<MapRef | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [routePD, setRoutePD] = useState<GeoJSON.Feature | null>(null);
+  const [routeActive, setRouteActive] = useState<GeoJSON.Feature | null>(null);
   const [etaPickup, setEtaPickup] = useState(0);
   const [etaDrop, setEtaDrop] = useState(0);
+  const [bearing, setBearing] = useState(0);
 
-  const prevLocation = useRef<[number, number] | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const smoothDriver = useSmoothCoords(driverLocation, 1000);
+  const prevDriverRef = useRef<LatLng | null>(null);
+  const routeAbortRef = useRef<AbortController | null>(null);
+  const lastRouteFetchRef = useRef(0);
+  const lastRoutePosRef = useRef<LatLng | null>(null);
 
-  // Smooth driver location!
-  const smoothDriverLocation = useSmoothLocation(driverLocation);
+  const onStatsRef = useRef(onStats);
+  onStatsRef.current = onStats;
 
-  const rotateCar = (from: [number, number], to: [number, number]) => {
-    const deltaLat = to[0] - from[0];
-    const deltaLon = to[1] - from[1];
-    if (Math.abs(deltaLat) < 0.00001 && Math.abs(deltaLon) < 0.00001) return;
+  const boundsPoints = useMemo(() => {
+    const pts: LatLng[] = [pickupLocation, dropLocation];
+    if (smoothDriver) pts.push(smoothDriver);
+    return pts;
+  }, [pickupLocation, dropLocation, smoothDriver]);
 
-    const angleRad = Math.atan2(deltaLat, deltaLon);
-    const angleDeg = (angleRad * 180) / Math.PI;
-    const rotation = 90 - angleDeg;
-
-    const el = document.getElementById("car-marker-rotate");
-    if (el) el.style.transform = `rotate(${rotation}deg)`;
-  };
-
-  // 1. Fetch BASIC route (Pickup -> Drop) once
+  // Pickup → Drop baseline route
   useEffect(() => {
-    if (!MAPBOX_TOKEN) return;
-    const pStr = toLonLatStr(pickupLocation);
-    const dStr = toLonLatStr(dropLocation);
-
-    fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${pStr};${dStr}?geometries=geojson&access_token=${MAPBOX_TOKEN}`)
-      .then(r => r.json())
-      .then(data => {
-        if (data.routes?.length) {
-          setRoutePD({
-            type: "Feature",
-            properties: {},
-            geometry: data.routes[0].geometry,
-          });
-        }
-      })
-      .catch(err => console.warn("Mapbox Route PD failed:", err));
+    const ac = new AbortController();
+    void fetchDrivingRoute([pickupLocation, dropLocation], {
+      signal: ac.signal,
+    }).then((r) => {
+      if (r) setRoutePD(routeToGeoJSON(r.geometry));
+    });
+    return () => ac.abort();
   }, [pickupLocation, dropLocation]);
 
-  // 2. Fetch DRIVER routes (Driver -> Pickup, Driver -> Drop)
+  const refreshDriverRoutes = useCallback(
+    async (driver: LatLng, force = false) => {
+      const now = Date.now();
+      const moved =
+        lastRoutePosRef.current &&
+        distanceMeters(lastRoutePosRef.current, driver) > 45;
+      if (
+        !force &&
+        !moved &&
+        now - lastRouteFetchRef.current < 12000
+      ) {
+        return;
+      }
+
+      lastRouteFetchRef.current = now;
+      lastRoutePosRef.current = driver;
+
+      routeAbortRef.current?.abort();
+      const ac = new AbortController();
+      routeAbortRef.current = ac;
+
+      const [toPickup, toDrop] = await Promise.all([
+        fetchDrivingRoute([driver, pickupLocation], { signal: ac.signal }),
+        fetchDrivingRoute([driver, dropLocation], { signal: ac.signal }),
+      ]);
+
+      if (ac.signal.aborted) return;
+
+      if (status === "arriving" && toPickup) {
+        setRouteActive(routeToGeoJSON(toPickup.geometry));
+        setEtaPickup(toPickup.durationMinutes);
+      } else if (status === "ongoing" && toDrop) {
+        setRouteActive(routeToGeoJSON(toDrop.geometry));
+        setEtaDrop(toDrop.durationMinutes);
+      }
+
+      if (toPickup && toDrop) {
+        onStatsRef.current?.({
+          distanceToPickup: toPickup.distanceKm,
+          durationToPickup: toPickup.durationMinutes,
+          distanceToDrop: toDrop.distanceKm,
+          durationToDrop: toDrop.durationMinutes,
+        });
+      }
+    },
+    [pickupLocation, dropLocation, status],
+  );
+
   useEffect(() => {
-    if (!driverLocation || !MAPBOX_TOKEN) return;
+    if (!driverLocation) return;
+    if (prevDriverRef.current) {
+      setBearing(bearingDegrees(prevDriverRef.current, driverLocation));
+    }
+    prevDriverRef.current = driverLocation;
+    void refreshDriverRoutes(driverLocation);
+  }, [driverLocation, refreshDriverRoutes]);
 
-    const drStr = toLonLatStr(driverLocation);
-    const pStr  = toLonLatStr(pickupLocation);
-    const dStr  = toLonLatStr(dropLocation);
+  useEffect(() => {
+    if (driverLocation) {
+      void refreshDriverRoutes(driverLocation, true);
+    } else {
+      setRouteActive(null);
+    }
+  }, [status, driverLocation, refreshDriverRoutes]);
 
-    Promise.all([
-      fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${drStr};${pStr}?geometries=geojson&access_token=${MAPBOX_TOKEN}`).then(r => r.json()).catch(() => ({})),
-      fetch(`https://api.mapbox.com/directions/v5/mapbox/driving/${drStr};${dStr}?geometries=geojson&access_token=${MAPBOX_TOKEN}`).then(r => r.json()).catch(() => ({})),
-    ]).then(([pData, dData]) => {
-      if (pData?.routes?.length) {
-        setRouteDP({
-          type: "Feature",
-          properties: {},
-          geometry: pData.routes[0].geometry,
-        });
-      }
-      if (dData?.routes?.length) {
-        setRouteDD({
-          type: "Feature",
-          properties: {},
-          geometry: dData.routes[0].geometry,
-        });
-      }
-
-      const durP = (pData?.routes?.[0]?.duration ?? 0) / 60;
-      const durD = (dData?.routes?.[0]?.duration ?? 0) / 60;
-      setEtaPickup(durP);
-      setEtaDrop(durD);
-
-      onStats?.({
-        distanceToPickup: (pData?.routes?.[0]?.distance ?? 0) / 1000,
-        durationToPickup: durP,
-        distanceToDrop:   (dData?.routes?.[0]?.distance ?? 0) / 1000,
-        durationToDrop:   durD,
-      });
-    }).catch(err => console.warn("Mapbox Route Driver failed:", err));
-
-    if (prevLocation.current) rotateCar(prevLocation.current, driverLocation);
-    prevLocation.current = driverLocation;
-  }, [driverLocation, pickupLocation, dropLocation, onStats]);
-
-  const currentEta = status === "arriving" ? etaPickup : etaDrop;
+  const displayEta = status === "arriving" ? etaPickup : etaDrop;
+  const followDriver =
+    mapLoaded && !!smoothDriver && status !== "completed" && status !== "searching";
 
   return (
-    <div className="relative w-full h-full bg-[#e8eae9]">
+    <div className="relative h-full w-full bg-[#0c0f14]">
+      {!MAPBOX_TOKEN && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-zinc-950 text-sm text-white/50">
+          Map token missing
+        </div>
+      )}
+
       <Map
+        ref={mapRef}
         mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={{
           longitude: pickupLocation[1],
           latitude: pickupLocation[0],
-          zoom: 15.5,
-          pitch: 65,
+          zoom: 14,
+          pitch: 50,
           bearing: -20,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
-        terrain={{ source: "mapbox-dem", exaggeration: 1.5 }}
+        mapStyle={MAP_STYLE}
+        attributionControl={false}
         onLoad={() => setMapLoaded(true)}
       >
-        <Source
-          id="mapbox-dem"
-          type="raster-dem"
-          url="mapbox://mapbox.mapbox-terrain-dem-v1"
-          tileSize={512}
-          maxzoom={14}
+        <FitRouteBounds
+          points={boundsPoints}
+          active={mapLoaded}
+          phase={status}
         />
-        
-        {/* Sky for 3D realism */}
-        <Layer
-          id="sky"
-          type="sky"
-          paint={{
-            "sky-type": "atmosphere",
-            "sky-atmosphere-sun": [0.0, 90.0],
-            "sky-atmosphere-sun-intensity": 15
-          }}
-        />
+        <FollowDriver position={smoothDriver} enabled={followDriver} />
 
-        <AutoFollow pos={driverLocation || pickupLocation} active={mapLoaded} />
-
-        {/* Path: Driver -> Pickup (Dashed, only if arriving) */}
-        {status === "arriving" && routeDP && (
-          <Source type="geojson" data={routeDP}>
-            <Layer
-              id="route-dp"
-              type="line"
-              layout={{ "line-join": "round", "line-cap": "round" }}
-              paint={{
-                "line-color": "#2563eb",
-                "line-width": 4,
-                "line-dasharray": [2, 2],
-                "line-opacity": 0.8,
-              }}
-            />
-          </Source>
-        )}
-
-        {/* Path: Pickup -> Drop (Main Route - Background Track) */}
+        {/* Planned route glow */}
         {routePD && (
-          <Source type="geojson" data={routePD}>
+          <Source id="route-pd" type="geojson" data={routePD}>
             <Layer
-              id="route-pd-bg"
+              id="route-pd-glow"
               type="line"
-              layout={{ "line-join": "round", "line-cap": "round" }}
               paint={{
-                "line-color": "#000",
-                "line-width": 7,
-                "line-opacity": 0.15,
+                "line-color": "#9eff6b",
+                "line-width": 10,
+                "line-opacity": 0.12,
+                "line-blur": 4,
               }}
             />
             <Layer
-              id="route-pd-fg"
+              id="route-pd-line"
               type="line"
               layout={{ "line-join": "round", "line-cap": "round" }}
               paint={{
-                "line-color": "#000",
-                "line-width": 4,
-                "line-opacity": status === "ongoing" ? 0.35 : 0.8,
-              }}
-            />
-          </Source>
-        )}
-
-        {/* Path: Driver -> Drop (Active path during trip) */}
-        {status === "ongoing" && routeDD && (
-          <Source type="geojson" data={routeDD}>
-            <Layer
-              id="route-dd-bg"
-              type="line"
-              layout={{ "line-join": "round", "line-cap": "round" }}
-              paint={{
-                "line-color": "#10b981",
-                "line-width": 7,
-                "line-opacity": 0.25,
-              }}
-            />
-            <Layer
-              id="route-dd-fg"
-              type="line"
-              layout={{ "line-join": "round", "line-cap": "round" }}
-              paint={{
-                "line-color": "#10b981",
-                "line-width": 4.5,
-                "line-opacity": 1,
+                "line-color": status === "ongoing" ? "#4b5563" : "#e5e7eb",
+                "line-width": status === "ongoing" ? 3 : 5,
+                "line-opacity": status === "ongoing" ? 0.35 : 0.85,
               }}
             />
           </Source>
         )}
 
-        {/* Pickup Marker */}
-        <Marker longitude={pickupLocation[1]} latitude={pickupLocation[0]} anchor="bottom" pitchAlignment="map">
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 12px 16px rgba(0,0,0,0.5))" }}>
-            <div style={{ background: "#fff", color: "#000", padding: "6px 14px", borderRadius: "12px", fontSize: "12px", fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap", fontFamily: "system-ui", border: "2px solid #000", boxShadow: "0 6px 0 #000" }}>
-              PICKUP
-            </div>
-            <div style={{ width: "4px", height: "16px", background: "#000", marginTop: "-2px" }}></div>
-            <div style={{ width: "14px", height: "14px", background: "#000", borderRadius: "50%", border: "3px solid #fff", boxShadow: "0 0 0 2px #000" }}></div>
-          </div>
+        {/* Active leg (driver → pickup or drop) */}
+        {routeActive && (
+          <Source id="route-active" type="geojson" data={routeActive}>
+            <Layer
+              id="route-active-glow"
+              type="line"
+              paint={{
+                "line-color": "#9eff6b",
+                "line-width": 12,
+                "line-opacity": 0.2,
+                "line-blur": 3,
+              }}
+            />
+            <Layer
+              id="route-active-line"
+              type="line"
+              layout={{ "line-join": "round", "line-cap": "round" }}
+              paint={{
+                "line-color": "#9eff6b",
+                "line-width": 5,
+                "line-opacity": 0.95,
+                "line-dasharray": status === "arriving" ? [0, 0] : [0, 0],
+              }}
+            />
+          </Source>
+        )}
+
+        <Marker
+          longitude={pickupLocation[1]}
+          latitude={pickupLocation[0]}
+          anchor="bottom"
+        >
+          <PickupMarker />
         </Marker>
 
-        {/* Drop Marker */}
-        <Marker longitude={dropLocation[1]} latitude={dropLocation[0]} anchor="bottom" pitchAlignment="map">
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", filter: "drop-shadow(0 12px 16px rgba(0,0,0,0.5))" }}>
-            <div style={{ background: "#000", color: "#fff", padding: "6px 14px", borderRadius: "12px", fontSize: "12px", fontWeight: 900, letterSpacing: "0.08em", textTransform: "uppercase", whiteSpace: "nowrap", fontFamily: "system-ui", border: "2px solid #fff", boxShadow: "0 6px 0 rgba(255,255,255,0.3)" }}>
-              DROP
-            </div>
-            <div style={{ width: "4px", height: "16px", background: "#fff", marginTop: "-2px" }}></div>
-            <div style={{ width: "14px", height: "14px", background: "#fff", borderRadius: "50%", border: "3px solid #000", boxShadow: "0 0 0 2px #fff" }}></div>
-          </div>
+        <Marker
+          longitude={dropLocation[1]}
+          latitude={dropLocation[0]}
+          anchor="bottom"
+        >
+          <DropMarker />
         </Marker>
 
-        {/* Driver Marker - Uses Smooth coordinates */}
-        {smoothDriverLocation && (
-          <Marker longitude={smoothDriverLocation[1]} latitude={smoothDriverLocation[0]} anchor="center" style={{ zIndex: 1000 }} pitchAlignment="map">
-            <div id="car-marker-container" style={{
-              width: "60px", height: "60px",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              filter: "drop-shadow(0 16px 24px rgba(0,0,0,0.4))"
-            }}>
-              <div id="car-marker-rotate" style={{ transition: "transform 0.4s ease-out" }}>
-                <svg width="60" height="60" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  {/* shadow */}
-                  <ellipse cx="50" cy="50" rx="30" ry="45" fill="rgba(0,0,0,0.4)" filter="blur(8px)"/>
-                  <rect x="32" y="18" width="36" height="64" rx="14" fill="#1a1a1a"/>
-                  <rect x="34" y="20" width="32" height="60" rx="12" fill="#000"/>
-                  <path d="M36 32 C36 28, 64 28, 64 32 L62 48 C62 52, 38 52, 38 48 Z" fill="#222"/>
-                  <rect x="37" y="58" width="26" height="12" rx="3" fill="#111"/>
-                  <rect x="35" y="22" width="6" height="2" rx="1" fill="#fff" opacity="0.9"/>
-                  <rect x="59" y="22" width="6" height="2" fill="#fff" opacity="0.9"/>
-                  <rect x="36" y="78" width="6" height="2" fill="#ff4d4d" opacity="0.9"/>
-                  <rect x="58" y="78" width="6" height="2" fill="#ff4d4d" opacity="0.9"/>
-                  <rect x="42" y="38" width="16" height="25" rx="4" stroke="#333" strokeWidth="1.5" fill="none"/>
-                </svg>
-              </div>
-            </div>
-            
-            <div style={{
-              position: "absolute",
-              top: "-42px",
-              left: "50%",
-              transform: "translateX(-50%)",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "6px 14px",
-              background: "white",
-              color: "black",
-              borderRadius: "100px",
-              fontSize: "11px",
-              fontWeight: 900,
-              letterSpacing: "0.05em",
-              boxShadow: "0 8px 16px rgba(0,0,0,0.15)",
-              whiteSpace: "nowrap",
-              border: "2px solid #e5e7eb"
-            }}>
-              <div style={{ width: "8px", height: "8px", background: "#3b82f6", borderRadius: "50%" }} className="animate-pulse" />
-              {currentEta > 0 ? `Arriving in ${Math.ceil(currentEta)} min` : "Arriving now"}
-            </div>
+        {smoothDriver && status !== "searching" && (
+          <Marker
+            longitude={smoothDriver[1]}
+            latitude={smoothDriver[0]}
+            anchor="center"
+          >
+            <DriverMarker
+              bearing={bearing}
+              etaMinutes={displayEta}
+              label={status === "ongoing" ? "En route" : "Driver"}
+            />
           </Marker>
         )}
-
       </Map>
+
+      {/* Vignette for depth */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 60% at 50% 100%, transparent 40%, rgba(0,0,0,0.35) 100%)",
+        }}
+      />
     </div>
   );
 }
