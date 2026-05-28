@@ -11,63 +11,61 @@ import {
   Star,
   Truck,
 } from "lucide-react";
+import {
+  EASE,
+  GridPattern,
+  SectionLabel,
+  SectionTitle,
+} from "./landing/ui";
 
 const features = [
   {
     icon: Zap,
     title: "Instant Matching",
-    desc: "Our smart matchmaker dispatches the nearest available driver within seconds.",
+    desc: "Smart dispatch finds the nearest verified driver in seconds — with automatic cascade if they don't respond.",
     size: "large",
-    accent: "#facc15",
   },
   {
     icon: MapPin,
     title: "Live GPS Tracking",
-    desc: "Track your ride in real-time, every second of the way.",
+    desc: "Watch your ride move in real time, every second of the journey.",
     size: "small",
-    accent: "#34d399",
   },
   {
     icon: MessageSquare,
     title: "In-App Chat",
-    desc: "Message your driver directly — no need to share your number.",
+    desc: "Coordinate with your driver without sharing your phone number.",
     size: "small",
-    accent: "#60a5fa",
   },
   {
     icon: ShieldCheck,
     title: "Verified Drivers",
-    desc: "Every partner goes through KYC, document verification, and background checks before going live.",
+    desc: "KYC, document checks, and video verification before any partner goes live.",
     size: "medium",
-    accent: "#a78bfa",
   },
   {
     icon: CreditCard,
     title: "Secure Payments",
-    desc: "Razorpay-powered checkout with full refund protection.",
+    desc: "Razorpay-powered checkout with full payment protection.",
     size: "small",
-    accent: "#fb923c",
   },
   {
     icon: Truck,
     title: "Every Vehicle Type",
-    desc: "Bikes to trucks — whatever you need, we have it.",
+    desc: "Bikes to heavy trucks — one platform for every trip.",
     size: "small",
-    accent: "#f472b6",
   },
   {
     icon: Clock,
     title: "24 / 7 Support",
-    desc: "Round-the-clock availability, no black-out hours.",
+    desc: "Round-the-clock availability with no blackout hours.",
     size: "small",
-    accent: "#2dd4bf",
   },
   {
     icon: Star,
     title: "Rated & Reviewed",
-    desc: "Real feedback from real riders after every trip.",
+    desc: "Real feedback and praise badges after every completed ride.",
     size: "small",
-    accent: "#facc15",
   },
 ];
 
@@ -79,73 +77,79 @@ const sizeMap = {
 
 export default function LandingFeatures() {
   return (
-    <section className="w-full bg-[#080808] py-24 sm:py-32 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        {/* Header */}
+    <section className="relative landing-section overflow-hidden bg-landing-bg landing-noise">
+      <GridPattern light />
+      <div className="landing-container relative">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="mb-16 max-w-xl"
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.6, ease: EASE }}
+          className="mb-14 max-w-2xl lg:mb-16"
         >
-          <div className="flex items-center gap-3 mb-4">
-            <div className="h-px w-8 bg-white/20" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
-              Why Rydex
-            </span>
-          </div>
-          <h2 className="text-4xl sm:text-5xl font-black text-white leading-tight tracking-tight">
-            Everything you need,{" "}
-            <span className="bg-linear-to-r from-white/90 to-white/30 bg-clip-text text-transparent">
-              nothing you don&apos;t.
-            </span>
-          </h2>
+          <SectionLabel light>Platform</SectionLabel>
+          <SectionTitle
+            light
+            className="mt-4"
+            subtitle="Everything riders and partners need — built for speed, safety, and scale."
+          >
+            Built for the ride,{" "}
+            <span className="text-accent-gradient">not the friction.</span>
+          </SectionTitle>
         </motion.div>
 
-        {/* Bento Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 auto-rows-[160px]">
+        <div className="grid auto-rows-[minmax(140px,auto)] grid-cols-1 gap-4 md:grid-cols-4 md:auto-rows-[160px]">
           {features.map((f, i) => {
             const Icon = f.icon;
+            const isLarge = f.size === "large";
             return (
               <motion.div
                 key={f.title}
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 28 }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.07, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                whileHover={{ y: -4, scale: 1.01 }}
-                className={`group relative rounded-3xl border border-white/6 bg-white/3 p-6 backdrop-blur-sm overflow-hidden cursor-default transition-all duration-300 hover:border-white/12 hover:bg-white/6 ${
+                viewport={{ once: true, margin: "-40px" }}
+                transition={{ delay: i * 0.06, duration: 0.5, ease: EASE }}
+                whileHover={{ y: -3 }}
+                className={`group glass-dark relative cursor-default overflow-hidden rounded-3xl p-6 transition-[border-color,box-shadow] duration-400 hover:border-white/14 hover:shadow-[0_20px_60px_rgba(0,0,0,0.35)] ${
                   sizeMap[f.size as keyof typeof sizeMap]
                 }`}
               >
-                {/* Glow blob */}
                 <div
-                  className="absolute -top-12 -right-12 h-32 w-32 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-20"
-                  style={{ backgroundColor: f.accent }}
+                  className="pointer-events-none absolute -right-8 -top-8 h-28 w-28 rounded-full bg-landing-accent/0 blur-2xl transition-all duration-500 group-hover:bg-landing-accent/15"
+                  aria-hidden
                 />
 
-                {/* Icon */}
-                <div
-                  className="mb-4 inline-flex items-center justify-center rounded-2xl p-2.5 transition-colors duration-300"
-                  style={{ backgroundColor: `${f.accent}18` }}
-                >
-                  <Icon size={20} style={{ color: f.accent }} strokeWidth={2} />
+                <div className="relative z-10 flex h-full flex-col">
+                  <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-landing-accent/10 text-landing-accent transition-colors group-hover:bg-landing-accent/18">
+                    <Icon size={20} strokeWidth={2} />
+                  </div>
+
+                  <h3
+                    className={`font-display font-semibold leading-tight text-white/95 ${
+                      isLarge ? "text-xl sm:text-2xl" : "text-base"
+                    }`}
+                  >
+                    {f.title}
+                  </h3>
+                  <p
+                    className={`mt-2 leading-relaxed text-white/40 ${
+                      isLarge ? "text-sm sm:text-base max-w-sm" : "text-sm"
+                    }`}
+                  >
+                    {f.desc}
+                  </p>
+
+                  {isLarge && (
+                    <div className="mt-auto pt-6">
+                      <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-landing-accent/80">
+                        <span className="h-1.5 w-1.5 rounded-full bg-landing-accent animate-pulse" />
+                        Matchmaker active
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Text */}
-                <h3 className="text-base font-bold text-white/90 mb-1.5 leading-tight">
-                  {f.title}
-                </h3>
-                <p className="text-sm text-white/35 leading-relaxed">
-                  {f.desc}
-                </p>
-
-                {/* Bottom line decoration */}
-                <motion.div
-                  className="absolute bottom-0 left-6 right-6 h-px opacity-0 group-hover:opacity-100 transition-opacity duration-500"
-                  style={{ background: `linear-gradient(to right, transparent, ${f.accent}60, transparent)` }}
-                />
+                <div className="absolute bottom-0 left-6 right-6 h-px bg-linear-to-r from-transparent via-landing-accent/30 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
               </motion.div>
             );
           })}

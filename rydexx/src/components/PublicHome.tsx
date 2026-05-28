@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useState } from "react";
 import HeroSection from "./HeroSection";
 import VehicleSlider from "./VehicleSlider";
@@ -8,36 +9,28 @@ import LandingStats from "./LandingStats";
 import LandingHowItWorks from "./LandingHowItWorks";
 import LandingTestimonials from "./LandingTestimonials";
 import LandingCTA from "./LandingCTA";
+import LandingTrustBar from "./landing/LandingTrustBar";
 
 function PublicHome() {
   const [authOpen, setAuthOpen] = useState(false);
   const openAuth = () => setAuthOpen(true);
 
   return (
-    <>
-      {/* 1. Cinematic hero with typewriter + parallax */}
+    <main className="overflow-x-hidden bg-[#fafafa]">
       <HeroSection onAuthRequired={openAuth} />
-
-      {/* 2. Dark bento features grid */}
+      <LandingTrustBar />
       <LandingFeatures />
-
-      {/* 3. Stats counter (light) */}
       <LandingStats />
-
-      {/* 4. How it works (dark) */}
       <LandingHowItWorks />
-
-      {/* 5. Vehicle fleet slider (light) */}
       <VehicleSlider />
-
-      {/* 6. Testimonials (light) */}
       <LandingTestimonials />
-
-      {/* 7. Final CTA banner (dark) */}
       <LandingCTA onAuthRequired={openAuth} />
-
-      <AuthModel open={authOpen} onClose={() => setAuthOpen(false)} redirectTo="/user/book" />
-    </>
+      <AuthModel
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        redirectTo="/user/book"
+      />
+    </main>
   );
 }
 
