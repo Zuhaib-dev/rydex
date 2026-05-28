@@ -10,30 +10,17 @@ export type RideSocketStatus =
   | "reconnecting"
   | "disconnected";
 
-type BookingPatch = Record<string, unknown> & { bookingId?: string };
-
 type UseRideSocketOptions = {
   bookingId: string | undefined;
   enabled?: boolean;
-  onBookingUpdate?: (patch: BookingPatch) => void;
-  onDriverAssigned?: (data: Record<string, unknown>) => void;
 };
 
-export function useRideSocket({
-  bookingId,
-  enabled = true,
-  onBookingUpdate,
-  onDriverAssigned,
-}: UseRideSocketOptions) {
+/** GPS + connection only. Booking state sync lives in useBookingRealtime. */
+export function useRideSocket({ bookingId, enabled = true }: UseRideSocketOptions) {
   const [driverPosition, setDriverPosition] = useState<LatLng | null>(null);
   const [connectionStatus, setConnectionStatus] =
     useState<RideSocketStatus>("connecting");
   const [lastLocationAt, setLastLocationAt] = useState<number | null>(null);
-
-  const onBookingUpdateRef = useRef(onBookingUpdate);
-  const onDriverAssignedRef = useRef(onDriverAssigned);
-  onBookingUpdateRef.current = onBookingUpdate;
-  onDriverAssignedRef.current = onDriverAssigned;
 
   const clearDriver = useCallback(() => setDriverPosition(null), []);
 
@@ -42,11 +29,7 @@ export function useRideSocket({
 
     const socket = getSocket();
 
-    const handleConnect = () => {
-      setConnectionStatus("connected");
-      socket.emit("join-booking", bookingId);
-    };
-
+    const handleConnect = () => setConnectionStatus("connected");
     const handleDisconnect = () => setConnectionStatus("disconnected");
     const handleReconnect = () => setConnectionStatus("reconnecting");
 
@@ -63,15 +46,6 @@ export function useRideSocket({
       }
     };
 
-    const handleBookingUpdated = (data: BookingPatch) => {
-      if (data.bookingId && String(data.bookingId) !== String(bookingId)) return;
-      onBookingUpdateRef.current?.(data);
-    };
-
-    const handleDriverAssigned = (data: Record<string, unknown>) => {
-      onDriverAssignedRef.current?.(data);
-    };
-
     if (socket.connected) handleConnect();
     else setConnectionStatus("connecting");
 
@@ -79,16 +53,12 @@ export function useRideSocket({
     socket.on("disconnect", handleDisconnect);
     socket.on("reconnect_attempt", handleReconnect);
     socket.on("driver-location", handleDriverLocation);
-    socket.on("booking-updated", handleBookingUpdated);
-    socket.on("driver-assigned", handleDriverAssigned);
 
     return () => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("reconnect_attempt", handleReconnect);
       socket.off("driver-location", handleDriverLocation);
-      socket.off("booking-updated", handleBookingUpdated);
-      socket.off("driver-assigned", handleDriverAssigned);
     };
   }, [bookingId, enabled]);
 

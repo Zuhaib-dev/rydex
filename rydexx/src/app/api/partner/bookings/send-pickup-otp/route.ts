@@ -30,23 +30,27 @@ export async function POST(req: Request) {
 
     booking.pickupOtp = otp;
     booking.pickupOtpExpires = new Date(Date.now() + 5 * 60 * 1000);
+    if (booking.status !== "arrived") {
+      booking.status = "arrived";
+    }
 
     await booking.save();
 
-    /* Send Mail */
-
     if (booking.user?.email) {
-
       await sendMail(
         booking.user.email,
         "Your Pickup OTP - RYDEX",
-        getOtpEmailTemplate(otp, "Your driver has arrived! Share this OTP with your driver to start the ride.", "Pickup OTP")
+        getOtpEmailTemplate(
+          otp,
+          "Your driver has arrived! Share this OTP with your driver to start the ride.",
+          "Pickup OTP",
+        ),
       );
-
     }
 
     await emitBookingUpdated(booking, {
       bookingId: booking._id,
+      status: booking.status,
       pickupOtp: otp,
     });
 

@@ -20,8 +20,12 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import RideChat from "@/components/RideChat";
 import { useRideSocket } from "@/hooks/useRideSocket";
+import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 import type { RideMapPhase } from "@/components/LiveTrackingMap";
 import { Wifi, WifiOff } from "lucide-react";
+import OtpReveal from "@/components/ride/OtpReveal";
+import RideToasts from "@/components/ride/RideToasts";
+import type { RealtimeToast } from "@/hooks/useBookingRealtime";
 
 const LiveRideMap = dynamic(() => import("@/components/LiveTrackingMap"), {
   ssr: false,
@@ -161,6 +165,11 @@ export default function RidePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState("");
+  const [realtimeToast, setRealtimeToast] = useState<
+    (RealtimeToast & { id: number }) | null
+  >(null);
+  const [otpBanner, setOtpBanner] = useState<"pickup" | "drop" | null>(null);
+  const [otpDismissed, setOtpDismissed] = useState(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -216,25 +225,42 @@ export default function RidePage() {
   const { driverPosition: driverPos, connectionStatus, isLive } = useRideSocket({
     bookingId: id as string | undefined,
     enabled: Boolean(id && booking),
-    onBookingUpdate: (data) => {
-      if (data.bookingId && String(data.bookingId) !== String(id)) return;
-      setBooking((prev) => (prev ? { ...prev, ...data } : null));
-      if (data.status && !["confirmed", "arriving", "arrived"].includes(String(data.status))) {
+  });
+
+  useBookingRealtime<BookingDetails>({
+    bookingId: id as string | undefined,
+    enabled: Boolean(id && booking),
+    setBooking,
+    role: "user",
+    onToast: (t) => setRealtimeToast({ ...t, id: Date.now() }),
+    onStatusChange: (nextStatus) => {
+      if (!["confirmed", "arriving", "arrived"].includes(nextStatus)) {
         setChatOpen(false);
       }
-    },
-    onDriverAssigned: (data) => {
-      setBooking((prev) =>
-        prev
-          ? {
-              ...prev,
-              driver: data.driver as BookingDetails["driver"],
-              driverMobileNumber: String(data.driverMobileNumber ?? prev.driverMobileNumber),
-            }
-          : null,
-      );
+      if (nextStatus === "started" || nextStatus === "completed") {
+        setOtpBanner(null);
+        setOtpDismissed(false);
+      }
     },
   });
+
+  useEffect(() => {
+    if (!booking || otpDismissed) return;
+    if (
+      booking.pickupOtp &&
+      ["confirmed", "arriving", "arrived"].includes(booking.status)
+    ) {
+      setOtpBanner("pickup");
+      return;
+    }
+    if (booking.dropOtp && booking.status === "started") {
+      setOtpBanner("drop");
+      return;
+    }
+    if (!booking.pickupOtp && !booking.dropOtp) {
+      setOtpBanner(null);
+    }
+  }, [booking?.pickupOtp, booking?.dropOtp, booking?.status, otpDismissed]);
 
   /* ── CANCEL ── */
   const handleCancel = async () => {
@@ -525,6 +551,19 @@ export default function RidePage() {
           </div>
         </motion.div>
       </div>
+      <OtpReveal
+        type={otpBanner === "drop" ? "drop" : "pickup"}
+        otp={
+          otpBanner === "drop"
+            ? booking.dropOtp || ""
+            : booking.pickupOtp || ""
+        }
+        visible={!!otpBanner && !otpDismissed}
+        onDismiss={() => setOtpDismissed(true)}
+      />
+
+      <RideToasts toast={realtimeToast} />
+
       {/* Toast Notification */}
       <AnimatePresence>
         {toastMessage && (

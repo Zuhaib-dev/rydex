@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getSocket } from "@/lib/socket";
+import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 
 const VEHICLE_ICONS: Record<string, any> = {
   bike: Bike, auto: Car, car: Car, loading: Truck, truck: Truck,
@@ -182,16 +182,29 @@ function CheckoutContent() {
     setStatus("cancelled");
   };
 
-  /* ── SOCKET ── */
-  useEffect(() => {
-    const socket = getSocket();
-    socket.on("booking-updated", (data) => {
-      if (data.status === "awaiting_payment") setStatus("awaiting_payment");
-      if (data.status === "rejected")         setStatus("rejected");
-      if (data.status === "confirmed")        setStatus("confirmed");
-    });
-    return () => { socket.off("booking-updated"); };
-  }, []);
+  useBookingRealtime<{ _id: string; status: Status }>({
+    bookingId: bookingId ?? undefined,
+    enabled: Boolean(bookingId),
+    setBooking: (updater) => {
+      setBookingId((prevId) => {
+        const base = prevId ? { _id: prevId, status } : null;
+        const next =
+          typeof updater === "function"
+            ? (updater as (p: typeof base) => typeof base)(base)
+            : updater;
+        if (next?.status) setStatus(next.status as Status);
+        return next?._id ?? prevId;
+      });
+    },
+    onStatusChange: (nextStatus, id) => {
+      if (nextStatus === "awaiting_payment") setStatus("awaiting_payment");
+      if (nextStatus === "rejected") setStatus("rejected");
+      if (nextStatus === "confirmed" || nextStatus === "arriving") {
+        router.push(`/ride/${id}`);
+      }
+      if (nextStatus === "started") router.push(`/ride/${id}`);
+    },
+  });
 
   /* ── RESTORE ── */
   useEffect(() => {

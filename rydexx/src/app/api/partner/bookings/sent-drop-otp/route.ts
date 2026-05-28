@@ -48,6 +48,7 @@ export async function POST(req: Request) {
     await emitBookingUpdated(booking, {
       bookingId: booking._id,
       dropOtp: otp,
+      status: booking.status,
     });
 
     return NextResponse.json({

@@ -11,7 +11,7 @@ export async function POST(req: Request) {
 
     const { bookingId, otp } = await req.json();
 
-    const booking = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId).populate("driver vehicle");
 
     if (!booking) {
       return NextResponse.json(
@@ -53,6 +53,7 @@ export async function POST(req: Request) {
     await emitBookingUpdated(booking, {
       bookingId: booking._id,
       status: "started",
+      pickupOtp: "",
     });
 
     return NextResponse.json({

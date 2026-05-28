@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { getSocket } from "@/lib/socket";
+import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 
 const VEHICLE_ICONS: Record<string, any> = {
   bike: Bike, auto: Car, car: Car, loading: Truck, truck: Truck,
