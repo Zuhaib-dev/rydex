@@ -1,10 +1,14 @@
 import connectDb from "./db";
 import Booking from "@/models/booking.model";
-import User from "@/models/user.model";
-import Vehicle from "@/models/vehicle.model";
-import { emitToSocketServer } from "./socketServer";
-import { emitBookingUpdated } from "./bookingEvents";
 import mongoose from "mongoose";
+import {
+  getRadiusTier,
+  nextRadiusTierIndex,
+  radiusKm,
+} from "./matching/config";
+import { findClosestEligiblePartner } from "./matching/findPartner";
+import { dispatchBookingToPartner } from "./matching/dispatch";
+import { emitBookingUpdated } from "./bookingEvents";
 
 export async function cascadeBooking(bookingId: string, currentDriverId: string) {
   await connectDb();
@@ -15,121 +19,109 @@ export async function cascadeBooking(bookingId: string, currentDriverId: string)
     return { success: false, message: "Booking not found" };
   }
 
-  // Double check if the booking status is still requested and driver matches
-  if (booking.status !== "requested" || String(booking.driver) !== String(currentDriverId)) {
+  if (
+    booking.status !== "requested" ||
+    String(booking.driver) !== String(currentDriverId)
+  ) {
     return { success: false, message: "Booking is already processed or driver changed" };
   }
 
-  const oldDriverId = booking.driver;
+  const oldDriverId = String(booking.driver);
+  const pickupCoordinates = booking.pickupLocation.coordinates as [
+    number,
+    number,
+  ];
 
-  // Add current driver to attempted list if not already there
-  const attempted = booking.attemptedDrivers.map((id: any) => String(id));
+  const attempted = booking.attemptedDrivers.map((id) => String(id));
   if (!attempted.includes(String(currentDriverId))) {
-    booking.attemptedDrivers.push(new mongoose.Types.ObjectId(currentDriverId));
+    booking.attemptedDrivers.push(
+      new mongoose.Types.ObjectId(currentDriverId),
+    );
   }
 
-  // Find all online approved partners nearby, excluding already attempted drivers
-  const partners = await User.find({
-    role: "partner",
-    isOnline: true,
-    partnerStatus: "approved",
-    isPartnerBlocked: { $ne: true },
-    _id: { $nin: booking.attemptedDrivers },
-    location: {
-      $near: {
-        $geometry: {
-          type: "Point",
-          coordinates: booking.pickupLocation.coordinates, // [lng, lat]
-        },
-        $maxDistance: 5000, // 5km radius limit
-      },
-    },
-  }).select("_id mobileNumber").lean();
+  let tierIndex = booking.matchRadiusTierIndex ?? 0;
+  let radiusMeters =
+    booking.matchRadiusMeters ?? getRadiusTier(tierIndex);
 
-  const partnerIds = partners.map(p => p._id);
+  const excludeIds = booking.attemptedDrivers.map((id) => String(id));
 
-  // Find approved active vehicles of requested type for these partners
-  const vehicles = await Vehicle.find({
-    owner: { $in: partnerIds },
-    status: "approved",
-    isActive: true,
-    type: booking.vehicleType,
-  }).lean();
+  let match = await findClosestEligiblePartner({
+    pickupCoordinates,
+    vehicleType: booking.vehicleType,
+    excludePartnerIds: excludeIds,
+    radiusMeters,
+  });
 
-  // Find the next closest driver/vehicle pair
-  let nextDriver = null;
-  let nextVehicle = null;
+  // Expand search radius when no more riders in current tier
+  while (!match) {
+    const nextTier = nextRadiusTierIndex(tierIndex);
+    if (nextTier === null) break;
 
-  for (const partner of partners) {
-    const v = vehicles.find(v => String(v.owner) === String(partner._id));
-    if (v) {
-      nextDriver = partner;
-      nextVehicle = v;
-      break;
-    }
+    tierIndex = nextTier;
+    radiusMeters = getRadiusTier(tierIndex);
+    booking.matchRadiusTierIndex = tierIndex;
+    booking.matchRadiusMeters = radiusMeters;
+    await booking.save();
+
+    await emitBookingUpdated(booking, {
+      bookingId: String(booking._id),
+      status: "requested",
+      matchRadiusMeters: radiusMeters,
+      matchRadiusKm: radiusKm(radiusMeters),
+      searchingMessage: `Expanding search to ${radiusKm(radiusMeters)} km…`,
+    });
+
+    match = await findClosestEligiblePartner({
+      pickupCoordinates,
+      vehicleType: booking.vehicleType,
+      excludePartnerIds: excludeIds,
+      radiusMeters,
+    });
   }
 
-  if (nextDriver && nextVehicle) {
-    console.log(`Cascading booking ${bookingId} to next driver: ${nextDriver._id}`);
-    
-    // Update booking with new matched driver and vehicle
-    booking.driver = nextDriver._id as any;
-    booking.vehicle = nextVehicle._id as any;
-    booking.driverMobileNumber = nextDriver.mobileNumber;
+  if (match) {
+    booking.driver = new mongoose.Types.ObjectId(match.partnerId);
+    booking.vehicle = new mongoose.Types.ObjectId(match.vehicleId);
+    booking.driverMobileNumber = match.mobileNumber;
     booking.driverAssignedAt = new Date();
-    booking.attemptedDrivers.push(nextDriver._id as any);
+    booking.matchRadiusMeters = radiusMeters;
+    booking.matchRadiusTierIndex = tierIndex;
+    booking.attemptedDrivers.push(
+      new mongoose.Types.ObjectId(match.partnerId),
+    );
     booking.status = "requested";
     await booking.save();
 
-    // Notify new driver
-    await emitToSocketServer({
-      userId: String(nextDriver._id),
-      event: "new-booking",
-      data: booking,
+    await dispatchBookingToPartner(booking, match, radiusMeters, {
+      previousDriverId: oldDriverId,
     });
 
-    // Notify user that matching is continuing (but with new driver details if they track it)
-    await emitBookingUpdated(booking, {
-      bookingId: booking._id,
-      status: "requested",
-      driver: nextDriver._id,
-      driverMobileNumber: nextDriver.mobileNumber,
-    });
-
-    // Clean up old driver's screen
-    await emitToSocketServer({
-      userId: String(oldDriverId),
-      event: "booking-updated",
-      data: {
-        bookingId: booking._id,
-        status: "expired",
-      },
-    });
-
-    return { success: true, cascaded: true, nextDriverId: nextDriver._id };
-  } else {
-    console.log(`No more drivers available for booking ${bookingId}. Setting status to rejected.`);
-    
-    // Fail the booking as no drivers are available
-    booking.status = "rejected";
-    await booking.save();
-
-    // Notify user of matching failure
-    await emitBookingUpdated(booking, {
-      bookingId: booking._id,
-      status: "rejected",
-    });
-
-    // Clean up old driver's screen
-    await emitToSocketServer({
-      userId: String(oldDriverId),
-      event: "booking-updated",
-      data: {
-        bookingId: booking._id,
-        status: "expired",
-      },
-    });
-
-    return { success: true, cascaded: false, message: "No drivers available" };
+    return {
+      success: true,
+      cascaded: true,
+      nextDriverId: match.partnerId,
+      radiusMeters,
+    };
   }
+
+  booking.status = "rejected";
+  await booking.save();
+
+  await emitBookingUpdated(booking, {
+    bookingId: String(booking._id),
+    status: "rejected",
+    searchingMessage: "No drivers available in your area",
+  });
+
+  const { emitToSocketServer } = await import("./socketServer");
+  await emitToSocketServer({
+    userId: oldDriverId,
+    event: "booking-updated",
+    data: {
+      bookingId: String(booking._id),
+      status: "expired",
+    },
+  });
+
+  return { success: true, cascaded: false, message: "No drivers available" };
 }
