@@ -10,8 +10,9 @@ import {
   CartesianGrid,
   Cell,
 } from "recharts";
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
+import { motion, AnimatePresence } from "motion/react";
+import { useAdminRealtimeRefresh } from "@/hooks/useAdminRealtime";
 import { TrendingUp, TrendingDown, Zap, Calendar, BarChart2, Star, ShieldCheck } from "lucide-react";
 import axios from "axios";
 
@@ -57,15 +58,23 @@ export default function AdminEarningsChart() {
   const [data, setData] = useState<Earnings[]>([]);
   const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    axios
-      .get("/api/admin/earnings")
-      .then((res) => {
-        const last7Days: Earnings[] = res.data.earnings.slice(-7);
-        setData(last7Days);
-      })
-      .finally(() => setLoaded(true));
+  const fetchEarnings = useCallback(async () => {
+    try {
+      const res = await axios.get("/api/admin/earnings");
+      const last7Days: Earnings[] = res.data.earnings.slice(-7);
+      setData(last7Days);
+    } catch (error) {
+      console.error("Failed to load earnings:", error);
+    } finally {
+      setLoaded(true);
+    }
   }, []);
+
+  useEffect(() => {
+    void fetchEarnings();
+  }, [fetchEarnings]);
+
+  useAdminRealtimeRefresh("earnings", fetchEarnings);
 
   const total = data.reduce((a, d) => a + d.earnings, 0);
   const avg = data.length ? Math.round(total / data.length) : 0;
