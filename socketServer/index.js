@@ -201,7 +201,9 @@ io.on("connection", (socket) => {
 
   socket.on("update-location", async ({ latitude, longitude }) => {
     if (!socket.userId) return;
+    if (typeof latitude !== "number" || typeof longitude !== "number") return;
 
+    const now = new Date();
     const user = await User.findByIdAndUpdate(
       socket.userId,
       {
@@ -209,6 +211,8 @@ io.on("connection", (socket) => {
           type: "Point",
           coordinates: [longitude, latitude],
         },
+        lastLocationAt: now,
+        lastLocationUpdate: now,
       },
       { new: true },
     );
@@ -218,13 +222,31 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("disconnect", async () => {
+  socket.on("partner-availability", async ({ available }) => {
     if (!socket.userId) return;
 
     await User.findByIdAndUpdate(socket.userId, {
-      isOnline: false,
-      socketId: null,
+      isPartnerAvailable: Boolean(available),
+      ...(available
+        ? { isOnline: true }
+        : { isPartnerAvailable: false }),
     });
+  });
+
+  socket.on("disconnect", async () => {
+    if (!socket.userId) return;
+
+    const user = await User.findById(socket.userId).select("role");
+    const update = {
+      socketId: null,
+      isPartnerAvailable: false,
+    };
+
+    if (user?.role === "partner") {
+      update.isOnline = false;
+    }
+
+    await User.findByIdAndUpdate(socket.userId, update);
   });
 });
 

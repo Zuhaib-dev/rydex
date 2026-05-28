@@ -96,8 +96,19 @@ const UserSchema = new Schema(
       },
     },
 
+    lastLocationAt: {
+      type: Date,
+      index: true,
+    },
+
     lastLocationUpdate: {
       type: Date,
+    },
+
+    isPartnerAvailable: {
+      type: Boolean,
+      default: true,
+      index: true,
     },
 
     /* ===== AUTH ===== */

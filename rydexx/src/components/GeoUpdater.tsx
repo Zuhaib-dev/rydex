@@ -1,10 +1,11 @@
 "use client";
 
 import { getSocket } from "@/lib/socket";
+import { PARTNER_GEO_PUSH_INTERVAL_MS } from "@/lib/matching/config";
 import React, { useEffect, useRef } from "react";
 
 function GeoUpdater({ userId }: { userId: string | undefined }) {
-  const socketRef = useRef<any>(null);
+  const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
   const lastSentRef = useRef<number>(0);
 
   useEffect(() => {
@@ -13,19 +14,23 @@ function GeoUpdater({ userId }: { userId: string | undefined }) {
 
     socketRef.current = getSocket();
 
-    // ✅ Emit identity only once
-    socketRef.current.emit("identity", userId);
-       
+    const identify = () => {
+      socketRef.current?.emit("identity", userId);
+      socketRef.current?.emit("partner-availability", { available: true });
+    };
+
+    identify();
+    socketRef.current.on("connect", identify);
+
     const watcher = navigator.geolocation.watchPosition(
       (pos) => {
         const now = Date.now();
 
-        // 🔥 Throttle: send only every 10 seconds
-        if (now - lastSentRef.current < 10000) return;
+        if (now - lastSentRef.current < PARTNER_GEO_PUSH_INTERVAL_MS) return;
 
         lastSentRef.current = now;
 
-        socketRef.current.emit("update-location", {
+        socketRef.current?.emit("update-location", {
           userId,
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
@@ -43,6 +48,8 @@ function GeoUpdater({ userId }: { userId: string | undefined }) {
     );
 
     return () => {
+      socketRef.current?.emit("partner-availability", { available: false });
+      socketRef.current?.off("connect", identify);
       navigator.geolocation.clearWatch(watcher);
     };
   }, [userId]);

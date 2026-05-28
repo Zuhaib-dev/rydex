@@ -9,7 +9,6 @@ import {
   radiusKm,
 } from "@/lib/matching/config";
 import Vehicle from "@/models/vehicle.model";
-import User from "@/models/user.model";
 import type { LngLat } from "@/lib/matching/geo";
 import { estimateRoadDistanceMeters } from "@/lib/matching/geo";
 
