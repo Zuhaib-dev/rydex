@@ -255,8 +255,29 @@ function CheckoutContent() {
     return () => clearTimeout(t);
   }, [status]);
 
-  /* ── label ── */
   const vehicleLabel = vehicle.charAt(0).toUpperCase() + vehicle.slice(1);
+
+  if (quoteLoading && !bookingId) {
+    return (
+      <div className="min-h-screen bg-zinc-100 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
+      </div>
+    );
+  }
+
+  if (quoteError && !bookingId) {
+    return (
+      <div className="min-h-screen bg-zinc-100 flex flex-col items-center justify-center gap-4 px-6">
+        <p className="text-zinc-600 text-center">{quoteError}</p>
+        <button
+          onClick={() => router.push("/user/book")}
+          className="px-5 py-2.5 bg-zinc-900 text-white rounded-xl text-sm font-semibold"
+        >
+          Start new booking
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-100 px-4 py-12">
@@ -303,6 +324,16 @@ function CheckoutContent() {
             {/* Top bar */}
             <div className="h-1 bg-zinc-900" />
 
+            {snapshot?.routePolyline && (
+              <div className="h-44 border-b border-zinc-100">
+                <FrozenRouteMap
+                  pickup={snapshot.pickupLocation.coordinates}
+                  drop={snapshot.dropLocation.coordinates}
+                  routePolyline={snapshot.routePolyline}
+                />
+              </div>
+            )}
+
             <div className="p-8 sm:p-10">
               {/* Vehicle row */}
               <div className="flex items-center justify-between mb-8">
@@ -344,7 +375,9 @@ function CheckoutContent() {
               <div className="flex items-end justify-between pt-6 border-t border-zinc-100">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Total Fare</p>
-                  <p className="text-zinc-400 text-xs font-medium">Includes base + distance charges</p>
+                  <p className="text-zinc-400 text-xs font-medium">
+                    Locked · {tripDistanceKm} km · ~{durationMinutes} min
+                  </p>
                 </div>
                 <motion.div
                   initial={{ scale: 0.8, opacity: 0 }}
