@@ -46,16 +46,13 @@ function CheckoutContent() {
 
   const VehicleIcon = VEHICLE_ICONS[vehicle.toLowerCase()] || Car;
 
-  const [loading,       setLoading]       = useState(false);
-  const [bookingId,     setBookingId]     = useState<string | null>(null);
-  const [status,        setStatus]        = useState<Status>("idle");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online" | null>(null);
-
-  useEffect(() => {
-    if (!quoteId && !bookingId && status === "idle") {
-      router.replace("/user/book");
-    }
-  }, [quoteId, bookingId, status, router]);
+  const [loading, setLoading] = useState(false);
+  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>("idle");
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online" | null>(
+    null,
+  );
+  const [bootstrapped, setBootstrapped] = useState(false);
 
   /* ── CREATE BOOKING (uses locked quote only) ── */
   const handleCreateBooking = async () => {
@@ -239,14 +236,24 @@ function CheckoutContent() {
     },
   });
 
-  /* ── RESTORE ── */
   useEffect(() => {
     (async () => {
-      const res  = await fetch("/api/booking/my-active");
+      const res = await fetch("/api/booking/my-active");
       const data = await res.json();
-      if (data.booking) { setBookingId(data.booking._id); setStatus(data.booking.status); }
+      if (data.booking) {
+        setBookingId(data.booking._id);
+        setStatus(data.booking.status);
+      }
+      setBootstrapped(true);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!bootstrapped) return;
+    if (!quoteId && !bookingId && status === "idle") {
+      router.replace("/user/book");
+    }
+  }, [bootstrapped, quoteId, bookingId, status, router]);
 
   /* ── awaiting_payment → payment after 2s ── */
   useEffect(() => {
@@ -257,7 +264,7 @@ function CheckoutContent() {
 
   const vehicleLabel = vehicle.charAt(0).toUpperCase() + vehicle.slice(1);
 
-  if (quoteLoading && !bookingId) {
+  if ((!bootstrapped || quoteLoading) && !bookingId) {
     return (
       <div className="min-h-screen bg-zinc-100 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />

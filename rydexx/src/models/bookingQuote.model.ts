@@ -44,7 +44,7 @@ const BookingQuoteSchema = new Schema<IBookingQuote>(
     routePolyline: { type: Schema.Types.Mixed, required: true },
     pricingSnapshot: { type: Schema.Types.Mixed, required: true },
     kashmirAdjusted: { type: Boolean, default: false },
-    expiresAt: { type: Date, required: true, index: true },
+    expiresAt: { type: Date, required: true },
     usedAt: { type: Date },
   },
   { timestamps: true },

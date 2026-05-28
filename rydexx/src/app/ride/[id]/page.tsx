@@ -32,6 +32,11 @@ const LiveRideMap = dynamic(() => import("@/components/LiveTrackingMap"), {
   loading: () => <MapSkeleton />,
 });
 
+const FrozenRouteMap = dynamic(
+  () => import("@/components/map/FrozenRouteMap"),
+  { ssr: false, loading: () => <MapSkeleton /> },
+);
+
 /* ─── TYPES ──────────────────────────────────────────────────────────── */
 type BookingStatus =
   | "requested"
@@ -55,6 +60,9 @@ interface BookingDetails {
   dropAddress: string;
   pickupLocation: { coordinates: [number, number] };
   dropLocation: { coordinates: [number, number] };
+  routePolyline?: GeoJSON.LineString;
+  tripDistanceKm?: number;
+  durationMinutes?: number;
   fare: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
@@ -383,23 +391,32 @@ export default function RidePage() {
     <div className="h-screen w-full bg-zinc-100 flex flex-col lg:flex-row overflow-hidden">
       {/* ══ MAP ══ */}
       <div className="relative flex-1 h-full z-0">
-        <LiveRideMap
-          driverLocation={driverPos}
-          pickupLocation={pickupPos!}
-          dropLocation={dropPos!}
-          status={mapPhase}
-          onStats={({
-            distanceToPickup,
-            durationToPickup,
-            distanceToDrop,
-            durationToDrop,
-          }) => {
-            setDistanceToPickup(distanceToPickup);
-            setEtaToPickup(durationToPickup);
-            setDistanceToDrop(distanceToDrop);
-            setEtaToDrop(durationToDrop);
-          }}
-        />
+        {booking.routePolyline &&
+        ["requested", "awaiting_payment"].includes(status) ? (
+          <FrozenRouteMap
+            pickup={booking.pickupLocation.coordinates}
+            drop={booking.dropLocation.coordinates}
+            routePolyline={booking.routePolyline}
+          />
+        ) : (
+          <LiveRideMap
+            driverLocation={driverPos}
+            pickupLocation={pickupPos!}
+            dropLocation={dropPos!}
+            status={mapPhase}
+            onStats={({
+              distanceToPickup,
+              durationToPickup,
+              distanceToDrop,
+              durationToDrop,
+            }) => {
+              setDistanceToPickup(distanceToPickup);
+              setEtaToPickup(durationToPickup);
+              setDistanceToDrop(distanceToDrop);
+              setEtaToDrop(durationToDrop);
+            }}
+          />
+        )}
 
         {/* Pulsing red SOS banner */}
         {booking.sosTriggered && (
