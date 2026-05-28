@@ -31,6 +31,7 @@ export function useBookingRealtime<T extends object>({
   setBooking,
   onStatusChange,
   onToast,
+  onPatch,
   role = "user",
 }: UseBookingRealtimeOptions<T>) {
   const lastEventIdRef = useRef<string | null>(null);
@@ -40,8 +41,10 @@ export function useBookingRealtime<T extends object>({
 
   const onStatusRef = useRef(onStatusChange);
   const onToastRef = useRef(onToast);
+  const onPatchRef = useRef(onPatch);
   onStatusRef.current = onStatusChange;
   onToastRef.current = onToast;
+  onPatchRef.current = onPatch;
 
   useEffect(() => {
     if (!bookingId || !enabled) return;
@@ -95,6 +98,7 @@ export function useBookingRealtime<T extends object>({
       prevDropOtpRef.current = dropOtp;
 
       setBooking((prev) => mergeBookingPatch(prev, raw) as T);
+      onPatchRef.current?.(raw);
 
       if (raw.status && raw.status !== prevStatusRef.current) {
         prevStatusRef.current = raw.status;

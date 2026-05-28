@@ -10,6 +10,7 @@ import {
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useBookingRealtime } from "@/hooks/useBookingRealtime";
+import MatchingStatusBanner from "@/components/matching/MatchingStatusBanner";
 
 const VEHICLE_ICONS: Record<string, any> = {
   bike: Bike, auto: Car, car: Car, loading: Truck, truck: Truck,
@@ -182,6 +183,12 @@ function CheckoutContent() {
     setStatus("cancelled");
   };
 
+  const [matchSearch, setMatchSearch] = useState<{
+    message?: string;
+    radiusKm?: number;
+    etaMinutes?: number;
+  }>({});
+
   const [, setLiveBooking] = useState<{
     _id: string;
     status: Status;
@@ -195,6 +202,13 @@ function CheckoutContent() {
     bookingId: bookingId ?? undefined,
     enabled: Boolean(bookingId),
     setBooking: setLiveBooking,
+    onPatch: (patch) => {
+      setMatchSearch({
+        message: patch.searchingMessage as string | undefined,
+        radiusKm: patch.matchRadiusKm as number | undefined,
+        etaMinutes: patch.dispatchEtaMinutes as number | undefined,
+      });
+    },
     onStatusChange: (nextStatus, bid) => {
       setStatus(nextStatus as Status);
       if (nextStatus === "awaiting_payment") setStatus("awaiting_payment");
@@ -353,7 +367,7 @@ function CheckoutContent() {
                       <h3 className="text-2xl font-black text-zinc-900 mb-6">Confirm Your Ride</h3>
                       <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-5 space-y-3">
                         {[
-                          { icon: <Clock size={14} />, text: "Driver will respond within 2 minutes" },
+                          { icon: <Clock size={14} />, text: "Driver will respond within 20 seconds" },
                           { icon: <ShieldCheck size={14} />, text: "Verified & insured drivers only" },
                           { icon: <CreditCard size={14} />, text: "Pay after driver accepts" },
                         ].map((item, i) => (
@@ -404,9 +418,14 @@ function CheckoutContent() {
                       </div>
                     </div>
                     <div>
-                      <h3 className="text-xl font-black text-zinc-900 mb-1">Searching for nearest ride...</h3>
-                      <p className="text-zinc-400 text-sm font-medium">Matching you with available drivers nearby</p>
+                      <h3 className="text-xl font-black text-zinc-900 mb-1">Searching nearby riders…</h3>
+                      <p className="text-zinc-400 text-sm font-medium">Matching you with live {vehicle} partners near pickup</p>
                     </div>
+                    <MatchingStatusBanner
+                      message={matchSearch.message}
+                      radiusKm={matchSearch.radiusKm}
+                      etaMinutes={matchSearch.etaMinutes}
+                    />
                     {/* Animated dots */}
                     <div className="flex gap-1.5">
                       {[0, 1, 2].map(i => (
