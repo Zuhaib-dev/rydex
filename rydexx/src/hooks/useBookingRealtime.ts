@@ -21,6 +21,8 @@ type UseBookingRealtimeOptions<T extends object> = {
   onToast?: (toast: RealtimeToast) => void;
   /** Role-aware OTP notifications */
   role?: "user" | "partner";
+  /** Any booking patch (match radius, search message, etc.) */
+  onPatch?: (patch: BookingClientPayload) => void;
 };
 
 export function useBookingRealtime<T extends object>({
