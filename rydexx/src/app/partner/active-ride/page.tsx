@@ -20,6 +20,9 @@ import {
   Star,
 } from "lucide-react";
 import { getSocket } from "@/lib/socket";
+import { useBookingRealtime } from "@/hooks/useBookingRealtime";
+import type { RealtimeToast } from "@/hooks/useBookingRealtime";
+import RideToasts from "@/components/ride/RideToasts";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IUser } from "@/models/user.model";
@@ -175,6 +178,9 @@ export default function DriverRidePage() {
   /* Chat & Sheet */
   const [chatOpen, setChatOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [realtimeToast, setRealtimeToast] = useState<
+    (RealtimeToast & { id: number }) | null
+  >(null);
 
   /* Keep latest booking in a ref so GPS callback never has stale closure */
   const bookingRef = useRef<IBooking | null>(null);
@@ -243,27 +249,35 @@ export default function DriverRidePage() {
     return () => navigator.geolocation.clearWatch(watchId);
   }, [booking?._id, booking?.status]);
 
-  /* ── SOCKET ── */
+  useBookingRealtime<IBooking>({
+    bookingId: booking?._id,
+    enabled: Boolean(booking?._id && !TERMINAL.includes(booking.status)),
+    setBooking,
+    role: "partner",
+    onToast: (t) => setRealtimeToast({ ...t, id: Date.now() }),
+    onStatusChange: (nextStatus) => {
+      if (nextStatus === "started") {
+        setOtpVerified(true);
+        setOtpMode(false);
+        setOtp("");
+      }
+      if (nextStatus === "completed") {
+        setOtpVerified(true);
+        setDropOtpMode(false);
+      }
+    },
+  });
+
+  /* ── SOCKET location relay (partner GPS) ── */
   useEffect(() => {
     if (!booking?._id) return;
     if (TERMINAL.includes(booking.status)) return;
     const socket = getSocket();
-    socket.emit("join-booking", booking._id);
-    const handleDriverLocation = (d: any) => {
+    const handleDriverLocation = (d: { latitude?: number; longitude?: number }) => {
       setDriverPos([d.latitude, d.longitude]);
     };
-    const handleBookingUpdated = (data: { bookingId?: string; status?: BookingStatus; paymentStatus?: PaymentStatus }) => {
-      if (data.bookingId && data.bookingId !== booking._id) return;
-      setBooking((prev) => (prev ? { ...prev, ...data } : prev));
-    };
-
     socket.on("driver-location", handleDriverLocation);
-    socket.on("booking-updated", handleBookingUpdated);
-
-    return () => {
-      socket.off("driver-location", handleDriverLocation);
-      socket.off("booking-updated", handleBookingUpdated);
-    };
+    return () => socket.off("driver-location", handleDriverLocation);
   }, [booking?._id, booking?.status]);
 
   /* ── OTP HANDLERS ── */
