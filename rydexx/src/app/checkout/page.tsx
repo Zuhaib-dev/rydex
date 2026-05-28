@@ -29,7 +29,8 @@ function CheckoutContent() {
   const drop      = params.get("drop")      || "Drop Location";
   const vehicle   = params.get("vehicle")   || "car";
   const vehicleId = params.get("vehicleId");
-  const fare      = Number(params.get("fare")) || 249;
+  const tripDistanceKm = Number(params.get("tripDistanceKm")) || Number(params.get("km")) || 0;
+  const [fare, setFare] = useState(Number(params.get("fare")) || 0);
   const mobileNumber = params.get("mobileNumber") || "";
   const driverId  = params.get("driverId");
   const pickupLat = Number(params.get("pickupLat"));
@@ -55,12 +56,18 @@ function CheckoutContent() {
           pickupAddress: pickup, dropAddress: drop,
           pickupLocation: { type: "Point", coordinates: [pickupLng, pickupLat] },
           dropLocation:   { type: "Point", coordinates: [dropLng,   dropLat]   },
-          fare, mobileNumber,
+          fare,
+          tripDistanceKm,
+          mobileNumber,
           vehicleType: vehicle,
         }),
       });
       const data = await res.json();
-      if (data.success) { setBookingId(data.booking._id); setStatus("requested"); }
+      if (data.success) {
+        setBookingId(data.booking._id);
+        setStatus("requested");
+        if (data.booking?.fare != null) setFare(data.booking.fare);
+      }
       else alert(data.message || "Booking failed");
     } catch { alert("Something went wrong"); }
     finally { setLoading(false); }

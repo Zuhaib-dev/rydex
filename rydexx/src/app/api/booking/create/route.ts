@@ -8,6 +8,11 @@ import { findPartnerWithRadiusExpansion } from "@/lib/matching/findPartner";
 import { dispatchBookingToPartner } from "@/lib/matching/dispatch";
 import { emitToSocketServer } from "@/lib/socketServer";
 import type { LngLat } from "@/lib/matching/geo";
+import Vehicle from "@/models/vehicle.model";
+import {
+  calculateTripFare,
+  resolveTripDistanceKm,
+} from "@/lib/fare";
 
 export async function POST(req: Request) {
   await connectDb();
@@ -25,9 +30,10 @@ export async function POST(req: Request) {
     dropAddress,
     pickupLocation,
     dropLocation,
-    fare,
+    fare: clientFare,
     mobileNumber,
     vehicleType,
+    tripDistanceKm: clientTripDistanceKm,
   } = body;
 
   if (!pickupLocation?.coordinates || !dropLocation?.coordinates) {
@@ -57,6 +63,12 @@ export async function POST(req: Request) {
 
   const resolvedVehicleType = vehicleType || "car";
   const pickupCoordinates = pickupLocation.coordinates as LngLat;
+  const dropCoordinates = dropLocation.coordinates as LngLat;
+  const tripDistanceKm = resolveTripDistanceKm(
+    clientTripDistanceKm,
+    pickupCoordinates,
+    dropCoordinates,
+  );
 
   let matchedDriverId = driverId;
   let matchedVehicleId = vehicleId;
@@ -112,6 +124,19 @@ export async function POST(req: Request) {
     matchedDriverMobile = driver.mobileNumber || "";
   }
 
+  const pricingVehicle = await Vehicle.findById(matchedVehicleId).select(
+    "baseFare perKmRate type",
+  );
+
+  if (!pricingVehicle) {
+    return NextResponse.json(
+      { message: "Vehicle not found" },
+      { status: 400 },
+    );
+  }
+
+  const fare = calculateTripFare(pricingVehicle, tripDistanceKm);
+
   const booking = await Booking.create({
     user: session.user.id,
     driver: matchedDriverId,
@@ -129,6 +154,7 @@ export async function POST(req: Request) {
     driverAssignedAt: new Date(),
     matchRadiusMeters,
     matchRadiusTierIndex,
+    tripDistanceKm,
   });
 
   let dispatch = null;

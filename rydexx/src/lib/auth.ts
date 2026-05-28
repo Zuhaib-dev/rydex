@@ -90,10 +90,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role = user.role;
         token.picture = user.image;
       } else if (token.email) {
-        // Query the database to retrieve the latest role, avoiding stale session role cookies
         await connectDb();
-        const dbUser = await User.findOne({ email: token.email }).select("role").lean();
+        const dbUser = await User.findOne({ email: token.email })
+          .select("_id role")
+          .lean();
         if (dbUser) {
+          token.id = String(dbUser._id);
           token.role = dbUser.role as string;
         }
       }

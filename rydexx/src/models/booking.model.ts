@@ -37,6 +37,7 @@ export interface IBooking extends Document {
   };
 
   fare: number;
+  tripDistanceKm?: number;
 
   status: BookingStatus;
   paymentStatus: PaymentStatus;
@@ -103,6 +104,7 @@ const BookingSchema = new Schema<IBooking>(
     
 
     fare: { type: Number, required: true },
+    tripDistanceKm: { type: Number },
 
     status: {
       type: String,

@@ -253,12 +253,18 @@ function SearchContent() {
                   isRecommended={true}
                   onBook={() => {
                     const v = vehicles[0];
+                    const tripKm = km ?? 0;
+                    const quotedFare = Math.round(
+                      (v.baseFare ?? 0) + tripKm * (v.perKmRate ?? 0),
+                    );
                     const url = new URLSearchParams({
                       pickup, drop,
                       vehicle:    v.type,
                       driverId:   v.owner?._id || v.owner,
                       vehicleId:  v._id,
-                      fare:       String(Math.round(v.baseFare + (km ?? 0) * v.perKmRate)),
+                      fare:       String(quotedFare),
+                      tripDistanceKm: String(tripKm),
+                      km: String(tripKm),
                       pickupLat:  String(pickupLat),
                       pickupLng:  String(pickupLng),
                       dropLat:    params.get("dropLat") || "",
