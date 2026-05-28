@@ -16,7 +16,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import RideChat from "@/components/RideChat";
 import { useRideSocket } from "@/hooks/useRideSocket";
@@ -293,12 +293,14 @@ export default function RidePage() {
       }
     : baseCfg;
 
-  const mapPhase: RideMapPhase = useMemo(() => {
-    if (status === "requested") return "searching";
-    if (status === "started") return "ongoing";
-    if (isCompleted || isFailed) return "completed";
-    return baseCfg.mapStatus;
-  }, [status, isCompleted, isFailed, baseCfg.mapStatus]);
+  const mapPhase: RideMapPhase =
+    status === "requested"
+      ? "searching"
+      : status === "started"
+        ? "ongoing"
+        : isCompleted || isFailed
+          ? "completed"
+          : baseCfg.mapStatus;
 
   const canChat = ["confirmed", "arriving", "arrived"].includes(status);
   const showDriver =
@@ -394,14 +396,40 @@ export default function RidePage() {
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: booking.sosTriggered ? 68 : 0 }}
           transition={{ duration: 0.3 }}
-          className="absolute top-4 left-1/2 -translate-x-1/2 z-[40] pointer-events-none"
+          className="absolute top-4 left-4 right-4 z-40 flex flex-col items-center gap-2 pointer-events-none sm:left-1/2 sm:right-auto sm:-translate-x-1/2"
         >
-          <div className="flex items-center gap-2 bg-white/95 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-zinc-100">
-            <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot} animate-pulse`} />
-            <span className="text-xs font-semibold tracking-wide text-zinc-900">
-              {cfg.label}
-            </span>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/85 px-4 py-2 shadow-xl backdrop-blur-md">
+              <span className={`h-2.5 w-2.5 rounded-full ${cfg.dot} animate-pulse`} />
+              <span className="text-xs font-semibold tracking-wide text-white">
+                {cfg.label}
+              </span>
+            </div>
+            {showDriver && (
+              <div
+                className={`flex items-center gap-1.5 rounded-full px-3 py-2 text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${
+                  isLive
+                    ? "border border-emerald-500/30 bg-emerald-500/15 text-emerald-300"
+                    : connectionStatus === "connected"
+                      ? "border border-white/10 bg-zinc-950/80 text-white/50"
+                      : "border border-amber-500/30 bg-amber-500/10 text-amber-200"
+                }`}
+              >
+                {isLive ? <Wifi size={12} /> : <WifiOff size={12} />}
+                {isLive ? "Live GPS" : connectionStatus === "reconnecting" ? "Reconnecting" : "Syncing"}
+              </div>
+            )}
           </div>
+          {isActive && displayEta > 0 && showDriver && (
+            <motion.div
+              key={Math.round(displayEta)}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="rounded-full border border-white/10 bg-white/95 px-3 py-1 text-[11px] font-bold text-zinc-900 shadow-lg"
+            >
+              {Math.round(displayEta)} min · {displayDistance.toFixed(1)} km
+            </motion.div>
+          )}
         </motion.div>
       </div>
 
@@ -938,15 +966,21 @@ function PanelContent({
       {/* SEARCHING (requested) */}
       {status === "requested" && (
         <div className="mx-5 lg:mx-6">
-          <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-5 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-full border-2 border-zinc-200 border-t-zinc-900 animate-spin shrink-o" />
-            <div>
-              <p className="text-sm font-bold text-zinc-900">
-                Finding your driver
-              </p>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                This usually takes less than a minute
-              </p>
+          <div className="relative overflow-hidden rounded-2xl border border-zinc-100 bg-zinc-50 p-5">
+            <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-landing-accent/10 blur-2xl" />
+            <div className="relative flex items-center gap-4">
+              <div className="relative flex h-12 w-12 shrink-0 items-center justify-center">
+                <span className="absolute h-12 w-12 animate-ping rounded-full bg-landing-accent/20" />
+                <span className="relative h-10 w-10 animate-spin rounded-full border-2 border-zinc-200 border-t-zinc-900" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-zinc-900">
+                  Finding your driver
+                </p>
+                <p className="mt-0.5 text-xs text-zinc-400">
+                  Matching nearby partners in Kashmir…
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -976,7 +1010,9 @@ function PanelContent({
       )}
 
       {/* ETA + FARE (active, not requested/payment) */}
-      {isActive && !["requested", "awaiting_payment"].includes(status) && (
+      {isActive &&
+        !["requested", "awaiting_payment"].includes(status) &&
+        showDriver && (
         <div className="mx-5 lg:mx-6 grid grid-cols-2 gap-2">
           <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4 flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-zinc-100 flex items-center justify-center shrink-o">
@@ -1118,7 +1154,8 @@ function PanelContent({
               <p className="text-sm text-zinc-800 leading-snug">
                 {booking.pickupAddress || "—"}
               </p>
-              {booking.pickupOtp && status === "confirmed" && (
+              {booking.pickupOtp &&
+                ["confirmed", "arriving", "arrived"].includes(status) && (
                 <div className="mt-1.5 inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg">
                   <p className="text-emerald-700 text-xs font-black tracking-widest font-mono">
                     {booking.pickupOtp}
@@ -1269,8 +1306,14 @@ function PanelContent({
 
 function MapSkeleton() {
   return (
-    <div className="w-full h-full bg-zinc-900 animate-pulse flex items-center justify-center">
-      <Car size={32} className="text-zinc-800 animate-bounce" />
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[#0c0f14]">
+      <div className="absolute inset-0 bg-linear-to-b from-zinc-900/50 to-zinc-950" />
+      <div className="relative flex flex-col items-center gap-3">
+        <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-landing-accent" />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+          Loading map
+        </p>
+      </div>
     </div>
   );
 }
