@@ -265,7 +265,7 @@ export default function AdminEarningsChart() {
         </div>
         <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
           <Calendar size={12} />
-          Updated just now
+          Live sync enabled
         </div>
       </div>
     </div>

@@ -1,3 +1,4 @@
+import { notifyAdminDashboard } from "@/lib/adminEvents";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
@@ -26,6 +27,8 @@ export async function POST(request: NextRequest) {
       isActive: true
     });
 
+    await notifyAdminDashboard({ scope: "map", reason: "surge-zone-created" });
+
     return NextResponse.json({ success: true, data: newZone });
   } catch (error: any) {
     console.error("Failed to create surge zone:", error);
@@ -49,6 +52,8 @@ export async function DELETE(request: NextRequest) {
 
     await dbConnect();
     await SurgeZone.findByIdAndDelete(id);
+
+    await notifyAdminDashboard({ scope: "map", reason: "surge-zone-deleted" });
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

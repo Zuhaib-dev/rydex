@@ -5,6 +5,7 @@ import Map, { Marker, Source, Layer } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import useSWR from "swr";
+import { useAdminRealtimeRefresh } from "@/hooks/useAdminRealtime";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { Car, Bike, Truck, Navigation, Save, X, Activity, AlertTriangle, Crosshair } from "lucide-react";
 
@@ -41,14 +42,21 @@ export default function AdminLiveMap() {
   const drawRef = useRef<MapboxDraw | null>(null);
   const [sosBlink, setSosBlink] = useState(false);
 
-  // Poll live data every 5 seconds
-  const { data: liveDataRes } = useSWR("/api/admin/map/live-data", fetcher, {
-    refreshInterval: 5000,
-  });
+  const { data: liveDataRes, mutate: mutateLive } = useSWR(
+    "/api/admin/map/live-data",
+    fetcher,
+    { revalidateOnFocus: true },
+  );
 
-  // Poll heatmap data every 60 seconds
-  const { data: heatmapDataRes } = useSWR("/api/admin/map/heatmap", fetcher, {
-    refreshInterval: 60000,
+  const { data: heatmapDataRes, mutate: mutateHeatmap } = useSWR(
+    "/api/admin/map/heatmap",
+    fetcher,
+    { revalidateOnFocus: false },
+  );
+
+  useAdminRealtimeRefresh("map", () => {
+    void mutateLive();
+    void mutateHeatmap();
   });
 
   const [activeFeature, setActiveFeature] = useState<any>(null);
@@ -113,10 +121,10 @@ export default function AdminLiveMap() {
         }),
       });
       if (res.ok) {
-        alert("Surge zone created!");
         setActiveFeature(null);
         setZoneName("");
         if (drawRef.current) drawRef.current.deleteAll();
+        void mutateLive();
       } else {
         alert("Failed to create zone");
       }

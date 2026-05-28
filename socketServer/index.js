@@ -48,6 +48,19 @@ app.get("/health", (req, res) => {
 });
 
 const activeTimers = new Map();
+let adminMapNotifyTimer = null;
+
+function notifyAdminMapThrottled() {
+  if (adminMapNotifyTimer) return;
+  adminMapNotifyTimer = setTimeout(() => {
+    io.to("admin-dashboard").emit("admin-dashboard-update", {
+      scope: "map",
+      reason: "location",
+      at: Date.now(),
+    });
+    adminMapNotifyTimer = null;
+  }, 4000);
+}
 
 /** Broadcast to all admins in the control-tower room */
 app.post("/emit-admin", (req, res) => {
@@ -165,12 +178,20 @@ io.on("connection", (socket) => {
   socket.on("update-location", async ({ latitude, longitude }) => {
     if (!socket.userId) return;
 
-    await User.findByIdAndUpdate(socket.userId, {
-      location: {
-        type: "Point",
-        coordinates: [longitude, latitude],
+    const user = await User.findByIdAndUpdate(
+      socket.userId,
+      {
+        location: {
+          type: "Point",
+          coordinates: [longitude, latitude],
+        },
       },
-    });
+      { new: true },
+    );
+
+    if (user?.role === "partner") {
+      notifyAdminMapThrottled();
+    }
   });
 
   socket.on("disconnect", async () => {
