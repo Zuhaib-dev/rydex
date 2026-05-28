@@ -27,9 +27,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (password.length < 6) {
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
       return NextResponse.json(
-        { message: "Password must be at least 6 characters" },
+        { message: "Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, one number, and one special character" },
         { status: 400 },
       );
     }
@@ -44,27 +45,32 @@ export async function POST(req: NextRequest) {
     }
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiryAt = new Date(Date.now() + 10 * 60 * 1000);
+    const hashedOtp = await bcrypt.hash(otp, 10);
 
     const hashedPassword = await bcrypt.hash(password, 10);
     if (user && !user.isEmailVerified) {
       user.name = name;
       user.password = hashedPassword;
       user.email = email;
-      user.otp = otp;
+      user.otp = hashedOtp;
       user.otpExpiryAt = otpExpiryAt;
-      await user.save()
+      user.otpAttempts = 0;
+      await user.save();
     } else {
       user = await User.create({
         name,
         email,
-        password: hashedPassword,otp,otpExpiryAt
+        password: hashedPassword,
+        otp: hashedOtp,
+        otpExpiryAt,
+        otpAttempts: 0,
       });
     }
     await sendMail(
       email,
       "Verify Your Email - Rydex",
       getOtpEmailTemplate(otp, "Thank you for registering with Rydex! Please use the following OTP to verify your email address.", "Verify Your Email")
-    )
+    );
     
     const userResponse = {
       _id: user._id,
