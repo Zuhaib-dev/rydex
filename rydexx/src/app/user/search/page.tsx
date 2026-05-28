@@ -36,8 +36,10 @@ function SearchContent() {
 
   const vehicle      = params.get("vehicle") || "";
   const mobileNumber = params.get("mobileNumber") || "";
-  const pickupLat    = Number(params.get("pickupLat"));
-  const pickupLng    = Number(params.get("pickupLng"));
+  const pickupLat = Number(params.get("pickupLat"));
+  const pickupLng = Number(params.get("pickupLng"));
+  const dropLat = Number(params.get("dropLat"));
+  const dropLng = Number(params.get("dropLng"));
   const meta         = VEHICLE_META[vehicle];
   const eta          = km !== null ? Math.max(3, Math.round((km / 25) * 60)) : null;
 
@@ -262,9 +264,7 @@ function SearchContent() {
                   isRecommended={true}
                   onBook={async () => {
                     const v = vehicles[0];
-                    const dropLatNum = Number(params.get("dropLat"));
-                    const dropLngNum = Number(params.get("dropLng"));
-                    if (!pickupLat || !pickupLng || !dropLatNum || !dropLngNum) {
+                    if (!pickupLat || !pickupLng || !dropLat || !dropLng) {
                       alert("Missing route coordinates");
                       return;
                     }
@@ -278,8 +278,8 @@ function SearchContent() {
                           dropAddress: drop,
                           pickupLat,
                           pickupLng,
-                          dropLat: dropLatNum,
-                          dropLng: dropLngNum,
+                          dropLat,
+                          dropLng,
                           vehicleId: v._id,
                           driverId:
                             typeof v.owner === "object"
