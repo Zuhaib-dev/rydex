@@ -276,10 +276,13 @@ export default function DriverRidePage() {
     if (TERMINAL.includes(booking.status)) return;
     const socket = getSocket();
     const handleDriverLocation = (d: { latitude?: number; longitude?: number }) => {
+      if (typeof d.latitude !== "number" || typeof d.longitude !== "number") return;
       setDriverPos([d.latitude, d.longitude]);
     };
     socket.on("driver-location", handleDriverLocation);
-    return () => socket.off("driver-location", handleDriverLocation);
+    return () => {
+      socket.off("driver-location", handleDriverLocation);
+    };
   }, [booking?._id, booking?.status]);
 
   /* ── OTP HANDLERS ── */

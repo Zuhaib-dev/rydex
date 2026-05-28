@@ -8,7 +8,7 @@ import {
   ArrowRight, RotateCcw, AlertCircle, Wallet,
 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 
 const VEHICLE_ICONS: Record<string, any> = {
@@ -21,6 +21,7 @@ type Status =
   | "payment" | "confirmed";
 
 export default function CheckoutClient() {
+  const router = useRouter();
   const params = useSearchParams();
 
   const pickup    = params.get("pickup")    || "Pickup Location";
