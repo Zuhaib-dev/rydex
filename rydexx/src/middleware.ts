@@ -9,12 +9,6 @@ const PUBLIC_ROUTES = [
   "/faq",
   "/privacy",
   "/terms",
-  "/checkout",
-  "/partner/active-ride",
-  "/partner/bookings",
-  "/partner/pending-requests",
-  "/user/book",
-  "/user/search",
 ];
 
 const PUBLIC_PREFIXES = ["/ride/"];

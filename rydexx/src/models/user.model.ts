@@ -8,6 +8,8 @@ export interface IUser extends Document {
   isEmailVerified?:boolean
   otp?:string
   otpExpiryAt?:Date
+  otpAttempts?:number
+
   createdAt: Date;
   updatedAt: Date;
   partnerOnboardingSteps:number,
@@ -58,6 +60,10 @@ const userSchema = new mongoose.Schema<IUser>(
     otpExpiryAt:{
       type:Date,
       
+    },
+    otpAttempts:{
+      type:Number,
+      default:0
     },
     partnerOnboardingSteps:{
       type:Number,
