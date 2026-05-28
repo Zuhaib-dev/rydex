@@ -11,6 +11,13 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 import MatchingStatusBanner from "@/components/matching/MatchingStatusBanner";
+import { useBookingSnapshot } from "@/hooks/useBookingSnapshot";
+import dynamic from "next/dynamic";
+
+const FrozenRouteMap = dynamic(
+  () => import("@/components/map/FrozenRouteMap"),
+  { ssr: false },
+);
 
 const VEHICLE_ICONS: Record<string, any> = {
   bike: Bike, auto: Car, car: Car, loading: Truck, truck: Truck,
@@ -25,18 +32,17 @@ function CheckoutContent() {
   const router = useRouter();
   const params = useSearchParams();
 
-  const pickup    = params.get("pickup")    || "Pickup Location";
-  const drop      = params.get("drop")      || "Drop Location";
-  const vehicle   = params.get("vehicle")   || "car";
-  const vehicleId = params.get("vehicleId");
-  const tripDistanceKm = Number(params.get("tripDistanceKm")) || Number(params.get("km")) || 0;
-  const [fare, setFare] = useState(Number(params.get("fare")) || 0);
+  const quoteId = params.get("quoteId");
   const mobileNumber = params.get("mobileNumber") || "";
-  const driverId  = params.get("driverId");
-  const pickupLat = Number(params.get("pickupLat"));
-  const pickupLng = Number(params.get("pickupLng"));
-  const dropLat   = Number(params.get("dropLat"));
-  const dropLng   = Number(params.get("dropLng"));
+  const { snapshot, loading: quoteLoading, error: quoteError } =
+    useBookingSnapshot(quoteId);
+
+  const pickup = snapshot?.pickupAddress ?? "Pickup";
+  const drop = snapshot?.dropAddress ?? "Drop";
+  const vehicle = snapshot?.vehicleType ?? "car";
+  const fare = snapshot?.fare ?? 0;
+  const tripDistanceKm = snapshot?.tripDistanceKm ?? 0;
+  const durationMinutes = snapshot?.durationMinutes ?? 0;
 
   const VehicleIcon = VEHICLE_ICONS[vehicle.toLowerCase()] || Car;
 
@@ -45,32 +51,35 @@ function CheckoutContent() {
   const [status,        setStatus]        = useState<Status>("idle");
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "online" | null>(null);
 
-  /* ── CREATE BOOKING ── */
+  useEffect(() => {
+    if (!quoteId && !bookingId && status === "idle") {
+      router.replace("/user/book");
+    }
+  }, [quoteId, bookingId, status, router]);
+
+  /* ── CREATE BOOKING (uses locked quote only) ── */
   const handleCreateBooking = async () => {
+    if (!quoteId) {
+      alert("Fare expired. Please search again.");
+      return;
+    }
     try {
       setLoading(true);
-      const res  = await fetch("/api/booking/create", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          vehicleId, driverId,
-          pickupAddress: pickup, dropAddress: drop,
-          pickupLocation: { type: "Point", coordinates: [pickupLng, pickupLat] },
-          dropLocation:   { type: "Point", coordinates: [dropLng,   dropLat]   },
-          fare,
-          tripDistanceKm,
-          mobileNumber,
-          vehicleType: vehicle,
-        }),
+      const res = await fetch("/api/booking/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quoteId, mobileNumber }),
       });
       const data = await res.json();
       if (data.success) {
         setBookingId(data.booking._id);
         setStatus("requested");
-        if (data.booking?.fare != null) setFare(data.booking.fare);
-      }
-      else alert(data.message || "Booking failed");
-    } catch { alert("Something went wrong"); }
-    finally { setLoading(false); }
+      } else alert(data.message || "Booking failed");
+    } catch {
+      alert("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   function loadRazorpayScript() {

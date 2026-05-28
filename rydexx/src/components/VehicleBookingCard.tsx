@@ -28,7 +28,8 @@ interface VehicleProps {
   };
   distanceKm?: number;
   isRecommended?: boolean;
-  onBook?: () => void;
+  bookingDisabled?: boolean;
+  onBook?: () => void | Promise<void>;
 }
 
 const TYPE_CONFIG = {
@@ -200,10 +201,11 @@ export default function VehicleBookingCard({
           <motion.button
             whileTap={{ scale: 0.92 }}
             whileHover={{ scale: 1.04 }}
+            disabled={bookingDisabled}
             onClick={onBook}
-            className="group/btn flex items-center gap-2 bg-zinc-900 hover:bg-black text-white text-sm font-black px-6 py-3.5 rounded-2xl transition-colors shadow-md"
+            className="group/btn flex items-center gap-2 bg-zinc-900 hover:bg-black disabled:opacity-50 text-white text-sm font-black px-6 py-3.5 rounded-2xl transition-colors shadow-md"
           >
-            Book
+            {bookingDisabled ? "Locking fare…" : "Book"}
             <motion.div
               initial={{ x: 0 }}
               whileHover={{ x: 3 }}
