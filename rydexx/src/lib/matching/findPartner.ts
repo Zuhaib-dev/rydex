@@ -83,7 +83,14 @@ export async function findClosestEligiblePartner(
     partnerStatus: "approved",
     isPartnerBlocked: { $ne: true },
     _id: { $nin: excludeObjectIds },
-    lastLocationAt: { $gte: locationCutoff },
+    $or: [
+      { lastLocationAt: { $gte: locationCutoff } },
+      {
+        lastLocationAt: { $exists: false },
+        updatedAt: { $gte: locationCutoff },
+        "location.coordinates.0": { $exists: true },
+      },
+    ],
     location: {
       $near: {
         $geometry: {
@@ -185,7 +192,14 @@ export async function countEligiblePartners(
     isPartnerAvailable: { $ne: false },
     partnerStatus: "approved",
     isPartnerBlocked: { $ne: true },
-    lastLocationAt: { $gte: locationCutoff },
+    $or: [
+      { lastLocationAt: { $gte: locationCutoff } },
+      {
+        lastLocationAt: { $exists: false },
+        updatedAt: { $gte: locationCutoff },
+        "location.coordinates.0": { $exists: true },
+      },
+    ],
     location: {
       $near: {
         $geometry: { type: "Point", coordinates: pickupCoordinates },
