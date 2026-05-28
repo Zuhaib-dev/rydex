@@ -45,7 +45,7 @@ export default function LandingCTA({
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.65, ease: EASE }}
-          className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-white px-8 py-14 sm:rounded-[2.5rem] sm:px-14 sm:py-18"
+          className="relative overflow-hidden rounded-[2rem] border border-white/[0.08] bg-white px-8 py-14 sm:rounded-[2.5rem] sm:px-14 sm:py-16"
         >
           <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-landing-accent/25 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-emerald-300/20 blur-3xl" />
