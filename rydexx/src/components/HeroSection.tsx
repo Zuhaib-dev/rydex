@@ -249,7 +249,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
                 </div>
                 <div className="absolute bottom-3 left-3 right-3 flex justify-between text-[10px] font-medium text-white/40">
                   <span>Pickup · 2 min ago</span>
-                  <span className="text-landing-accent">ETA 4 min</span>
+                  <span className="text-landing-accent">ETA 54 min</span>
                 </div>
               </div>
 
@@ -263,7 +263,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
                       Pickup
                     </p>
                     <p className="truncate text-sm font-medium text-white/90">
-                      Koramangala 5th Block
+                      Dal Lake, Srinagar
                     </p>
                   </div>
                 </div>
@@ -276,7 +276,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
                       Drop-off
                     </p>
                     <p className="truncate text-sm font-medium text-white/90">
-                      MG Road Metro Station
+                      Gulmarg Hill Station
                     </p>
                   </div>
                 </div>
@@ -289,7 +289,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
                 </div>
                 <div className="flex items-center gap-1.5 text-sm font-semibold text-white">
                   <Clock size={14} className="text-landing-accent" />
-                  ₹248
+                  ₹1,840
                 </div>
               </div>
             </div>
