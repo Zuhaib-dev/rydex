@@ -111,7 +111,14 @@ app.post("/emit", async (req, res) => {
         try {
           console.log(`Booking ${bookingId} dispatch timed out for driver ${driverId}. Triggering cascade...`);
           const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
-          await axios.post(`${nextBaseUrl.replace(/\/+$/, "")}/api/booking/${bookingId}/cascade`, { driverId });
+          const cascadeSecret = process.env.CASCADE_INTERNAL_SECRET;
+          await axios.post(
+            `${nextBaseUrl.replace(/\/+$/, "")}/api/booking/${bookingId}/cascade`,
+            { driverId },
+            cascadeSecret
+              ? { headers: { "x-cascade-secret": cascadeSecret } }
+              : undefined,
+          );
         } catch (err) {
           console.warn(`Error running cascade for booking ${bookingId}:`, err.message);
         } finally {
