@@ -210,6 +210,7 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                             placeholder="Password"
                           />
                         </div>
+                        {err && <p className="text-red-500 text-xs">*{err}</p>}
                         <button
                           onClick={handleLogin}
                           className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center "
@@ -224,7 +225,10 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                       <p className="mt-6 text-center text-sm text-gray-500 ">
                         Don't have an account?
                         <span
-                          onClick={() => setStep("signup")}
+                          onClick={() => {
+                            setStep("signup");
+                            setErr("");
+                          }}
                           className="text-black font-medium hover:underline cursor-pointer ml-1"
                         >
                           Sign Up
@@ -269,7 +273,7 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                             placeholder="Password"
                           />
                         </div>
-                        {err && <p className="text-red-500">*{err}</p>}
+                        {err && <p className="text-red-500 text-xs">*{err}</p>}
                         <button
                           className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center  "
                           disabled={loading}
@@ -289,7 +293,10 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                       <p className="mt-6 text-center text-sm text-gray-500 ">
                         Already have an account?
                         <span
-                          onClick={() => setStep("login")}
+                          onClick={() => {
+                            setStep("login");
+                            setErr("");
+                          }}
                           className="text-black font-medium hover:underline cursor-pointer ml-1"
                         >
                           Log In
@@ -319,7 +326,7 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                           />
                         ))}
                       </div>
-                      {err && <p className="text-red-500">*{err}</p>}
+                      {err && <p className="text-red-500 text-xs mt-2">*{err}</p>}
                       <button
                         className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center mt-5 "
                         onClick={handleVerifyEmail}
@@ -332,6 +339,23 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                             color="white"
                             className="animate-spin"
                           />
+                        )}
+                      </button>
+                      <button
+                        onClick={handleResendOtp}
+                        disabled={resendTimer > 0 || resendLoading}
+                        className={`w-full mt-3 h-11 rounded-xl text-sm font-semibold border flex items-center justify-center gap-2 transition-all ${
+                          resendTimer > 0 || resendLoading
+                            ? "bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed"
+                            : "bg-white text-black border-black/20 hover:bg-zinc-50"
+                        }`}
+                      >
+                        {resendLoading ? (
+                          <CircleDashed size={16} className="animate-spin" />
+                        ) : resendTimer > 0 ? (
+                          `Resend OTP in ${resendTimer}s`
+                        ) : (
+                          "Resend OTP"
                         )}
                       </button>
                     </motion.div>
