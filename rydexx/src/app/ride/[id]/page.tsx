@@ -213,42 +213,28 @@ export default function RidePage() {
     fetchBooking();
   }, [id]);
 
-  /* ── SOCKET ── */
-  useEffect(() => {
-    if (!id || !booking) return;
-    const socket = getSocket();
-    socket.emit("join-booking", id);
-    const handleDriverLocation = (data: any) => {
-      setDriverPos([data.latitude, data.longitude]);
-    };
-    const handleBookingUpdated = (data: any) => {
-      if (data.bookingId && data.bookingId !== id) return;
+  const { driverPosition: driverPos, connectionStatus, isLive } = useRideSocket({
+    bookingId: id as string | undefined,
+    enabled: Boolean(id && booking),
+    onBookingUpdate: (data) => {
+      if (data.bookingId && String(data.bookingId) !== String(id)) return;
       setBooking((prev) => (prev ? { ...prev, ...data } : null));
-      /* close chat if ride moves past confirmed */
-      if (data.status && data.status !== "confirmed") setChatOpen(false);
-    };
-    const handleDriverAssigned = (data: any) => {
+      if (data.status && !["confirmed", "arriving", "arrived"].includes(String(data.status))) {
+        setChatOpen(false);
+      }
+    },
+    onDriverAssigned: (data) => {
       setBooking((prev) =>
         prev
           ? {
               ...prev,
-              driver: data.driver,
-              driverMobileNumber: data.driverMobileNumber,
+              driver: data.driver as BookingDetails["driver"],
+              driverMobileNumber: String(data.driverMobileNumber ?? prev.driverMobileNumber),
             }
           : null,
       );
-    };
-
-    socket.on("driver-location", handleDriverLocation);
-    socket.on("booking-updated", handleBookingUpdated);
-    socket.on("driver-assigned", handleDriverAssigned);
-
-    return () => {
-      socket.off("driver-location", handleDriverLocation);
-      socket.off("booking-updated", handleBookingUpdated);
-      socket.off("driver-assigned", handleDriverAssigned);
-    };
-  }, [id, booking?._id]);
+    },
+  });
 
   /* ── CANCEL ── */
   const handleCancel = async () => {
@@ -290,23 +276,41 @@ export default function RidePage() {
     );
 
   const status = booking.status;
-  const cfg = STATUS_CONFIG[status];
-  const mapStatus = cfg.mapStatus;
-  const isActive = [
-    "requested",
-    "awaiting_payment",
-    "confirmed",
-    "started",
-  ].includes(status);
+  const baseCfg = STATUS_CONFIG[status];
   const isFailed = ["cancelled", "rejected", "expired"].includes(status);
   const isCompleted = status === "completed";
-  /* chat only when driver heading to pickup, not yet started */
-  const canChat = status === "confirmed";
+  const isActive = !isCompleted && !isFailed;
+
+  const nearDestination =
+    status === "started" && etaToDrop > 0 && etaToDrop <= 6;
+
+  const cfg = nearDestination
+    ? {
+        ...baseCfg,
+        label: "Almost There",
+        sublabel: `About ${Math.max(1, Math.round(etaToDrop))} min to your destination`,
+        dot: "bg-violet-400",
+      }
+    : baseCfg;
+
+  const mapPhase: RideMapPhase = useMemo(() => {
+    if (status === "requested") return "searching";
+    if (status === "started") return "ongoing";
+    if (isCompleted || isFailed) return "completed";
+    return baseCfg.mapStatus;
+  }, [status, isCompleted, isFailed, baseCfg.mapStatus]);
+
+  const canChat = ["confirmed", "arriving", "arrived"].includes(status);
   const showDriver =
-    ["confirmed", "started", "completed"].includes(status) && !!booking.driver;
-  const displayEta = mapStatus === "arriving" ? etaToPickup : etaToDrop;
+    ["confirmed", "arriving", "arrived", "started", "completed"].includes(status) &&
+    !!booking.driver;
+
+  const displayEta =
+    mapPhase === "ongoing" || status === "started" ? etaToDrop : etaToPickup;
   const displayDistance =
-    mapStatus === "arriving" ? distanceToPickup : distanceToDrop;
+    mapPhase === "ongoing" || status === "started"
+      ? distanceToDrop
+      : distanceToPickup;
 
   /* ══ COMPLETED — FULL SCREEN ══ */
   if (isCompleted) {
@@ -351,7 +355,7 @@ export default function RidePage() {
           driverLocation={driverPos}
           pickupLocation={pickupPos!}
           dropLocation={dropPos!}
-          status={mapStatus}
+          status={mapPhase}
           onStats={({
             distanceToPickup,
             durationToPickup,
