@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
-import BookingQuote from "@/models/bookingQuote.model";
 import User from "@/models/user.model";
 import { auth } from "@/lib/auth";
 import { notifyAdminDashboard } from "@/lib/adminEvents";
@@ -94,9 +93,6 @@ export async function POST(req: Request) {
     matchRadiusMeters = matchedPartner.radiusMeters;
     matchRadiusTierIndex = matchedPartner.tierIndex;
   } else {
-    if (String(matchedDriverId) !== String(snapshot.driverId ?? matchedDriverId)) {
-      // explicit override allowed only if same as quote driver
-    }
     const driver = await User.findById(matchedDriverId).select(
       "mobileNumber isOnline isPartnerAvailable partnerStatus",
     );
