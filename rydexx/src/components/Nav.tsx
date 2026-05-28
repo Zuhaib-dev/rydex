@@ -78,6 +78,10 @@ export default function Nav() {
   const profileName = userData?.name || session?.user?.name || "User";
   const isLoggedIn = Boolean(profileUser) || status === "authenticated";
   const shouldGateBookings = isHydrated && !isLoggedIn;
+  const isLandingHome =
+    pathname === "/" &&
+    userData?.role !== "partner" &&
+    userData?.role !== "admin";
 
   /* Scroll */
   useEffect(() => {
@@ -245,11 +249,12 @@ export default function Nav() {
       <motion.nav
         initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        className={`fixed top-3 left-1/2 -translate-x-1/2
-        w-[94%] md:w-[86%]
-        z-50 rounded-full bg-[#0B0B0B] text-white
-        shadow-[0_15px_50px_rgba(0,0,0,0.7)]
-        ${scrolled ? "py-2" : "py-3"}`}
+        transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        className={`fixed top-3 left-1/2 z-50 w-[94%] -translate-x-1/2 rounded-full text-white transition-all duration-500 md:w-[86%] ${
+          isLandingHome && !scrolled
+            ? "border border-white/10 bg-[#060608]/55 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl"
+            : "bg-[#0B0B0B] shadow-[0_15px_50px_rgba(0,0,0,0.7)]"
+        } ${scrolled ? "py-2" : "py-3"}`}
       >
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between">
 
@@ -271,7 +276,7 @@ export default function Nav() {
               {!isLoggedIn ? (
                 <button
                   onClick={() => openAuth()}
-                  className="px-6 py-2.5 rounded-full border border-white/20 text-sm font-semibold hover:bg-white hover:text-black transition"
+                  className="rounded-full border border-white/20 px-6 py-2.5 text-sm font-semibold transition hover:border-landing-accent/40 hover:bg-white hover:text-black"
                 >
                   Login
                 </button>
