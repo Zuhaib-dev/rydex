@@ -25,6 +25,10 @@ export interface IUser extends Document {
     coordinates:[number,number]
   },
   isOnline:boolean,
+  isPartnerAvailable?: boolean;
+  isPartnerBlocked?: boolean;
+  lastLocationAt?: Date;
+  currentVehicleType?: string;
   partnerStatus:"pending" | "approved" | "rejected";
   ratingAverage: number;
   ratingCount: number;
@@ -112,6 +116,24 @@ const userSchema = new mongoose.Schema<IUser>(
       type:Boolean,
       default:false,
       index:true
+    },
+    isPartnerAvailable:{
+      type:Boolean,
+      default:true,
+      index:true,
+    },
+    isPartnerBlocked:{
+      type:Boolean,
+      default:false,
+      index:true,
+    },
+    lastLocationAt:{
+      type:Date,
+      index:true,
+    },
+    currentVehicleType:{
+      type:String,
+      enum:["bike","car","truck","loading","auto"],
     },
     ratingAverage: {
       type: Number,

@@ -60,6 +60,8 @@ partnerAmount: number
   attemptedDrivers: Types.ObjectId[];
   vehicleType: string;
   driverAssignedAt: Date;
+  matchRadiusMeters?: number;
+  matchRadiusTierIndex?: number;
   sosTriggered: boolean;
   sosTriggeredAt?: Date;
   createdAt: Date;
@@ -166,6 +168,14 @@ dropOtpExpires: {
     driverAssignedAt: {
       type: Date,
       default: Date.now,
+    },
+    matchRadiusMeters: {
+      type: Number,
+      default: 5000,
+    },
+    matchRadiusTierIndex: {
+      type: Number,
+      default: 0,
     },
     sosTriggered: {
       type: Boolean,
