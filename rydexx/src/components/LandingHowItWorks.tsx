@@ -2,73 +2,70 @@
 
 import { motion } from "motion/react";
 import { UserCircle, Car, MapPin, CheckCircle } from "lucide-react";
+import { EASE, GridPattern, SectionLabel, SectionTitle } from "./landing/ui";
 
 const steps = [
   {
     num: "01",
     icon: UserCircle,
-    title: "Create an Account",
-    desc: "Sign up in seconds with your Google account or email. No lengthy forms.",
-    accent: "#a78bfa",
+    title: "Create an account",
+    desc: "Sign up with Google or email in seconds. No lengthy forms.",
   },
   {
     num: "02",
     icon: Car,
-    title: "Choose Your Vehicle",
-    desc: "Pick from bikes, cars, SUVs, vans, or trucks — whatever your trip demands.",
-    accent: "#34d399",
+    title: "Choose your vehicle",
+    desc: "Bikes, cars, SUVs, vans, or trucks — matched to your trip.",
   },
   {
     num: "03",
     icon: MapPin,
-    title: "Set Your Route",
-    desc: "Drop a pin or type your destination. We'll calculate the best route and fare instantly.",
-    accent: "#60a5fa",
+    title: "Set your route",
+    desc: "Drop a pin or type an address. Instant fare estimate.",
   },
   {
     num: "04",
     icon: CheckCircle,
-    title: "Ride & Relax",
-    desc: "Your driver is matched instantly. Track them live, chat if needed, and arrive safely.",
-    accent: "#fb923c",
+    title: "Ride & relax",
+    desc: "Track live, chat in-app, and arrive safely with OTP verification.",
   },
 ];
 
 export default function LandingHowItWorks() {
   return (
-    <section className="w-full bg-[#080808] py-24 sm:py-32 overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8">
-        {/* Header */}
+    <section className="relative landing-section overflow-hidden bg-landing-bg landing-noise">
+      <GridPattern light />
+      <div className="landing-container relative">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-16"
+          transition={{ duration: 0.6, ease: EASE }}
+          className="mb-16 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between"
         >
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="h-px w-8 bg-white/20" />
-              <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">
-                How It Works
-              </span>
-            </div>
-            <h2 className="text-4xl sm:text-5xl font-black text-white leading-tight tracking-tight">
-              Up and riding{" "}
-              <span className="bg-linear-to-r from-white/90 to-white/30 bg-clip-text text-transparent">
-                in 60 seconds.
-              </span>
-            </h2>
+          <div className="max-w-xl">
+            <SectionLabel light>How it works</SectionLabel>
+            <SectionTitle light className="mt-4">
+              Up and riding in{" "}
+              <span className="text-accent-gradient">60 seconds.</span>
+            </SectionTitle>
           </div>
-          <p className="text-sm text-white/35 max-w-xs leading-relaxed">
-            No waiting rooms, no phone calls, no confusion. Just open, book, go.
+          <p className="max-w-xs text-sm leading-relaxed text-white/40">
+            No phone calls, no waiting rooms. Open the app, book, and go.
           </p>
         </motion.div>
 
-        {/* Steps */}
-        <div className="relative grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Connecting line (desktop) */}
-          <div className="absolute top-[52px] left-[12.5%] right-[12.5%] h-px bg-white/6 hidden md:block" />
+        <div className="relative grid grid-cols-1 gap-8 md:grid-cols-4 md:gap-6">
+          <div className="absolute top-[2.75rem] left-[12%] right-[12%] hidden h-px md:block">
+            <div className="h-full w-full bg-white/[0.06]" />
+            <motion.div
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 1.2, delay: 0.3, ease: EASE }}
+              className="absolute inset-y-0 left-0 w-full origin-left bg-linear-to-r from-landing-accent/60 via-landing-accent/30 to-transparent"
+            />
+          </div>
 
           {steps.map((step, i) => {
             const Icon = step.icon;
@@ -78,29 +75,31 @@ export default function LandingHowItWorks() {
                 initial={{ opacity: 0, y: 28 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ delay: i * 0.1, duration: 0.55, ease: EASE }}
                 className="relative flex flex-col gap-5"
               >
-                {/* Number + Icon circle */}
                 <div className="relative z-10 flex items-center gap-4 md:flex-col md:items-start">
-                  <div
-                    className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl border border-white/8 backdrop-blur-sm"
-                    style={{ backgroundColor: `${step.accent}14` }}
+                  <motion.div
+                    whileHover={{ scale: 1.04 }}
+                    className="flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-landing-accent shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
                   >
-                    <Icon size={24} style={{ color: step.accent }} strokeWidth={1.8} />
-                  </div>
-                  <span className="text-5xl font-black text-white/5 leading-none select-none hidden md:block">
+                    <Icon size={22} strokeWidth={1.75} />
+                  </motion.div>
+                  <span className="font-display hidden text-5xl font-bold leading-none text-white/[0.04] md:block">
                     {step.num}
                   </span>
                 </div>
 
-                {/* Text */}
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest mb-1" style={{ color: step.accent }}>
+                  <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.2em] text-landing-accent/90">
                     Step {step.num}
                   </p>
-                  <h3 className="text-lg font-bold text-white mb-2 leading-tight">{step.title}</h3>
-                  <p className="text-sm text-white/35 leading-relaxed">{step.desc}</p>
+                  <h3 className="mt-2 font-display text-lg font-semibold text-white">
+                    {step.title}
+                  </h3>
+                  <p className="mt-2 text-sm leading-relaxed text-white/40">
+                    {step.desc}
+                  </p>
                 </div>
               </motion.div>
             );
