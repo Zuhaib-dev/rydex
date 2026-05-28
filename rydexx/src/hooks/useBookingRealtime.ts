@@ -12,7 +12,7 @@ export type RealtimeToast = {
   type?: "info" | "success" | "error";
 };
 
-type UseBookingRealtimeOptions<T extends Record<string, unknown>> = {
+type UseBookingRealtimeOptions<T extends object> = {
   bookingId?: string;
   enabled?: boolean;
   setBooking: React.Dispatch<React.SetStateAction<T | null>>;
@@ -23,7 +23,7 @@ type UseBookingRealtimeOptions<T extends Record<string, unknown>> = {
   role?: "user" | "partner";
 };
 
-export function useBookingRealtime<T extends Record<string, unknown>>({
+export function useBookingRealtime<T extends object>({
   bookingId,
   enabled = true,
   setBooking,
@@ -112,6 +112,7 @@ export function useBookingRealtime<T extends Record<string, unknown>>({
     socket.on("booking-sync", onSync);
 
     return () => {
+      socket.emit("leave-booking", bookingId);
       socket.off("connect", joinRoom);
       socket.off("booking-updated", onUpdated);
       socket.off("booking-sync", onSync);

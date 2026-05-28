@@ -60,6 +60,8 @@ export interface IBooking {
   fare: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
+  pickupOtp?: string;
+  dropOtp?: string;
   paymentDeadline?: Date;
   userMobileNumber: string;
   driverMobileNumber: string;
@@ -620,6 +622,7 @@ export default function DriverRidePage() {
           <ActionBar {...panelProps} />
         </motion.div>
       </div>
+      <RideToasts toast={realtimeToast} />
     </div>
   );
 }

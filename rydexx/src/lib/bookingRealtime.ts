@@ -42,12 +42,17 @@ export function serializeBookingForClient(booking: Record<string, unknown>): Boo
   const driver = booking.driver as Record<string, unknown> | undefined;
   const vehicle = booking.vehicle as Record<string, unknown> | undefined;
 
+  const pickupOtp =
+    typeof booking.pickupOtp === "string" ? booking.pickupOtp : undefined;
+  const dropOtp =
+    typeof booking.dropOtp === "string" ? booking.dropOtp : undefined;
+
   return {
     bookingId: String(booking._id),
     status: booking.status as string | undefined,
     paymentStatus: booking.paymentStatus as string | undefined,
-    pickupOtp: (booking.pickupOtp as string) || "",
-    dropOtp: (booking.dropOtp as string) || "",
+    ...(pickupOtp ? { pickupOtp } : {}),
+    ...(dropOtp ? { dropOtp } : {}),
     pickupOtpExpires: booking.pickupOtpExpires as string | Date | null | undefined,
     dropOtpExpires: booking.dropOtpExpires as string | Date | null | undefined,
     fare: booking.fare as number | undefined,
@@ -73,32 +78,36 @@ export function serializeBookingForClient(booking: Record<string, unknown>): Boo
   };
 }
 
-export function mergeBookingPatch<T extends Record<string, unknown>>(
+export function mergeBookingPatch<T extends object>(
   prev: T | null,
   patch: Partial<BookingClientPayload>,
 ): T | null {
   if (!prev) return patch as T;
 
-  const next = { ...prev, ...patch } as T & BookingClientPayload;
+  const { pickupOtp, dropOtp, driver, vehicle, ...rest } = patch;
+  const next = { ...prev, ...rest } as T & BookingClientPayload;
 
-  if (patch.driver && typeof patch.driver === "object") {
+  if (driver && typeof driver === "object") {
     (next as Record<string, unknown>).driver = {
-      ...((prev.driver as object) || {}),
-      ...patch.driver,
+      ...((prev as Record<string, unknown>).driver as object) || {},
+      ...driver,
     };
   }
 
-  if (patch.vehicle && typeof patch.vehicle === "object") {
-    const v = patch.vehicle;
+  if (vehicle && typeof vehicle === "object") {
     (next as Record<string, unknown>).vehicle = {
-      ...((prev.vehicle as object) || {}),
-      vehicleModel: v.vehicleModel,
-      number: v.number ?? v.vehicleNumber,
+      ...((prev as Record<string, unknown>).vehicle as object) || {},
+      vehicleModel: vehicle.vehicleModel,
+      number: vehicle.number ?? vehicle.vehicleNumber,
     };
   }
 
-  if (patch.pickupOtp === "") (next as Record<string, unknown>).pickupOtp = "";
-  if (patch.dropOtp === "") (next as Record<string, unknown>).dropOtp = "";
+  if ("pickupOtp" in patch) {
+    (next as Record<string, unknown>).pickupOtp = pickupOtp ?? "";
+  }
+  if ("dropOtp" in patch) {
+    (next as Record<string, unknown>).dropOtp = dropOtp ?? "";
+  }
 
   return next;
 }

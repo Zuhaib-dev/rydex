@@ -233,7 +233,11 @@ export default function RidePage() {
     setBooking,
     role: "user",
     onToast: (t) => setRealtimeToast({ ...t, id: Date.now() }),
-    onStatusChange: (nextStatus) => {
+    onStatusChange: (nextStatus, bid) => {
+      if (nextStatus === "awaiting_payment") {
+        router.push(`/checkout?bookingId=${bid}`);
+        return;
+      }
       if (!["confirmed", "arriving", "arrived"].includes(nextStatus)) {
         setChatOpen(false);
       }

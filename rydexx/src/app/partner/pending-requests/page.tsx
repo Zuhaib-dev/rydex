@@ -91,10 +91,16 @@ useEffect(() => {
         : [booking, ...prev]
     ));
   };
-  const handleBookingUpdated = (data: { bookingId?: string }) => {
-    setBookings((prev) =>
-      prev.filter((b) => b._id !== data.bookingId)
-    );
+  const handleBookingUpdated = (data: {
+    bookingId?: string;
+    status?: string;
+    _id?: string;
+  }) => {
+    const id = data.bookingId ?? data._id;
+    if (!id) return;
+    if (data.status && data.status !== "requested") {
+      setBookings((prev) => prev.filter((b) => b._id !== String(id)));
+    }
   };
 
   socket.on("new-booking", handleNewBooking);

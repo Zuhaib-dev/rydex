@@ -180,7 +180,7 @@ export default function CheckoutClient() {
     setStatus("cancelled");
   };
 
-  const [liveBooking, setLiveBooking] = useState<{
+  const [, setLiveBooking] = useState<{
     _id: string;
     status: Status;
   } | null>(null);

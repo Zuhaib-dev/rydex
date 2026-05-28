@@ -168,8 +168,14 @@ io.on("connection", (socket) => {
   // server.js — sab jagah ek hi format rakho
 
   socket.on("join-booking", (bookingId) => {
+    if (!bookingId) return;
     console.log("joining room:", `booking-${bookingId}`);
-    socket.join(`booking-${bookingId}`); // ← prefix add karo
+    socket.join(`booking-${bookingId}`);
+  });
+
+  socket.on("leave-booking", (bookingId) => {
+    if (!bookingId) return;
+    socket.leave(`booking-${bookingId}`);
   });
 
   socket.on("driver-location-update", (data) => {
