@@ -35,10 +35,8 @@ async function ensurePopulated(booking: BookingDoc) {
   if (typeof booking.populate !== "function") return booking;
   const needsDriver = booking.driver && !booking.populated?.("driver");
   if (needsDriver) {
-    await booking.populate([
-      { path: "driver", select: "name mobileNumber" },
-      { path: "vehicle", select: "vehicleModel number type" },
-    ]);
+    await booking.populate("driver", "name mobileNumber");
+    await booking.populate("vehicle", "vehicleModel number type");
   }
   return booking;
 }
