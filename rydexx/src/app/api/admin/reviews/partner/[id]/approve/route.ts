@@ -1,3 +1,4 @@
+import { notifyAdminDashboard } from "@/lib/adminEvents";
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import PartnerBank from "@/models/partnerBank.model";
@@ -47,6 +48,7 @@ export async function GET(
     partnerBank?.set({ status: "verified" });
     await partnerDocs?.save();
     await partnerBank?.save();
+    await notifyAdminDashboard({ scope: "dashboard", reason: "partner-approved" });
     return NextResponse.json(
       { message: "Partner Approved Successfully" },
       { status: 200 },

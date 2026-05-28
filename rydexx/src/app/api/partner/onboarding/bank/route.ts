@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { notifyAdminDashboard } from "@/lib/adminEvents";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import PartnerBank from "@/models/partnerBank.model";
@@ -114,6 +115,13 @@ export async function POST(req: NextRequest) {
     }
 
     await user.save();
+
+    if (user.partnerOnboardingSteps === 3) {
+      await notifyAdminDashboard({
+        scope: "dashboard",
+        reason: "partner-review-submitted",
+      });
+    }
 
     return Response.json(
       { message: "Bank details added successfully" },

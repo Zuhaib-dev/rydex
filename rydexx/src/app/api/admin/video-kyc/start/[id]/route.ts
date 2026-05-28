@@ -1,3 +1,4 @@
+import { notifyAdminDashboard } from "@/lib/adminEvents";
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
@@ -25,6 +26,7 @@ export async function POST(
     partner.videoKycRoomId = roomId;
     partner.videoKycStatus = "in_progress";
     await partner.save();
+    await notifyAdminDashboard({ scope: "dashboard", reason: "kyc-started" });
     return NextResponse.json({ roomId });
   } catch (error: any) {
     console.error("Partner Video Kyc server error:", error);

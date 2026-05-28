@@ -4,6 +4,7 @@ import Booking from "@/models/booking.model";
 import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
 import { auth } from "@/lib/auth";
+import { notifyAdminDashboard } from "@/lib/adminEvents";
 import { emitToSocketServer } from "@/lib/socketServer";
 
 export async function POST(req: Request) {
@@ -144,6 +145,8 @@ export async function POST(req: Request) {
     event: "new-booking",
     data: booking,
   });
+
+  await notifyAdminDashboard({ scope: "map", reason: "booking-created" });
 
   return NextResponse.json({ success: true, booking });
 }

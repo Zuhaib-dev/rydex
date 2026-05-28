@@ -1,3 +1,4 @@
+import { notifyAdminDashboard } from "@/lib/adminEvents";
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
@@ -74,6 +75,11 @@ export async function PUT(
     }
 
     await user.save();
+
+    await notifyAdminDashboard({
+      scope: "dashboard",
+      reason: `vehicle-${action}`,
+    });
 
     return NextResponse.json({ message: `Vehicle ${action} successfully` });
   } catch (error) {

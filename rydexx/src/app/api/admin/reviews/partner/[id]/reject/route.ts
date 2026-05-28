@@ -1,3 +1,4 @@
+import { notifyAdminDashboard } from "@/lib/adminEvents";
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import PartnerBank from "@/models/partnerBank.model";
@@ -35,6 +36,7 @@ export async function POST(
     partner.partnerStatus = "rejected";
     partner.rejectionReason = rejectionReason;
     await partner.save();
+    await notifyAdminDashboard({ scope: "dashboard", reason: "partner-rejected" });
     return NextResponse.json(
       { message: "Partner Rejected Successfully" },
       { status: 200 },

@@ -49,6 +49,19 @@ app.get("/health", (req, res) => {
 
 const activeTimers = new Map();
 
+/** Broadcast to all admins in the control-tower room */
+app.post("/emit-admin", (req, res) => {
+  const { event = "admin-dashboard-update", data } = req.body ?? {};
+
+  try {
+    io.to("admin-dashboard").emit(event, data);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Emit-admin handler error:", error);
+    res.status(500).json({ success: false });
+  }
+});
+
 app.post("/emit", async (req, res) => {
   const { userId, event, data } = req.body;
 
@@ -105,10 +118,27 @@ io.on("connection", (socket) => {
   socket.on("identity", async (userId) => {
     socket.userId = userId;
 
-    await User.findByIdAndUpdate(userId, {
-      socketId: socket.id,
-      isOnline: true,
-    });
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        socketId: socket.id,
+        isOnline: true,
+      },
+      { new: true },
+    );
+
+    if (user?.role === "admin") {
+      socket.join("admin-dashboard");
+    }
+  });
+
+  socket.on("join-admin", async () => {
+    if (!socket.userId) return;
+
+    const user = await User.findById(socket.userId).select("role");
+    if (user?.role === "admin") {
+      socket.join("admin-dashboard");
+    }
   });
 
   // server.js — sab jagah ek hi format rakho

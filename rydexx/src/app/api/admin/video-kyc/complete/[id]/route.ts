@@ -1,3 +1,4 @@
+import { notifyAdminDashboard } from "@/lib/adminEvents";
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
@@ -45,6 +46,8 @@ export async function POST(
       partner.partnerOnboardingSteps = 5;
     }
     await partner.save();
+
+    await notifyAdminDashboard({ scope: "dashboard", reason: `kyc-${action}` });
 
     return NextResponse.json({
       message: `Video KYC ${action} successfully`,

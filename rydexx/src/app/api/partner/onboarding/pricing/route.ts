@@ -1,4 +1,5 @@
 import { auth } from "@/lib/auth";
+import { notifyAdminDashboard } from "@/lib/adminEvents";
 import connectDb from "@/lib/db";
 import uploadOnImageKit from "@/lib/imagekit";
 import User from "@/models/user.model";
@@ -89,6 +90,13 @@ export async function POST(req: NextRequest) {
     }
     
     await user.save();
+
+    if (user.partnerOnboardingSteps === 6) {
+      await notifyAdminDashboard({
+        scope: "dashboard",
+        reason: "vehicle-review-submitted",
+      });
+    }
 
     return Response.json({ message: "Pricing saved successfully" });
   } catch (error) {

@@ -1,3 +1,4 @@
+import { notifyAdminDashboard } from "./adminEvents";
 import { emitToSocketServer } from "./socketServer";
 
 type BookingEventPayload = {
@@ -49,4 +50,15 @@ export async function emitBookingUpdated(
         })
       : Promise.resolve(),
   ]);
+
+  const status = data.status ? String(data.status) : undefined;
+  const scope =
+    data.sosTriggered || status === "completed" || status === "cancelled"
+      ? "all"
+      : "map";
+
+  await notifyAdminDashboard({
+    scope,
+    reason: data.sosTriggered ? "sos" : "booking-updated",
+  });
 }
