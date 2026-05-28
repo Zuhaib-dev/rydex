@@ -3,7 +3,7 @@ import axios from "axios";
 import { CircleDashed, Lock, Mail, User, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 type propType = {
@@ -24,24 +24,56 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [resendLoading, setResendLoading] = useState(false);
   const { data } = useSession();
   // console.log(data);
 
+  useEffect(() => {
+    let interval: any;
+    if (resendTimer > 0) {
+      interval = setInterval(() => {
+        setResendTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [resendTimer]);
+
   const handleSingUp = async () => {
     setLoading(true);
+    setErr("");
     try {
-      const { data } = await axios.post("/api/auth/register", {
+      await axios.post("/api/auth/register", {
         name,
         email,
         password,
       });
       setLoading(false);
       setStep("otp");
+      setResendTimer(60); // Start 60 second countdown on signup
     } catch (error: any) {
       setLoading(false);
-      setErr(error.response.data.message ?? "Something Went Worng");
+      setErr(error.response?.data?.message ?? "Something Went Wrong");
     }
   };
+
+  const handleResendOtp = async () => {
+    if (!email) {
+      setErr("Email is required to resend OTP");
+      return;
+    }
+    setResendLoading(true);
+    setErr("");
+    try {
+      await axios.post("/api/auth/resend-otp", { email });
+      setResendLoading(false);
+      setResendTimer(60); // Set countdown to 60 seconds
+    } catch (error: any) {
+      setResendLoading(false);
+      setErr(error.response?.data?.message ?? "Failed to resend OTP");
+    }
+  };
+
   const handleVerifyEmail = async () => {
     const otpString = otp.join("");
     // console.log("Sending verify:", { email, otp: otpString, otpLength: otpString.length });
@@ -50,8 +82,9 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
       return;
     }
     setLoading(true);
+    setErr("");
     try {
-      const { data } = await axios.post("/api/auth/verify-email", {
+      await axios.post("/api/auth/verify-email", {
         email,
         otp: otpString,
       });
@@ -60,11 +93,12 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
       setStep("login");
     } catch (error: any) {
       setLoading(false);
-      setErr(error.response.data.message ?? "Something Went Wrong");
+      setErr(error.response?.data?.message ?? "Something Went Wrong");
     }
   };
   const handleLogin = async () => {
     setLoading(true);
+    setErr("");
     const res = await signIn("credentials", {
       email,
       password,
