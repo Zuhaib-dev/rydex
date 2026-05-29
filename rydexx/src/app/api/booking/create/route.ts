@@ -60,8 +60,9 @@ export async function POST(req: Request) {
 
   const pickupCoordinates = snapshot.pickupLocation.coordinates as LngLat;
 
-  let matchedDriverId = overrideDriverId || snapshot.driverId;
-  let matchedVehicleId = snapshot.vehicleId;
+  let matchedDriverId: string | undefined =
+    overrideDriverId || snapshot.driverId;
+  let matchedVehicleId: string | undefined = snapshot.vehicleId;
   let matchedDriverMobile = "";
   let matchRadiusMeters = 5000;
   let matchRadiusTierIndex = 0;
@@ -110,6 +111,13 @@ export async function POST(req: Request) {
     matchedDriverMobile = matchedPartner.match.mobileNumber;
     matchRadiusMeters = matchedPartner.radiusMeters;
     matchRadiusTierIndex = matchedPartner.tierIndex;
+  }
+
+  if (!matchedDriverId || !matchedVehicleId) {
+    return NextResponse.json(
+      { message: "No drivers available nearby", code: "NO_DRIVERS" },
+      { status: 404 },
+    );
   }
 
   const booking = await Booking.create({

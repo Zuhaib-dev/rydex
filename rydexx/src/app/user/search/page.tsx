@@ -20,9 +20,24 @@ type VehicleMeta = {
 
 type NearbyVehicle = {
   _id: string;
+  type: "bike" | "auto" | "car" | "loading" | "truck";
+  vehicleModel: string;
+  vehicleNumber: string;
+  imageUrl?: string;
+  baseFare?: number;
+  perKmRate?: number;
+  waitingCharge?: number;
   distanceMeters?: number;
   distanceKm?: number;
-  owner?: { _id?: string } | string;
+  owner?:
+    | {
+        _id: string;
+        name: string;
+        ratingAverage?: number;
+        ratingCount?: number;
+        praiseTags?: Record<string, number>;
+      }
+    | string;
 };
 
 const VEHICLE_META: Record<string, VehicleMeta> = {
