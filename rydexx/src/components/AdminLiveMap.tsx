@@ -230,10 +230,6 @@ export default function AdminLiveMap() {
     }
   };
 
-  const isLineFeature = (
-    feature: GeoJSON.Feature<GeoJSON.LineString> | null,
-  ): feature is GeoJSON.Feature<GeoJSON.LineString> => Boolean(feature);
-
   // Heatmap GeoJSON
   const heatmapGeoJSON: GeoJSON.FeatureCollection<GeoJSON.Point> = {
     type: "FeatureCollection",
@@ -264,46 +260,44 @@ export default function AdminLiveMap() {
     type: "FeatureCollection",
     features: activeRides
       .filter((ride) => !ride.sosTriggered)
-      .map((ride) => {
+      .flatMap((ride): GeoJSON.Feature<GeoJSON.LineString>[] => {
         const driver = drivers.find((d) => d._id === ride.driver);
-        if (!driver?.location) return null;
+        if (!driver?.location) return [];
         const target =
           ride.status === "arriving"
             ? ride.pickupLocation.coordinates
             : ride.dropLocation.coordinates;
-        return {
+        return [{
           type: "Feature" as const,
           properties: {},
           geometry: {
             type: "LineString" as const,
             coordinates: [driver.location.coordinates, target],
           },
-        };
-      })
-      .filter(isLineFeature),
+        }];
+      }),
   };
 
   // SOS ride lines (red)
   const sosRideLinesGeoJSON: GeoJSON.FeatureCollection<GeoJSON.LineString> = {
     type: "FeatureCollection",
     features: sosRides
-      .map((ride) => {
+      .flatMap((ride): GeoJSON.Feature<GeoJSON.LineString>[] => {
         const driver = drivers.find((d) => d._id === ride.driver);
-        if (!driver?.location) return null;
+        if (!driver?.location) return [];
         const target =
           ride.status === "arriving"
             ? ride.pickupLocation.coordinates
             : ride.dropLocation.coordinates;
-        return {
+        return [{
           type: "Feature" as const,
           properties: {},
           geometry: {
             type: "LineString" as const,
             coordinates: [driver.location.coordinates, target],
           },
-        };
-      })
-      .filter(isLineFeature),
+        }];
+      }),
   };
 
   if (!MAPBOX_TOKEN) return <div>Mapbox token missing</div>;
