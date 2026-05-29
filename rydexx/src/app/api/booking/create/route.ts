@@ -165,7 +165,7 @@ export async function POST(req: Request) {
     });
   }
 
-  await notifyAdminDashboard({ scope: "map", reason: "booking-created" });
+  await notifyAdminDashboard({ scope: "all", reason: "booking-created" });
 
   return NextResponse.json({
     success: true,

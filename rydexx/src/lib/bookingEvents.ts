@@ -80,10 +80,7 @@ async function dispatchBookingEvent(
   ]);
 
   const status = data.status ? String(data.status) : undefined;
-  const scope =
-    data.sosTriggered || status === "completed" || status === "cancelled"
-      ? "all"
-      : "map";
+  const scope = status || data.sosTriggered ? "all" : "map";
 
   await notifyAdminDashboard({
     scope,

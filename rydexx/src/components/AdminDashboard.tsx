@@ -292,15 +292,15 @@ function AdminDashboardContent() {
                 Reviews, KYC, and revenue in one place.
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-white/60">
-                Live sync across queues, map, and earnings — no manual refresh
-                needed.
+                Live sync across queues, map, and earnings. Driver locations
+                stream into the control tower while polling stays as backup.
               </p>
             </div>
             <div className="grid grid-cols-3 gap-3 pt-8">
               {[
-                ["Partner", data?.pendingPartnerReviews?.length || 0],
-                ["KYC", data?.pendingVideoKYC?.length || 0],
-                ["Vehicle", data?.pendingVehicleReviews?.length || 0],
+                ["Online", data?.onlinePartners || 0],
+                ["Active", data?.activeRides || 0],
+                ["SOS", data?.activeSos || 0],
               ].map(([label, value]) => (
                 <motion.div
                   key={label}

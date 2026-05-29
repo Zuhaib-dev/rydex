@@ -27,6 +27,9 @@ export interface AdminDashboardData {
   totalApprovedPartners: number;
   totalRejectedPartners: number;
   totalPendingPartners: number;
+  onlinePartners: number;
+  activeRides: number;
+  activeSos: number;
   pendingPartnerReviews: PartnerReview[];
   pendingVehicleReviews: VehicleReview[];
   pendingVideoKYC: PartnerReview[];

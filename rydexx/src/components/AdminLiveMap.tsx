@@ -228,27 +228,32 @@ export default function AdminLiveMap() {
   };
 
   // Heatmap GeoJSON
-  const heatmapGeoJSON = {
+  const heatmapGeoJSON: GeoJSON.FeatureCollection<GeoJSON.Point> = {
     type: "FeatureCollection",
-    features: searchLogs.map((log: any) => ({
-      type: "Feature",
-      properties: { weight: 1 },
-      geometry: { type: "Point", coordinates: log.location.coordinates },
-    })),
+    features: searchLogs
+      .filter((log) => log.location?.coordinates)
+      .map((log) => ({
+        type: "Feature" as const,
+        properties: { weight: 1 },
+        geometry: {
+          type: "Point" as const,
+          coordinates: log.location?.coordinates ?? [0, 0],
+        },
+      })),
   };
 
   // Surge zones GeoJSON
-  const surgeGeoJSON = {
+  const surgeGeoJSON: GeoJSON.FeatureCollection = {
     type: "FeatureCollection",
     features: surgeZones.map((zone: SurgeZone) => ({
-      type: "Feature",
+      type: "Feature" as const,
       properties: { name: zone.name, multiplier: zone.multiplier },
       geometry: zone.area,
     })),
   };
 
   // Normal ride lines (blue)
-  const normalRideLinesGeoJSON = {
+  const normalRideLinesGeoJSON: GeoJSON.FeatureCollection<GeoJSON.LineString> = {
     type: "FeatureCollection",
     features: activeRides
       .filter((ride) => !ride.sosTriggered)
@@ -260,9 +265,10 @@ export default function AdminLiveMap() {
             ? ride.pickupLocation.coordinates
             : ride.dropLocation.coordinates;
         return {
-          type: "Feature",
+          type: "Feature" as const,
+          properties: {},
           geometry: {
-            type: "LineString",
+            type: "LineString" as const,
             coordinates: [driver.location.coordinates, target],
           },
         };
@@ -271,7 +277,7 @@ export default function AdminLiveMap() {
   };
 
   // SOS ride lines (red)
-  const sosRideLinesGeoJSON = {
+  const sosRideLinesGeoJSON: GeoJSON.FeatureCollection<GeoJSON.LineString> = {
     type: "FeatureCollection",
     features: sosRides
       .map((ride) => {
@@ -282,9 +288,10 @@ export default function AdminLiveMap() {
             ? ride.pickupLocation.coordinates
             : ride.dropLocation.coordinates;
         return {
-          type: "Feature",
+          type: "Feature" as const,
+          properties: {},
           geometry: {
-            type: "LineString",
+            type: "LineString" as const,
             coordinates: [driver.location.coordinates, target],
           },
         };
@@ -377,7 +384,7 @@ export default function AdminLiveMap() {
         {mapLoaded && (
           <>
             {/* Heatmap Layer */}
-            <Source id="heatmap-data" type="geojson" data={heatmapGeoJSON as any}>
+            <Source id="heatmap-data" type="geojson" data={heatmapGeoJSON}>
               <Layer
                 id="search-heatmap"
                 type="heatmap"
@@ -400,7 +407,7 @@ export default function AdminLiveMap() {
             </Source>
 
             {/* Surge Zones Polygons */}
-            <Source id="surge-zones-data" type="geojson" data={surgeGeoJSON as any}>
+            <Source id="surge-zones-data" type="geojson" data={surgeGeoJSON}>
               <Layer
                 id="surge-zones-fill"
                 type="fill"
@@ -414,7 +421,7 @@ export default function AdminLiveMap() {
             </Source>
 
             {/* Normal Active Ride Lines (blue) */}
-            <Source id="normal-rides-lines" type="geojson" data={normalRideLinesGeoJSON as any}>
+            <Source id="normal-rides-lines" type="geojson" data={normalRideLinesGeoJSON}>
               <Layer
                 id="normal-rides-path"
                 type="line"
@@ -423,7 +430,7 @@ export default function AdminLiveMap() {
             </Source>
 
             {/* SOS Emergency Ride Lines (red, dashed) */}
-            <Source id="sos-rides-lines" type="geojson" data={sosRideLinesGeoJSON as any}>
+            <Source id="sos-rides-lines" type="geojson" data={sosRideLinesGeoJSON}>
               <Layer
                 id="sos-rides-path"
                 type="line"

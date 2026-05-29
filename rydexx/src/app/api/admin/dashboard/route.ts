@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
+import Booking from "@/models/booking.model";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -23,6 +24,17 @@ export async function GET(request: NextRequest) {
     const totalPendingPartners = await User.countDocuments({
       role: "partner",
       partnerStatus: "pending",
+    });
+    const onlinePartners = await User.countDocuments({
+      role: "partner",
+      isOnline: true,
+    });
+    const activeRides = await Booking.countDocuments({
+      status: { $in: ["requested", "awaiting_payment", "confirmed", "arriving", "arrived", "started"] },
+    });
+    const activeSos = await Booking.countDocuments({
+      status: { $in: ["confirmed", "arriving", "arrived", "started"] },
+      sosTriggered: true,
     });
 
     const pendingPartnerUsers = await User.find({
@@ -68,6 +80,9 @@ export async function GET(request: NextRequest) {
         totalApprovedPartners,
         totalRejectedPartners,
         totalPendingPartners,
+        onlinePartners,
+        activeRides,
+        activeSos,
         pendingPartnerReviews,
         pendingVehicleReviews,
         pendingVideoKYC,
