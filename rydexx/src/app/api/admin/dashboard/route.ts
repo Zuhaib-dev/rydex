@@ -3,9 +3,9 @@ import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
 import Booking from "@/models/booking.model";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await connectDb();
     const session = await auth();
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 },
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Admin dashboard error:", error);
     return NextResponse.json(
       { message: "An internal server error occurred." },

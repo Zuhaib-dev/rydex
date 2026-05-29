@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import User from "@/models/user.model";
@@ -6,7 +6,7 @@ import Vehicle from "@/models/vehicle.model";
 import Booking from "@/models/booking.model";
 import SurgeZone from "@/models/surgeZone.model";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await auth();
     
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Live map data fetch error:", error);
     return NextResponse.json(
       { error: "Failed to fetch live map data" },

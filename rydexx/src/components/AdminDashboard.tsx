@@ -38,7 +38,6 @@ type TabType = "partner" | "kyc" | "vehicle" | "map";
 function AdminDashboardContent() {
   const [activeTab, setActiveTab] = useState<TabType>("partner");
   const [profileOpen, setProfileOpen] = useState(false);
-  const [kpiPulse, setKpiPulse] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
   const router = useRouter();
@@ -51,13 +50,6 @@ function AdminDashboardContent() {
   const profileEmail = userData?.email || session?.user?.email || "Email not available";
   const profileRole = userData?.role || session?.user?.role || "admin";
   const profileImage = userData?.image || session?.user?.image || null;
-
-  useEffect(() => {
-    if (!lastUpdateAt) return;
-    setKpiPulse(true);
-    const t = setTimeout(() => setKpiPulse(false), 700);
-    return () => clearTimeout(t);
-  }, [lastUpdateAt]);
 
   useEffect(() => {
     const handler = (event: MouseEvent) => {
@@ -250,7 +242,7 @@ function AdminDashboardContent() {
             icon={<Users size={20} />}
             iconBgColor="bg-purple-50"
             iconColor="text-purple-500"
-            pulsing={kpiPulse}
+            pulsing={Boolean(lastUpdateAt)}
           />
           <KPI
             title="Approved Partners"
@@ -258,7 +250,7 @@ function AdminDashboardContent() {
             icon={<CheckCircle size={20} />}
             iconBgColor="bg-blue-50"
             iconColor="text-blue-500"
-            pulsing={kpiPulse}
+            pulsing={Boolean(lastUpdateAt)}
           />
           <KPI
             title="Pending Partners"
@@ -266,7 +258,7 @@ function AdminDashboardContent() {
             icon={<Clock size={20} />}
             iconBgColor="bg-amber-50"
             iconColor="text-amber-500"
-            pulsing={kpiPulse}
+            pulsing={Boolean(lastUpdateAt)}
           />
           <KPI
             title="Rejected Partners"
@@ -274,7 +266,7 @@ function AdminDashboardContent() {
             icon={<XCircle size={20} />}
             iconBgColor="bg-red-50"
             iconColor="text-red-500"
-            pulsing={kpiPulse}
+            pulsing={Boolean(lastUpdateAt)}
           />
         </section>
 
