@@ -112,7 +112,7 @@ export default function VendorPendingPage() {
 
   useEffect(() => {
     if (session?.user?.id) fetchPendingBookings();
-  }, [session?.user?.id]);
+  }, [fetchPendingBookings, session?.user?.id]);
 
   useEffect(() => {
     const socket = getSocket();
