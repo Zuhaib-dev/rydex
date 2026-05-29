@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import Map, { Marker, Source, Layer } from "react-map-gl/mapbox";
+import Map, { Marker, Source, Layer, type MapRef } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import useSWR from "swr";
@@ -16,7 +16,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 interface Driver {
   _id: string;
   name: string;
-  location?: { coordinates: [number, number] };
+  location?: { type?: "Point"; coordinates: [number, number] };
   vehicleType: string;
   lastLocationAt?: string;
 }
@@ -35,12 +35,30 @@ interface SurgeZone {
   _id: string;
   name: string;
   multiplier: number;
-  area: any;
+  area: GeoJSON.Geometry;
+}
+
+interface SearchLogPoint {
+  location?: { coordinates?: [number, number] };
+}
+
+interface LiveMapResponse {
+  success: boolean;
+  data?: {
+    drivers: Driver[];
+    activeRides: ActiveRide[];
+    surgeZones: SurgeZone[];
+    updatedAt?: string;
+  };
+}
+
+interface DrawEvent {
+  features?: GeoJSON.Feature[];
 }
 
 export default function AdminLiveMap() {
   const [mapLoaded, setMapLoaded] = useState(false);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<MapRef | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
   const [sosBlink, setSosBlink] = useState(false);
 
@@ -82,7 +100,7 @@ export default function AdminLiveMap() {
         return;
       }
 
-      void mutateLive((current: any) => {
+      void mutateLive((current: LiveMapResponse | undefined) => {
         const currentDrivers = current?.data?.drivers;
         if (!Array.isArray(currentDrivers)) return current;
 
@@ -121,14 +139,14 @@ export default function AdminLiveMap() {
     };
   }, [mutateLive]);
 
-  const [activeFeature, setActiveFeature] = useState<any>(null);
+  const [activeFeature, setActiveFeature] = useState<GeoJSON.Feature | null>(null);
   const [zoneName, setZoneName] = useState("");
   const [zoneMultiplier, setZoneMultiplier] = useState(1.5);
 
   const drivers: Driver[] = liveDataRes?.data?.drivers || [];
   const activeRides: ActiveRide[] = liveDataRes?.data?.activeRides || [];
   const surgeZones: SurgeZone[] = liveDataRes?.data?.surgeZones || [];
-  const searchLogs = heatmapDataRes?.data || [];
+  const searchLogs: SearchLogPoint[] = heatmapDataRes?.data || [];
 
   // Detect SOS emergencies
   const sosRides = activeRides.filter((r) => r.sosTriggered === true);
@@ -146,7 +164,7 @@ export default function AdminLiveMap() {
     return () => clearInterval(interval);
   }, [hasSos]);
 
-  const handleMapLoad = useCallback((e: any) => {
+  const handleMapLoad = useCallback((e: { target: MapRef }) => {
     setMapLoaded(true);
     mapRef.current = e.target;
 
@@ -159,11 +177,11 @@ export default function AdminLiveMap() {
     e.target.addControl(draw, "top-right");
     drawRef.current = draw;
 
-    e.target.on("draw.create", (e: any) => {
-      if (e.features.length > 0) setActiveFeature(e.features[0]);
+    e.target.on("draw.create", (e: DrawEvent) => {
+      if (e.features?.length) setActiveFeature(e.features[0]);
     });
-    e.target.on("draw.update", (e: any) => {
-      if (e.features.length > 0) setActiveFeature(e.features[0]);
+    e.target.on("draw.update", (e: DrawEvent) => {
+      if (e.features?.length) setActiveFeature(e.features[0]);
     });
     e.target.on("draw.delete", () => setActiveFeature(null));
   }, []);
