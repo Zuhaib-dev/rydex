@@ -6,8 +6,9 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import useSWR from "swr";
 import { useAdminRealtimeRefresh } from "@/hooks/useAdminRealtime";
+import { getSocket } from "@/lib/socket";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
-import { Car, Bike, Truck, Navigation, Save, X, Activity, AlertTriangle, Crosshair } from "lucide-react";
+import { Car, Bike, Truck, Navigation, Save, X, Activity, AlertTriangle, Crosshair, Radio, ShieldAlert, Layers, Clock3 } from "lucide-react";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -17,6 +18,7 @@ interface Driver {
   name: string;
   location?: { coordinates: [number, number] };
   vehicleType: string;
+  lastLocationAt?: string;
 }
 
 interface ActiveRide {
@@ -45,7 +47,11 @@ export default function AdminLiveMap() {
   const { data: liveDataRes, mutate: mutateLive } = useSWR(
     "/api/admin/map/live-data",
     fetcher,
-    { revalidateOnFocus: true },
+    {
+      refreshInterval: 5000,
+      revalidateOnFocus: true,
+      dedupingInterval: 1200,
+    },
   );
 
   const { data: heatmapDataRes, mutate: mutateHeatmap } = useSWR(
@@ -59,6 +65,62 @@ export default function AdminLiveMap() {
     void mutateHeatmap();
   });
 
+  useEffect(() => {
+    const socket = getSocket();
+
+    const handleDriverLocation = (payload: {
+      driverId?: string;
+      latitude?: number;
+      longitude?: number;
+      at?: number;
+    }) => {
+      if (
+        !payload.driverId ||
+        typeof payload.latitude !== "number" ||
+        typeof payload.longitude !== "number"
+      ) {
+        return;
+      }
+
+      void mutateLive((current: any) => {
+        const currentDrivers = current?.data?.drivers;
+        if (!Array.isArray(currentDrivers)) return current;
+
+        const hasDriver = currentDrivers.some(
+          (driver: Driver) => String(driver._id) === String(payload.driverId),
+        );
+        if (!hasDriver) {
+          void mutateLive();
+          return current;
+        }
+
+        return {
+          ...current,
+          data: {
+            ...current.data,
+            drivers: currentDrivers.map((driver: Driver) =>
+              String(driver._id) === String(payload.driverId)
+                ? {
+                    ...driver,
+                    location: {
+                      type: "Point",
+                      coordinates: [payload.longitude, payload.latitude],
+                    },
+                    lastLocationAt: new Date(payload.at ?? Date.now()).toISOString(),
+                  }
+                : driver,
+            ),
+          },
+        };
+      }, false);
+    };
+
+    socket.on("admin-driver-location", handleDriverLocation);
+    return () => {
+      socket.off("admin-driver-location", handleDriverLocation);
+    };
+  }, [mutateLive]);
+
   const [activeFeature, setActiveFeature] = useState<any>(null);
   const [zoneName, setZoneName] = useState("");
   const [zoneMultiplier, setZoneMultiplier] = useState(1.5);
@@ -71,6 +133,11 @@ export default function AdminLiveMap() {
   // Detect SOS emergencies
   const sosRides = activeRides.filter((r) => r.sosTriggered === true);
   const hasSos = sosRides.length > 0;
+  const activeRideDriverIds = new Set(activeRides.map((ride) => String(ride.driver)));
+  const availableDrivers = drivers.filter(
+    (driver) => !activeRideDriverIds.has(String(driver._id)),
+  );
+  const lastMapSync = liveDataRes?.data?.updatedAt || liveDataRes?.updatedAt;
 
   // Blink effect for SOS
   useEffect(() => {
@@ -210,11 +277,43 @@ export default function AdminLiveMap() {
   if (!MAPBOX_TOKEN) return <div>Mapbox token missing</div>;
 
   return (
-    <div className="relative w-full h-[600px] rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
+    <div className="relative w-full h-[660px] rounded-3xl overflow-hidden shadow-2xl border border-white/10 group">
+      <div className="absolute left-4 top-4 z-40 grid w-[min(680px,calc(100%-32px))] grid-cols-2 gap-2 sm:grid-cols-4">
+        <ControlTowerMetric
+          icon={<Radio size={14} />}
+          label="Online"
+          value={drivers.length}
+          tone="emerald"
+        />
+        <ControlTowerMetric
+          icon={<Car size={14} />}
+          label="Available"
+          value={availableDrivers.length}
+          tone="zinc"
+        />
+        <ControlTowerMetric
+          icon={<Layers size={14} />}
+          label="Active rides"
+          value={activeRides.length}
+          tone="blue"
+        />
+        <ControlTowerMetric
+          icon={<ShieldAlert size={14} />}
+          label="SOS"
+          value={sosRides.length}
+          tone={hasSos ? "red" : "zinc"}
+        />
+      </div>
+
+      <div className="absolute right-4 top-4 z-40 hidden rounded-full border border-white/15 bg-black/70 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white/70 backdrop-blur-md sm:flex sm:items-center sm:gap-2">
+        <Clock3 size={12} />
+        {lastMapSync ? `Synced ${formatMapTime(lastMapSync)}` : "Live sync"}
+      </div>
+
       {/* ── SOS ALERT BANNER ── */}
       {hasSos && (
         <div
-          className="absolute top-0 left-0 right-0 z-50 transition-opacity"
+          className="absolute top-20 left-0 right-0 z-50 transition-opacity"
           style={{ opacity: sosBlink ? 1 : 0.6 }}
         >
           <div className="bg-red-600 px-5 py-3 flex items-center justify-between gap-4 shadow-2xl">
@@ -466,4 +565,44 @@ export default function AdminLiveMap() {
       </div>
     </div>
   );
+}
+
+function ControlTowerMetric({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  tone: "emerald" | "blue" | "red" | "zinc";
+}) {
+  const toneClass = {
+    emerald: "border-emerald-400/25 bg-emerald-500/15 text-emerald-100",
+    blue: "border-blue-400/25 bg-blue-500/15 text-blue-100",
+    red: "border-red-400/40 bg-red-500/20 text-red-100",
+    zinc: "border-white/15 bg-black/70 text-white/85",
+  }[tone];
+
+  return (
+    <div className={`rounded-2xl border px-3 py-2 backdrop-blur-md ${toneClass}`}>
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-white/70">{icon}</span>
+        <span className="text-xl font-black tabular-nums leading-none">{value}</span>
+      </div>
+      <p className="mt-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/55">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+function formatMapTime(value: string | number | Date) {
+  const ts = new Date(value).getTime();
+  if (!Number.isFinite(ts)) return "just now";
+  const seconds = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+  if (seconds < 5) return "just now";
+  if (seconds < 60) return `${seconds}s ago`;
+  return `${Math.floor(seconds / 60)}m ago`;
 }

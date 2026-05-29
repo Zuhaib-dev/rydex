@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       role: "partner",
       isOnline: true,
       location: { $exists: true },
-    }).select("name mobileNumber location image socketId _id").lean();
+    }).select("name mobileNumber location image socketId lastLocationAt _id").lean();
 
     // Fetch vehicles for these drivers to know their vehicleType (car, bike, truck)
     const driverIds = drivers.map(d => d._id);
@@ -54,7 +54,8 @@ export async function GET(request: NextRequest) {
       data: {
         drivers: driversWithVehicleType,
         activeRides,
-        surgeZones
+        surgeZones,
+        updatedAt: new Date().toISOString(),
       }
     });
 
