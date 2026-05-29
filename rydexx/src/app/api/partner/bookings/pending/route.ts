@@ -33,7 +33,9 @@ export async function GET() {
       status: "requested",
     })
       .sort({ createdAt: -1 })
-      .select("_id pickupAddress dropAddress fare createdAt driverAssignedAt");
+      .select(
+        "_id pickupAddress dropAddress fare vehicleType tripDistanceKm durationMinutes createdAt driverAssignedAt",
+      );
 
     return NextResponse.json({
       bookings,

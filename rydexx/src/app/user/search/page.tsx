@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import {
   ArrowLeft, MapPin, Navigation,
@@ -20,6 +20,34 @@ const VEHICLE_META: any = {
   loading: { label: "Loading", Icon: Truck },
   truck:   { label: "Truck",   Icon: Truck },
 };
+
+function estimateRoadKm(
+  pickupLat: number,
+  pickupLng: number,
+  dropLat: number,
+  dropLng: number,
+) {
+  if (
+    !Number.isFinite(pickupLat) ||
+    !Number.isFinite(pickupLng) ||
+    !Number.isFinite(dropLat) ||
+    !Number.isFinite(dropLng)
+  ) {
+    return null;
+  }
+
+  const toRad = (value: number) => (value * Math.PI) / 180;
+  const earthMeters = 6371000;
+  const dLat = toRad(dropLat - pickupLat);
+  const dLng = toRad(dropLng - pickupLng);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(pickupLat)) *
+      Math.cos(toRad(dropLat)) *
+      Math.sin(dLng / 2) ** 2;
+  const straightMeters = 2 * earthMeters * Math.asin(Math.sqrt(a));
+  return Math.round(((straightMeters * 1.15) / 1000) * 100) / 100;
+}
 
 function SearchContent() {
   const params = useSearchParams();
@@ -41,7 +69,16 @@ function SearchContent() {
   const dropLat = Number(params.get("dropLat"));
   const dropLng = Number(params.get("dropLng"));
   const meta         = VEHICLE_META[vehicle];
-  const eta          = km !== null ? Math.max(3, Math.round((km / 25) * 60)) : null;
+  const fallbackTripKm = useMemo(
+    () => estimateRoadKm(pickupLat, pickupLng, dropLat, dropLng),
+    [pickupLat, pickupLng, dropLat, dropLng],
+  );
+  const tripKm = km ?? fallbackTripKm;
+  const eta          = tripKm !== null ? Math.max(3, Math.round((tripKm / 25) * 60)) : null;
+  const hasPickupCoordinates =
+    Number.isFinite(pickupLat) && Number.isFinite(pickupLng);
+  const hasRouteCoordinates =
+    hasPickupCoordinates && Number.isFinite(dropLat) && Number.isFinite(dropLng);
 
   async function fetchNearbyVehicles(lat: number, lng: number) {
     try {
@@ -69,9 +106,9 @@ function SearchContent() {
   }
 
   useEffect(() => {
-    if (!pickupLat || !pickupLng) return;
+    if (!hasPickupCoordinates) return;
     fetchNearbyVehicles(pickupLat, pickupLng);
-  }, [pickupLat, pickupLng]);
+  }, [hasPickupCoordinates, pickupLat, pickupLng, vehicle]);
 
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900 overflow-x-hidden">
@@ -93,9 +130,10 @@ function SearchContent() {
           pickup={pickup}
           drop={drop}
           pickupCoord={
-            pickupLat && pickupLng ? [pickupLat, pickupLng] : null
+            hasPickupCoordinates ? [pickupLat, pickupLng] : null
           }
-          dropCoord={dropLat && dropLng ? [dropLat, dropLng] : null}
+          dropCoord={hasRouteCoordinates ? [dropLat, dropLng] : null}
+          previewMode
           onDistance={setKm}
           onChange={(p, d) => {
             setPickup(p);
@@ -115,7 +153,7 @@ function SearchContent() {
         >
           <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-zinc-200 shadow-sm px-4 py-2 rounded-full text-xs font-semibold text-zinc-700">
             <Route size={12} className="text-zinc-400" />
-            <span>{km ? `${km} km` : "Calculating…"}</span>
+            <span>{tripKm ? `${tripKm} km` : "Calculating…"}</span>
           </div>
           <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-zinc-200 shadow-sm px-4 py-2 rounded-full text-xs font-semibold text-zinc-700">
             <Clock size={12} className="text-zinc-400" />
@@ -256,15 +294,12 @@ function SearchContent() {
                   vehicle={vehicles[0]}
                   bookingDisabled={lockingFare}
                   distanceKm={
-                    vehicles[0].distanceKm ??
-                    (vehicles[0].distanceMeters
-                      ? vehicles[0].distanceMeters / 1000
-                      : km ?? undefined)
+                    tripKm ?? undefined
                   }
                   isRecommended={true}
                   onBook={async () => {
                     const v = vehicles[0];
-                    if (!pickupLat || !pickupLng || !dropLat || !dropLng) {
+                    if (!hasRouteCoordinates) {
                       alert("Missing route coordinates");
                       return;
                     }
