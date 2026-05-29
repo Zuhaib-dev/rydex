@@ -95,7 +95,7 @@ export default function VendorPendingPage() {
     setBookings((prev) => prev.filter((b) => b._id !== bookingId));
   }, []);
 
-  const fetchPendingBookings = async () => {
+  const fetchPendingBookings = useCallback(async () => {
     if (!session?.user) {
       setLoading(false);
       return;
@@ -108,7 +108,7 @@ export default function VendorPendingPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [session?.user]);
 
   useEffect(() => {
     if (session?.user?.id) fetchPendingBookings();
