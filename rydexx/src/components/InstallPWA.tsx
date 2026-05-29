@@ -4,6 +4,20 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Download, X } from "lucide-react";
 
+const PWA_DISMISS_KEY = "pwa-install-dismissed-at";
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+function wasDismissedRecently(): boolean {
+  try {
+    const raw = localStorage.getItem(PWA_DISMISS_KEY);
+    if (!raw) return false;
+    const dismissedAt = parseInt(raw, 10);
+    return Date.now() - dismissedAt < ONE_WEEK_MS;
+  } catch {
+    return false;
+  }
+}
+
 export default function InstallPWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [show, setShow] = useState(false);
@@ -11,8 +25,8 @@ export default function InstallPWA() {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    // Don't show if already dismissed in this session
-    if (sessionStorage.getItem("pwa-install-dismissed")) return;
+    // Don't show if dismissed within the last week
+    if (wasDismissedRecently()) return;
 
     // Detect iOS (Safari doesn't support beforeinstallprompt)
     const ua = window.navigator.userAgent;
@@ -52,7 +66,11 @@ export default function InstallPWA() {
   const handleDismiss = () => {
     setShow(false);
     setDismissed(true);
-    sessionStorage.setItem("pwa-install-dismissed", "1");
+    try {
+      localStorage.setItem(PWA_DISMISS_KEY, Date.now().toString());
+    } catch {
+      // localStorage unavailable (e.g. private mode) — fail silently
+    }
   };
 
   if (dismissed) return null;
