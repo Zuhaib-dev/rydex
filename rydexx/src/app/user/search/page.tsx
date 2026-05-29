@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Suspense, useState, useEffect, useMemo } from "react";
+import { Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import {
   ArrowLeft, MapPin, Navigation,
@@ -13,7 +13,19 @@ import VehicleBookingCard from "@/components/VehicleBookingCard";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
 
-const VEHICLE_META: any = {
+type VehicleMeta = {
+  label: string;
+  Icon: typeof Bike;
+};
+
+type NearbyVehicle = {
+  _id: string;
+  distanceMeters?: number;
+  distanceKm?: number;
+  owner?: { _id?: string } | string;
+};
+
+const VEHICLE_META: Record<string, VehicleMeta> = {
   bike:    { label: "Bike",    Icon: Bike  },
   auto:    { label: "Auto",    Icon: Car   },
   car:     { label: "Car",     Icon: Car   },
@@ -56,7 +68,7 @@ function SearchContent() {
   const [pickup,   setPickup]   = useState(params.get("pickup") || "");
   const [drop,     setDrop]     = useState(params.get("drop") || "");
   const [km,       setKm]       = useState<number | null>(null);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<NearbyVehicle[]>([]);
   const [nearbyCount, setNearbyCount] = useState(0);
   const [searchRadiusKm, setSearchRadiusKm] = useState<number | null>(null);
   const [loading,  setLoading]  = useState(false);
@@ -80,7 +92,7 @@ function SearchContent() {
   const hasRouteCoordinates =
     hasPickupCoordinates && Number.isFinite(dropLat) && Number.isFinite(dropLng);
 
-  async function fetchNearbyVehicles(lat: number, lng: number) {
+  const fetchNearbyVehicles = useCallback(async (lat: number, lng: number) => {
     try {
       setLoading(true);
       const res  = await fetch("/api/vehicles/nearby", {
@@ -103,12 +115,12 @@ function SearchContent() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [vehicle]);
 
   useEffect(() => {
     if (!hasPickupCoordinates) return;
     fetchNearbyVehicles(pickupLat, pickupLng);
-  }, [hasPickupCoordinates, pickupLat, pickupLng, vehicle]);
+  }, [fetchNearbyVehicles, hasPickupCoordinates, pickupLat, pickupLng]);
 
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900 overflow-x-hidden">
