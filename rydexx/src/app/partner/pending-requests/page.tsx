@@ -32,6 +32,8 @@ type Booking = {
   dropAddress: string;
   fare: number;
   vehicleType?: string;
+  tripDistanceKm?: number;
+  durationMinutes?: number;
   createdAt: string;
   driverAssignedAt?: string;
   dispatch?: DispatchMeta;
@@ -279,14 +281,17 @@ export default function VendorPendingPage() {
                       <div className="flex flex-col items-stretch lg:items-end gap-5 lg:min-w-[220px]">
                         <div className="text-left lg:text-right">
                           <p className="text-xs text-gray-400 uppercase mb-1">
-                            Est. earnings
+                            Customer fare
                           </p>
                           <div className="flex items-center gap-1 text-3xl font-bold text-gray-900 lg:justify-end">
                             <IndianRupee size={20} />
-                            {partnerEarnings}
+                            {booking.fare}
                           </div>
                           <p className="text-xs text-gray-400 mt-1">
-                            Fare ₹{booking.fare}
+                            Your est. earning ₹{partnerEarnings}
+                            {booking.tripDistanceKm
+                              ? ` · ${booking.tripDistanceKm} km`
+                              : ""}
                           </p>
                         </div>
 

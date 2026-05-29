@@ -69,6 +69,24 @@ export async function POST(req: Request) {
     ReturnType<typeof findPartnerWithRadiusExpansion>
   > | null;
 
+  if (matchedDriverId) {
+    const driver = await User.findById(matchedDriverId).select(
+      "mobileNumber isOnline isPartnerAvailable partnerStatus",
+    );
+
+    if (
+      driver &&
+      driver.partnerStatus === "approved" &&
+      driver.isOnline &&
+      driver.isPartnerAvailable !== false
+    ) {
+      matchedDriverMobile = driver.mobileNumber || "";
+    } else {
+      matchedDriverId = undefined;
+      matchedVehicleId = undefined;
+    }
+  }
+
   if (!matchedDriverId) {
     matchedPartner = await findPartnerWithRadiusExpansion({
       pickupCoordinates,
@@ -92,26 +110,6 @@ export async function POST(req: Request) {
     matchedDriverMobile = matchedPartner.match.mobileNumber;
     matchRadiusMeters = matchedPartner.radiusMeters;
     matchRadiusTierIndex = matchedPartner.tierIndex;
-  } else {
-    const driver = await User.findById(matchedDriverId).select(
-      "mobileNumber isOnline isPartnerAvailable partnerStatus",
-    );
-
-    if (!driver || driver.partnerStatus !== "approved") {
-      return NextResponse.json(
-        { message: "Selected driver is not available" },
-        { status: 400 },
-      );
-    }
-
-    if (!driver.isOnline || driver.isPartnerAvailable === false) {
-      return NextResponse.json(
-        { message: "Selected driver is offline" },
-        { status: 400 },
-      );
-    }
-
-    matchedDriverMobile = driver.mobileNumber || "";
   }
 
   const booking = await Booking.create({
