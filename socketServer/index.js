@@ -59,7 +59,7 @@ function notifyAdminMapThrottled() {
       at: Date.now(),
     });
     adminMapNotifyTimer = null;
-  }, 4000);
+  }, 1000);
 }
 
 /** Broadcast to all admins in the control-tower room */
@@ -224,6 +224,12 @@ io.on("connection", (socket) => {
     );
 
     if (user?.role === "partner") {
+      io.to("admin-dashboard").emit("admin-driver-location", {
+        driverId: String(user._id),
+        latitude,
+        longitude,
+        at: now.getTime(),
+      });
       notifyAdminMapThrottled();
     }
   });
