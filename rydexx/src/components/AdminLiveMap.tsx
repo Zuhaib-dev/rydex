@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import Map, { Marker, Source, Layer, type MapRef } from "react-map-gl/mapbox";
+import Map, { Marker, Source, Layer } from "react-map-gl/mapbox";
+import type { Map as MapboxMap } from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import useSWR from "swr";
@@ -58,7 +59,7 @@ interface DrawEvent {
 
 export default function AdminLiveMap() {
   const [mapLoaded, setMapLoaded] = useState(false);
-  const mapRef = useRef<MapRef | null>(null);
+  const mapRef = useRef<MapboxMap | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
   const [sosBlink, setSosBlink] = useState(false);
 
@@ -103,6 +104,8 @@ export default function AdminLiveMap() {
       void mutateLive((current: LiveMapResponse | undefined) => {
         const currentDrivers = current?.data?.drivers;
         if (!Array.isArray(currentDrivers)) return current;
+        const currentData = current?.data;
+        if (!currentData) return current;
 
         const hasDriver = currentDrivers.some(
           (driver: Driver) => String(driver._id) === String(payload.driverId),
@@ -115,7 +118,7 @@ export default function AdminLiveMap() {
         return {
           ...current,
           data: {
-            ...current.data,
+            ...currentData,
             drivers: currentDrivers.map((driver: Driver) =>
               String(driver._id) === String(payload.driverId)
                 ? {
@@ -164,7 +167,7 @@ export default function AdminLiveMap() {
     return () => clearInterval(interval);
   }, [hasSos]);
 
-  const handleMapLoad = useCallback((e: { target: MapRef }) => {
+  const handleMapLoad = useCallback((e: { target: MapboxMap }) => {
     setMapLoaded(true);
     mapRef.current = e.target;
 
@@ -227,6 +230,10 @@ export default function AdminLiveMap() {
     }
   };
 
+  const isLineFeature = (
+    feature: GeoJSON.Feature<GeoJSON.LineString> | null,
+  ): feature is GeoJSON.Feature<GeoJSON.LineString> => Boolean(feature);
+
   // Heatmap GeoJSON
   const heatmapGeoJSON: GeoJSON.FeatureCollection<GeoJSON.Point> = {
     type: "FeatureCollection",
@@ -273,7 +280,7 @@ export default function AdminLiveMap() {
           },
         };
       })
-      .filter(Boolean),
+      .filter(isLineFeature),
   };
 
   // SOS ride lines (red)
@@ -296,7 +303,7 @@ export default function AdminLiveMap() {
           },
         };
       })
-      .filter(Boolean),
+      .filter(isLineFeature),
   };
 
   if (!MAPBOX_TOKEN) return <div>Mapbox token missing</div>;
