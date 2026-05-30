@@ -410,8 +410,8 @@ export default function AdminLiveMap() {
   const filteredDrivers = useMemo(() => {
     return drivers.filter((driver) => {
       const matchesSearch = 
-        driver.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        driver.email.toLowerCase().includes(searchQuery.toLowerCase());
+        (driver.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) ||
+        (driver.email?.toLowerCase() || "").includes(searchQuery.toLowerCase());
       
       if (!matchesSearch) return false;
 
