@@ -110,10 +110,16 @@ function SearchContent() {
   // Bottom Sheet Height state for mobile (peeking, half-height, or fully-expanded)
   const [sheetState, setSheetState] = useState<"peek" | "half" | "full">("half");
 
-  // Payment Options & Promo simulated states
   const [paymentMethod, setPaymentMethod] = useState<"card" | "upi" | "cash">("upi");
   const [couponCode, setCouponCode] = useState("");
   const [discountApplied, setDiscountApplied] = useState(false);
+
+  const [notification, setNotification] = useState<string | null>(null);
+
+  const triggerToast = (msg: string) => {
+    setNotification(msg);
+    setTimeout(() => setNotification(null), 4000);
+  };
 
   const meta = VEHICLE_META[selectedType];
   const fallbackTripKm = useMemo(
@@ -280,6 +286,20 @@ function SearchContent() {
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 grid grid-cols-1 lg:grid-cols-12 h-screen overflow-hidden">
+      
+      {/* ── ALERTS NOTIFICATION POPUP ── */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-6 py-3 rounded-full text-xs font-bold shadow-2xl flex items-center gap-2"
+          >
+            {notification}
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* ── LEFT SIDEBAR (DESKTOP CONTROL CENTER) ── */}
       <div className="hidden lg:flex lg:col-span-4 bg-white border-r border-zinc-200 z-10 flex-col h-full overflow-y-auto shadow-2xl relative">
