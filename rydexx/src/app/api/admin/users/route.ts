@@ -44,7 +44,8 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select("-password -otp -otpExpiryAt -otpAttempts"); // Exclude sensitive fields
+      .select("-password -otp -otpExpiryAt -otpAttempts") // Exclude sensitive fields
+      .lean();
 
     return NextResponse.json({
       users,

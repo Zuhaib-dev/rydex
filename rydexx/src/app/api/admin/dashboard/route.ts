@@ -41,28 +41,28 @@ export async function GET() {
       role: "partner",
       partnerStatus: "pending",
       partnerOnboardingSteps: 3,
-    });
+    }).lean();
 
     const pendingPartnerUsersForVehicle = await User.find({
       role: "partner",
       partnerOnboardingSteps: 6,
-    }).select("_id name email");
+    }).select("_id name email").lean();
 
     const pendingVehicleReviews = await Vehicle.find({
       status: "pending",
       owner: { $in: pendingPartnerUsersForVehicle.map((u) => u._id) },
-    }).populate("owner", "name email");
+    }).populate("owner", "name email").lean();
 
     const pendingVideoKYC = await User.find({
       role: "partner",
       partnerStatus: "pending",
       partnerOnboardingSteps: 4,
-    });
+    }).lean();
 
     const partnerIds = pendingPartnerUsers.map((p) => p._id);
     const partnerVehciles = await Vehicle.find({
       owner: { $in: partnerIds },
-    });
+    }).lean();
     const vehivleTypeMap = new Map(
       partnerVehciles.map((v) => [String(v.owner), v.type]),
     );
