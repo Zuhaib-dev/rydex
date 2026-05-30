@@ -1078,6 +1078,36 @@ function PanelContent({
           </div>
         </div>
       </div>
+
+      {/* BOOKING PARAMETERS (Seats, Scheduled, Instructions) */}
+      {(booking?.passengers || booking?.scheduledAt || booking?.notes) && (
+        <div className="mx-5 lg:mx-6">
+          <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-4 space-y-3">
+            <div className="flex items-center gap-4 text-xs font-semibold text-zinc-600">
+              {booking.passengers && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase text-zinc-400 font-bold">Seats:</span>
+                  <span className="text-zinc-900 font-bold bg-zinc-200/60 px-2 py-0.5 rounded-md">{booking.passengers} Pax</span>
+                </div>
+              )}
+              {booking.scheduledAt && (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase text-zinc-400 font-bold">Schedule:</span>
+                  <span className="text-zinc-900 font-bold bg-zinc-200/60 px-2 py-0.5 rounded-md">
+                    {new Date(booking.scheduledAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                </div>
+              )}
+            </div>
+            {booking.notes && (
+              <div className="text-xs border-t border-zinc-200/40 pt-2.5">
+                <span className="text-[10px] font-black uppercase text-zinc-400 font-bold block mb-1">Driver Instructions:</span>
+                <p className="text-zinc-800 font-medium italic">"{booking.notes}"</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
