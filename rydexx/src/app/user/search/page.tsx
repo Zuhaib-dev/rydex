@@ -407,19 +407,19 @@ function SearchContent() {
               onClick={() => selectShortcut("Chadoora, Budgam, J&K", 33.9189, 74.7979, "pickup")}
               className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
             >
-              📍 Chadoora (Budgam)
+              Chadoora (Budgam)
             </button>
             <button
               onClick={() => selectShortcut("Chanapora, Srinagar, J&K", 34.0298, 74.8052, "drop")}
               className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
             >
-              📍 Chanapora (Srinagar)
+              Chanapora (Srinagar)
             </button>
             <button
               onClick={() => selectShortcut("Dal Lake, Srinagar, J&K", 34.0772, 74.8727, "drop")}
               className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
             >
-              ⛵ Dal Lake (Srinagar)
+              Dal Lake (Srinagar)
             </button>
           </div>
         </div>
