@@ -31,7 +31,10 @@ export async function GET(request: NextRequest) {
     let socketClientsCount = 0;
     let socketServerStatus = "Offline";
     try {
-      const socketUrl = process.env.SOCKET_SERVER_URL || "http://localhost:8000";
+      const socketUrl =
+        process.env.SOCKET_SERVER_URL ||
+        process.env.NEXT_PUBLIC_SOCKET_SERVER ||
+        "https://rydex-nurn.onrender.com";
       const res = await axios.get(`${socketUrl.replace(/\/+$/, "")}/health`, { timeout: 1500 });
       if (res.data && res.data.success) {
         socketServerStatus = "Online";
