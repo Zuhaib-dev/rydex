@@ -116,13 +116,13 @@ export default function PartnerAnalyticsHub() {
     { id: "d1", name: "Ranjeet K.", status: "Active", rating: 4.8, safetyScore: 96, earnings: 3200, coaching: "Defensive driver. Cornering speed is highly optimal." },
     { id: "d2", name: "Suresh M.", status: "Idle", rating: 4.7, safetyScore: 92, earnings: 1850, coaching: "Harsh braking detected twice in highway zones." },
     { id: "d3", name: "Vikram R.", status: "Offline", rating: 4.6, safetyScore: 88, earnings: 1200, coaching: "Frequent excessive idling. Advise shutting engine at red signals." },
-    { id: "d4", name: "Pradeep S.", status: "Active", rating: 4.95, safetyScore: 98, earnings: 4100, coaching: "Exceptional efficiency index. Top rating across sector 62 Noida." }
+    { id: "d4", name: "Pradeep S.", status: "Active", rating: 4.95, safetyScore: 98, earnings: 4100, coaching: "Exceptional efficiency index. Top rating across Srinagar and Budgam." }
   ]);
 
   const [bookings, setBookings] = useState<LiveBooking[]>([
-    { id: "b1", pickup: "Sector 62, Noida", drop: "Cyber City, Gurugram", status: "In Progress", driver: "Ranjeet K.", fare: 850 },
-    { id: "b2", pickup: "Connaught Place, Delhi", drop: "IGI Airport T3", status: "Requested", driver: null, fare: 620 },
-    { id: "b3", pickup: "Saket Metro Station", drop: "GK-II M-Block", status: "Completed", driver: "Pradeep S.", fare: 380 }
+    { id: "b1", pickup: "Chadoora, Budgam", drop: "Chanapora, Srinagar", status: "In Progress", driver: "Ranjeet K.", fare: 450 },
+    { id: "b2", pickup: "Dal Lake, Srinagar", drop: "Lal Chowk, Srinagar", status: "Requested", driver: null, fare: 320 },
+    { id: "b3", pickup: "Lal Chowk, Srinagar", drop: "Chadoora, Budgam", status: "Completed", driver: "Pradeep S.", fare: 280 }
   ]);
 
   const [selectedVehicle, setSelectedVehicle] = useState<FleetVehicle | null>(null);
@@ -614,7 +614,7 @@ export default function PartnerAnalyticsHub() {
                     <div>
                       <p className="text-[10px] font-black text-violet-800 uppercase tracking-wider">AI Dispatch Dispatcher</p>
                       <p className="text-2xs text-violet-700 leading-relaxed mt-0.5">
-                        High surge zone detected around **IGI Airport T3**. Moving **Suresh M.** there will yield up to 1.3x higher booking rate.
+                        High surge zone detected around **Dal Lake (Srinagar)**. Moving **Suresh M.** there will yield up to 1.3x higher booking rate.
                       </p>
                     </div>
                   </div>
