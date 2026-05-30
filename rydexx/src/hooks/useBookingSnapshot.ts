@@ -19,6 +19,9 @@ export type ClientBookingSnapshot = {
     vehicleId: string;
     pricingVersion: string;
   };
+  passengers?: number;
+  notes?: string;
+  scheduledAt?: string;
 };
 
 export function useBookingSnapshot(quoteId: string | null) {

@@ -76,6 +76,9 @@ partnerAmount: number
   matchRadiusTierIndex?: number;
   sosTriggered: boolean;
   sosTriggeredAt?: Date;
+  passengers?: number;
+  notes?: string;
+  scheduledAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -202,6 +205,9 @@ dropOtpExpires: {
     sosTriggeredAt: {
       type: Date,
     },
+    passengers: { type: Number },
+    notes: { type: String },
+    scheduledAt: { type: Date },
   },
   { timestamps: true }
 );

@@ -26,6 +26,9 @@ export type BookingSnapshot = {
   routePolyline: GeoJSON.LineString;
   pricingSnapshot: PricingSnapshot;
   kashmirAdjusted?: boolean;
+  passengers?: number;
+  notes?: string;
+  scheduledAt?: Date | string;
 };
 
 export function routeToLineString(
@@ -54,5 +57,8 @@ export function snapshotToClientPayload(snapshot: BookingSnapshot) {
     vehicleType: snapshot.vehicleType,
     routePolyline: snapshot.routePolyline,
     pricingSnapshot: snapshot.pricingSnapshot,
+    passengers: snapshot.passengers,
+    notes: snapshot.notes,
+    scheduledAt: snapshot.scheduledAt,
   };
 }

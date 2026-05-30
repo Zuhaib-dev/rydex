@@ -16,6 +16,9 @@ export interface IBookingQuote extends Document {
   routePolyline: GeoJSON.LineString;
   pricingSnapshot: PricingSnapshot;
   kashmirAdjusted?: boolean;
+  passengers?: number;
+  notes?: string;
+  scheduledAt?: Date;
   expiresAt: Date;
   usedAt?: Date;
   createdAt: Date;
@@ -44,6 +47,9 @@ const BookingQuoteSchema = new Schema<IBookingQuote>(
     routePolyline: { type: Schema.Types.Mixed, required: true },
     pricingSnapshot: { type: Schema.Types.Mixed, required: true },
     kashmirAdjusted: { type: Boolean, default: false },
+    passengers: { type: Number },
+    notes: { type: String },
+    scheduledAt: { type: Date },
     expiresAt: { type: Date, required: true },
     usedAt: { type: Date },
   },

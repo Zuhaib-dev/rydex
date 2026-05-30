@@ -23,6 +23,9 @@ type CreateQuoteInput = {
   dropLat: number;
   vehicleId: string;
   driverId?: string;
+  passengers?: number;
+  notes?: string;
+  scheduledAt?: Date | string;
 };
 
 export async function createLockedBookingQuote(input: CreateQuoteInput) {
@@ -77,6 +80,9 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
     routePolyline: routeToLineString(route, pickupCoordinates, dropCoordinates),
     pricingSnapshot,
     kashmirAdjusted: route?.kashmirAdjusted,
+    passengers: input.passengers,
+    notes: input.notes,
+    scheduledAt: input.scheduledAt,
   };
 
   const quote = await BookingQuote.create({
@@ -118,6 +124,9 @@ export function quoteToSnapshot(quote: {
   routePolyline: GeoJSON.LineString;
   pricingSnapshot: BookingSnapshot["pricingSnapshot"];
   kashmirAdjusted?: boolean;
+  passengers?: number;
+  notes?: string;
+  scheduledAt?: Date;
 }): BookingSnapshot {
   return {
     pickupAddress: quote.pickupAddress,
@@ -133,5 +142,8 @@ export function quoteToSnapshot(quote: {
     routePolyline: quote.routePolyline,
     pricingSnapshot: quote.pricingSnapshot,
     kashmirAdjusted: quote.kashmirAdjusted,
+    passengers: quote.passengers,
+    notes: quote.notes,
+    scheduledAt: quote.scheduledAt,
   };
 }

@@ -1,491 +1,679 @@
 "use client";
 
+import { useMemo, useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import dynamic from "next/dynamic";
 import {
   ArrowLeft, ArrowRight, MapPin, Navigation,
   Bike, Car, Truck, LocateFixed, Phone,
-  CheckCircle2, ChevronRight
+  CheckCircle2, ChevronRight, Calendar, User, FileText, Info, Compass, Clock
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+
+const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
 
 type Place = {
-  id: string; name: string; city?: string; state?: string;
-  country?: string; countrycode?: string; lat: number; lng: number;
+  id: string;
+  name: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  countrycode?: string;
+  lat: number;
+  lng: number;
 };
+
 type VehicleType = "bike" | "auto" | "car" | "loading" | "truck";
 
 const VEHICLES = [
-  { id: "bike",    label: "Bike",    Icon: Bike,  desc: "Quick & affordable" },
-  { id: "auto",    label: "Auto",    Icon: Car,   desc: "Everyday rides"     },
-  { id: "car",     label: "Car",     Icon: Car,   desc: "Comfort rides"      },
-  { id: "loading", label: "Loading", Icon: Truck, desc: "Small cargo"        },
-  { id: "truck",   label: "Truck",   Icon: Truck, desc: "Heavy transport"    },
+  { id: "bike",    label: "Bike",    Icon: Bike,  desc: "Quick & affordable", capacity: "1 Pax" },
+  { id: "auto",    label: "Auto",    Icon: Car,   desc: "Everyday rides",     capacity: "3 Pax" },
+  { id: "car",     label: "Car",     Icon: Car,   desc: "Comfort rides",      capacity: "4 Pax" },
+  { id: "loading", label: "Loading", Icon: Truck, desc: "Small cargo",        capacity: "500 kg" },
+  { id: "truck",   label: "Truck",   Icon: Truck, desc: "Heavy transport",    capacity: "2 tons" },
 ];
 
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
 const stepVariants = {
-  hidden:  { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 16 },
   visible: { opacity: 1, y: 0 },
 };
 
 export default function BookPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
 
-  const [pickup,   setPickup]   = useState("");
-  const [drop,     setDrop]     = useState("");
-  const [vehicle,  setVehicle]  = useState<VehicleType | null>(null);
-  const [mobile,   setMobile]   = useState("");
+  // Client Hydration Check
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
-  const [pickupResults, setPickupResults] = useState<Place[]>([]);
-  const [dropResults,   setDropResults]   = useState<Place[]>([]);
-  const [pickupCountry, setPickupCountry] = useState<string | null>(null);
+  // Form Parameters
+  const [pickup, setPickup] = useState("");
+  const [drop, setDrop] = useState("");
+  const [vehicle, setVehicle] = useState<VehicleType | null>(null);
+  const [mobile, setMobile] = useState("");
+  const [passengerCount, setPassengerCount] = useState(1);
+  const [notes, setNotes] = useState("");
 
+  // Coordinates
   const [pickupLat, setPickupLat] = useState<number | null>(null);
   const [pickupLng, setPickupLng] = useState<number | null>(null);
-  const [dropLat,   setDropLat]   = useState<number | null>(null);
-  const [dropLng,   setDropLng]   = useState<number | null>(null);
-  const [locating,  setLocating]  = useState(false);
-  const [locationError, setLocationError] = useState("");
+  const [dropLat, setDropLat] = useState<number | null>(null);
+  const [dropLng, setDropLng] = useState<number | null>(null);
+
+  // Scheduling Toggles
+  const [scheduleMode, setScheduleMode] = useState<"now" | "later">("now");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("");
+
+  // Search Results
+  const [pickupResults, setPickupResults] = useState<Place[]>([]);
+  const [dropResults, setDropResults] = useState<Place[]>([]);
+  const [activeInput, setActiveInput] = useState<"pickup" | "drop" | null>(null);
+
+  // Status & Validation Error states
+  const [locating, setLocating] = useState(false);
+  const [validationError, setValidationError] = useState("");
   const [continuing, setContinuing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [km, setKm] = useState<number | null>(null);
 
-  const canContinue = !!(pickup && drop && vehicle && mobile.length >= 10);
+  const triggerToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
-  /* ── SEARCH ── */
-  const searchAddress = async (q: string, setResults: (r: Place[]) => void, restrict?: string | null) => {
-    if (!q || q.trim().length < 3) { setResults([]); return; }
+  const handleQueryChange = (query: string, inputType: "pickup" | "drop") => {
+    if (inputType === "pickup") {
+      setPickup(query);
+      if (query.length === 0) {
+        setPickupLat(null);
+        setPickupLng(null);
+      }
+    } else {
+      setDrop(query);
+      if (query.length === 0) {
+        setDropLat(null);
+        setDropLng(null);
+      }
+    }
+    searchAddress(query, inputType === "pickup" ? setPickupResults : setDropResults);
+  };
+
+  // Autocomplete Geocoding searches (Mapbox primary, Photon fallback)
+  const searchAddress = async (q: string, setResults: (r: Place[]) => void) => {
+    if (!q || q.trim().length < 3) {
+      setResults([]);
+      return;
+    }
+
+    // Try Mapbox Primary Geocoding
+    if (MAPBOX_TOKEN) {
+      try {
+        const res = await fetch(
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q.trim())}.json?access_token=${MAPBOX_TOKEN}&limit=5`
+        );
+        const data = await res.json();
+        if (data.features) {
+          const results: Place[] = data.features.map((f: any) => {
+            const [lng, lat] = f.center;
+            return {
+              id: String(f.id),
+              name: f.place_name,
+              lat,
+              lng,
+            };
+          });
+          setResults(results);
+          return;
+        }
+      } catch (err) {
+        console.warn("Mapbox geocoder failed, falling back to Photon:", err);
+      }
+    }
+
+    // Photon Fallback
     try {
-      const res  = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q.trim())}&limit=8&lang=en`);
+      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q.trim())}&limit=5&lang=en`);
       const data = await res.json();
-      let results: Place[] = (data?.features ?? []).map((f: any) => ({
+      const results: Place[] = (data?.features ?? []).map((f: any) => ({
         id: String(f.properties.osm_id),
-        name: f.properties.name,
-        city: f.properties.city,
-        state: f.properties.state,
-        country: f.properties.country,
-        countrycode: f.properties.countrycode?.toLowerCase(),
+        name: [f.properties.name, f.properties.city, f.properties.state, f.properties.country].filter(Boolean).join(", "),
         lat: f.geometry.coordinates[1],
         lng: f.geometry.coordinates[0],
       }));
-      if (restrict) results = results.filter(p => p.countrycode === restrict);
       setResults(results);
-    } catch { setResults([]); }
+    } catch {
+      setResults([]);
+    }
   };
 
-  const fmt = (p: Place) => [p.name, p.city, p.state, p.country].filter(Boolean).join(", ");
-
-  const findFirstPlace = async (q: string, restrict?: string | null) => {
-    const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q.trim())}&limit=8&lang=en`);
-    const data = await res.json();
-    let results: Place[] = (data?.features ?? []).map((f: any) => ({
-      id: String(f.properties.osm_id),
-      name: f.properties.name,
-      city: f.properties.city,
-      state: f.properties.state,
-      country: f.properties.country,
-      countrycode: f.properties.countrycode?.toLowerCase(),
-      lat: f.geometry.coordinates[1],
-      lng: f.geometry.coordinates[0],
-    }));
-
-    if (restrict) results = results.filter(p => p.countrycode === restrict);
-    return results[0] ?? null;
+  const selectSuggestion = (p: Place, type: "pickup" | "drop") => {
+    if (type === "pickup") {
+      setPickup(p.name);
+      setPickupLat(p.lat);
+      setPickupLng(p.lng);
+      setPickupResults([]);
+    } else {
+      setDrop(p.name);
+      setDropLat(p.lat);
+      setDropLng(p.lng);
+      setDropResults([]);
+    }
+    setActiveInput(null);
   };
 
+  // Pre-configured Kashmir Location Shortcuts (Chadoora, Chanapora, Dal Lake)
+  const selectShortcut = (address: string, lat: number, lng: number, type: "pickup" | "drop") => {
+    if (type === "pickup") {
+      setPickup(address);
+      setPickupLat(lat);
+      setPickupLng(lng);
+    } else {
+      setDrop(address);
+      setDropLat(lat);
+      setDropLng(lng);
+    }
+    triggerToast(`Set ${type} shortcut: ${address.split(",")[0]}`);
+  };
+
+  // Geolocator coordinates lookup
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) return;
+    setLocating(true);
+    setValidationError("");
+    navigator.geolocation.getCurrentPosition(
+      async ({ coords }) => {
+        try {
+          if (MAPBOX_TOKEN) {
+            const res = await fetch(
+              `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.longitude},${coords.latitude}.json?access_token=${MAPBOX_TOKEN}&limit=1`
+            );
+            const data = await res.json();
+            if (data?.features?.length) {
+              setPickup(data.features[0].place_name);
+              setPickupLat(coords.latitude);
+              setPickupLng(coords.longitude);
+              setPickupResults([]);
+              return;
+            }
+          }
+
+          // Komoot fallback
+          const res = await fetch(`https://photon.komoot.io/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1`);
+          const data = await res.json();
+          if (data?.features?.length) {
+            const p = data.features[0].properties;
+            const addr = [p.name, p.street, p.city, p.state, p.country].filter(Boolean).join(", ");
+            setPickup(addr);
+            setPickupLat(coords.latitude);
+            setPickupLng(coords.longitude);
+            setPickupResults([]);
+          }
+        } catch {
+          setValidationError("Could not reverse-geocode coordinates. Search manually.");
+        } finally {
+          setLocating(false);
+        }
+      },
+      () => {
+        setLocating(false);
+        setValidationError("Failed to acquire location. Choose pickup location manually.");
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  };
+
+  // Form validations & redirection
   const handleContinue = async () => {
-    if (!canContinue || !vehicle) return;
+    setValidationError("");
+    if (!vehicle) {
+      setValidationError("Please select a vehicle class to check rates.");
+      return;
+    }
+    if (mobile.length < 10) {
+      setValidationError("A valid 10-digit mobile number is required.");
+      return;
+    }
+    if (!pickup) {
+      setValidationError("Pickup location is required.");
+      return;
+    }
+    if (!drop) {
+      setValidationError("Dropoff location is required.");
+      return;
+    }
+
+    // Coords duplicate checks
+    if (pickupLat && dropLat && Math.abs(pickupLat - dropLat) < 0.0001 && Math.abs((pickupLng || 0) - (dropLng || 0)) < 0.0001) {
+      setValidationError("Pickup and destination coordinates cannot be identical.");
+      return;
+    }
+
+    // Schedule checks
+    if (scheduleMode === "later") {
+      if (!scheduleDate || !scheduleTime) {
+        setValidationError("Please specify both date and time for scheduled booking.");
+        return;
+      }
+      const sched = new Date(`${scheduleDate}T${scheduleTime}`);
+      if (sched.getTime() < Date.now() + 5 * 60 * 1000) {
+        setValidationError("Scheduled booking time must be in the future (minimum 10 mins).");
+        return;
+      }
+    }
 
     setContinuing(true);
-    setLocationError("");
-
     try {
       let resolvedPickupLat = pickupLat;
       let resolvedPickupLng = pickupLng;
       let resolvedDropLat = dropLat;
       let resolvedDropLng = dropLng;
-      let resolvedPickupCountry = pickupCountry;
-      let resolvedPickup = pickup;
-      let resolvedDrop = drop;
 
+      // Geocode fallbacks if pins not resolved
       if (resolvedPickupLat == null || resolvedPickupLng == null) {
-        const place = await findFirstPlace(pickup);
-        if (!place) throw new Error("pickup");
-        resolvedPickupLat = place.lat;
-        resolvedPickupLng = place.lng;
-        resolvedPickupCountry = place.countrycode || null;
-        resolvedPickup = fmt(place);
-        setPickup(resolvedPickup);
-        setPickupCountry(resolvedPickupCountry);
-        setPickupLat(place.lat);
-        setPickupLng(place.lng);
+        setValidationError("Please choose a valid pickup from autocomplete suggestions.");
+        setContinuing(false);
+        return;
       }
-
       if (resolvedDropLat == null || resolvedDropLng == null) {
-        const place = await findFirstPlace(drop, resolvedPickupCountry);
-        if (!place) throw new Error("drop");
-        resolvedDropLat = place.lat;
-        resolvedDropLng = place.lng;
-        resolvedDrop = fmt(place);
-        setDrop(resolvedDrop);
-        setDropLat(place.lat);
-        setDropLng(place.lng);
+        setValidationError("Please choose a valid dropoff from autocomplete suggestions.");
+        setContinuing(false);
+        return;
       }
 
-      const url = new URLSearchParams({
-        pickup: resolvedPickup,
-        drop: resolvedDrop,
+      const urlParams: Record<string, string> = {
+        pickup,
+        drop,
         vehicle,
         mobileNumber: mobile,
         pickupLat: String(resolvedPickupLat),
         pickupLng: String(resolvedPickupLng),
         dropLat: String(resolvedDropLat),
         dropLng: String(resolvedDropLng),
-      });
+        passengers: String(passengerCount),
+        ...(notes ? { notes } : {}),
+        ...(scheduleMode === "later" ? { scheduledAt: `${scheduleDate}T${scheduleTime}` } : {}),
+      };
 
+      const url = new URLSearchParams(urlParams);
       router.push(`/user/search?${url.toString()}`);
     } catch {
-      setLocationError("Select a suggested pickup and drop location so we can find nearby drivers.");
+      setValidationError("Geocoding failed. Select from suggested results.");
     } finally {
       setContinuing(false);
     }
   };
 
-  /* ── GPS ── */
-  const useCurrentLocation = () => {
-    if (!navigator.geolocation) return;
-    setLocating(true);
-    setLocationError("");
-    navigator.geolocation.getCurrentPosition(
-      async ({ coords }) => {
-        try {
-          const res  = await fetch(`https://photon.komoot.io/reverse?lat=${coords.latitude}&lon=${coords.longitude}&limit=1`);
-          const data = await res.json();
-          if (data?.features?.length) {
-            const p    = data.features[0].properties;
-            const addr = [p.name, p.street, p.city, p.state, p.country].filter(Boolean).join(", ");
-            setPickup(addr);
-            setPickupCountry(p.countrycode?.toLowerCase() || null);
-            setPickupLat(coords.latitude);
-            setPickupLng(coords.longitude);
-            setPickupResults([]);
-          }
-        } finally { setLocating(false); }
-      },
-      () => {
-        setLocating(false);
-        setLocationError("Could not detect your location. Search and select pickup manually.");
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
-  };
-
-  /* ── PROGRESS ── */
   const progress = [!!vehicle, !!(mobile.length >= 10), !!pickup, !!drop].filter(Boolean).length;
 
-  return (
-    <div className="min-h-screen bg-zinc-100 flex items-center justify-center px-4 py-10">
-      <motion.div
-        initial={{ opacity: 0, y: 32 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-md"
-      >
+  if (!mounted) {
+    return <div className="min-h-screen bg-zinc-50" />;
+  }
 
-        {/* ── HEADER ── */}
-        <div className="flex items-center gap-4 mb-6 px-1">
-          <motion.button
-            whileTap={{ scale: 0.88 }}
-            onClick={() => router.back()}
-            className="w-11 h-11 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center hover:bg-zinc-50 transition-colors shrink-0"
+  return (
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 grid grid-cols-1 lg:grid-cols-12 h-screen overflow-hidden relative">
+      
+      {/* ── ALERTS TOAST POPUP ── */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-black text-white px-6 py-3 rounded-full text-xs font-bold shadow-2xl flex items-center gap-2"
           >
-            <ArrowLeft size={17} className="text-zinc-900" />
-          </motion.button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-zinc-900 text-xl font-black tracking-tight">Book a Ride</h1>
-            <p className="text-zinc-400 text-xs mt-0.5">Fill in the details below</p>
+            <Info size={12} className="text-emerald-400" />
+            {toastMessage}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── LEFT PANEL: PREMIUM BOOKING FORM PANEL ── */}
+      <div className="col-span-12 lg:col-span-5 bg-white border-r border-zinc-200 z-10 flex flex-col h-full overflow-y-auto shadow-2xl relative">
+        
+        {/* Top Header */}
+        <div className="p-6 border-b border-zinc-100 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 transition"
+            >
+              <ArrowLeft size={16} />
+            </button>
+            <div>
+              <h1 className="text-lg font-black tracking-tight text-zinc-900">Book a Ride</h1>
+              <p className="text-3xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">Secure pricing on request</p>
+            </div>
           </div>
+
           {/* Progress dots */}
           <div className="flex items-center gap-1.5 shrink-0">
             {[0, 1, 2, 3].map(i => (
               <motion.div
                 key={i}
-                animate={{ width: i < progress ? 20 : 8, background: i < progress ? "#09090b" : "#d4d4d8" }}
+                animate={{ width: i < progress ? 18 : 6, background: i < progress ? "#000" : "#e4e4e7" }}
                 transition={{ duration: 0.3 }}
-                className="h-2 rounded-full"
+                className="h-1.5 rounded-full"
               />
             ))}
           </div>
         </div>
 
-        {/* ── CARD ── */}
-        <div className="bg-white rounded-3xl border border-zinc-200 shadow-[0_8px_40px_rgba(0,0,0,0.08)] overflow-hidden">
+        <div className="p-6 space-y-8 flex-1">
+          
+          {/* ══ STEP 1: CHOOSE VEHICLE ══ */}
+          <motion.div variants={stepVariants} initial="hidden" animate="visible">
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-black">1</span>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Choose Vehicle</p>
+            </div>
 
-          {/* Top strip */}
-          <div className="h-1 bg-zinc-900 w-full" />
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 gap-2.5">
+              {VEHICLES.map((v, i) => {
+                const active = vehicle === v.id;
+                return (
+                  <motion.button
+                    key={v.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => setVehicle(v.id as VehicleType)}
+                    className={`relative p-3.5 rounded-2xl border flex items-center gap-3 text-left transition-all ${
+                      active ? "bg-black border-black text-white shadow-lg" : "bg-zinc-50 border-zinc-200 hover:border-zinc-300 text-zinc-800"
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${active ? "bg-white text-black" : "bg-zinc-200 text-zinc-600"}`}>
+                      <v.Icon size={16} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold truncate leading-tight">{v.label}</p>
+                      <p className={`text-[9px] mt-0.5 truncate ${active ? "text-zinc-400" : "text-zinc-400"}`}>{v.capacity}</p>
+                    </div>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
 
-          <div className="p-6 space-y-7">
+          {/* DIVIDER */}
+          <div className="h-px bg-zinc-100" />
 
-            {/* ══ STEP 1 — VEHICLE ══ */}
-            <motion.div variants={stepVariants} initial="hidden" animate="visible" transition={{ delay: 0.05 }}>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-zinc-900 flex items-center justify-center shrink-0">
-                  <span className="text-white text-[9px] font-black">1</span>
-                </div>
-                <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Choose Vehicle</p>
-              </div>
+          {/* ══ STEP 2: PASSENGER DETAILS ══ */}
+          <motion.div variants={stepVariants} initial="hidden" animate="visible" transition={{ delay: 0.1 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-black">2</span>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Contact & Notes</p>
+            </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
-                {VEHICLES.map((v, i) => {
-                  const active = vehicle === v.id;
-                  return (
-                    <motion.button
-                      key={v.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.07 + i * 0.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setVehicle(v.id as VehicleType)}
-                      className={`relative p-3.5 rounded-2xl border flex items-center gap-3 text-left transition-all duration-200 ${
-                        active
-                          ? "bg-zinc-900 border-zinc-900 shadow-lg"
-                          : "bg-zinc-50 border-zinc-200 hover:border-zinc-400"
-                      }`}
-                    >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
-                        active ? "bg-white" : "bg-zinc-200"
-                      }`}>
-                        <v.Icon size={18} className={active ? "text-zinc-900" : "text-zinc-600"} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className={`text-sm font-bold truncate ${active ? "text-white" : "text-zinc-900"}`}>{v.label}</p>
-                        <p className={`text-[10px] truncate ${active ? "text-zinc-400" : "text-zinc-400"}`}>{v.desc}</p>
-                      </div>
-                      {active && (
-                        <motion.div
-                          initial={{ scale: 0 }} animate={{ scale: 1 }}
-                          className="absolute top-2.5 right-2.5"
-                        >
-                          <CheckCircle2 size={13} className="text-white fill-white/20" />
-                        </motion.div>
-                      )}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
-
-            {/* DIVIDER */}
-            <div className="h-px bg-zinc-100" />
-
-            {/* ══ STEP 2 — MOBILE ══ */}
-            <motion.div variants={stepVariants} initial="hidden" animate="visible" transition={{ delay: 0.15 }}>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-zinc-900 flex items-center justify-center shrink-0">
-                  <span className="text-white text-[9px] font-black">2</span>
-                </div>
-                <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Mobile Number</p>
-              </div>
-
-              <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 focus-within:border-zinc-900 focus-within:bg-white transition-all">
-                <div className="w-8 h-8 rounded-xl bg-zinc-200 flex items-center justify-center shrink-0">
-                  <Phone size={14} className="text-zinc-600" />
-                </div>
+            <div className="space-y-3">
+              {/* Mobile Phone */}
+              <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 focus-within:border-black focus-within:bg-white transition-all">
+                <Phone size={14} className="text-zinc-400 shrink-0" />
                 <input
                   type="tel"
                   value={mobile}
                   onChange={e => setMobile(e.target.value.replace(/\D/g, ""))}
-                  placeholder="Enter your mobile number"
-                  inputMode="numeric"
-                  maxLength={15}
-                  className="flex-1 bg-transparent text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 outline-none"
+                  placeholder="Enter 10-digit phone number"
+                  className="flex-1 bg-transparent text-xs font-bold text-zinc-900 outline-none placeholder:text-zinc-400"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Passenger Count */}
+                <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3">
+                  <User size={14} className="text-zinc-400 shrink-0" />
+                  <div className="flex-1 flex items-center justify-between">
+                    <span className="text-2xs font-bold text-zinc-500">Seat count:</span>
+                    <select
+                      value={passengerCount}
+                      onChange={e => setPassengerCount(Number(e.target.value))}
+                      className="bg-transparent text-xs font-bold text-zinc-900 outline-none"
+                    >
+                      {[1, 2, 3, 4, 5, 6].map(n => (
+                        <option key={n} value={n}>{n} Seat{n > 1 ? "s" : ""}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Driver Instructions */}
+                <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3 focus-within:border-black focus-within:bg-white transition-all">
+                  <FileText size={14} className="text-zinc-400 shrink-0" />
+                  <input
+                    type="text"
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                    placeholder="Instructions for driver (luggage, etc)"
+                    className="flex-1 bg-transparent text-xs font-bold text-zinc-900 outline-none placeholder:text-zinc-400"
+                  />
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* DIVIDER */}
+          <div className="h-px bg-zinc-100" />
+
+          {/* ══ STEP 3: ROUTE INPUTS ══ */}
+          <motion.div variants={stepVariants} initial="hidden" animate="visible" transition={{ delay: 0.15 }} className="space-y-4">
+            <div className="flex items-center gap-2">
+              <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-black">3</span>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Route Selection</p>
+            </div>
+
+            <div className="bg-zinc-50 border border-zinc-200 rounded-2xl relative">
+              {/* Pickup location */}
+              <div className="relative">
+                <div className="flex items-center gap-3 px-4 py-3.5 focus-within:bg-white rounded-t-2xl transition">
+                  <div className="w-2.5 h-2.5 rounded-full bg-black border-2 border-white shadow shrink-0" />
+                  <input
+                    value={pickup}
+                    onFocus={() => setActiveInput("pickup")}
+                    onChange={e => handleQueryChange(e.target.value, "pickup")}
+                    placeholder="Enter pickup address"
+                    className="flex-1 bg-transparent text-xs font-bold text-zinc-900 outline-none placeholder:text-zinc-400"
+                  />
+                  <button
+                    onClick={useCurrentLocation}
+                    disabled={locating}
+                    className="w-8 h-8 rounded-xl bg-zinc-200 hover:bg-zinc-300 transition flex items-center justify-center shrink-0"
+                    title="Locate coordinates"
+                  >
+                    <LocateFixed size={13} className={`text-zinc-700 ${locating ? "animate-spin" : ""}`} />
+                  </button>
+                </div>
+
                 <AnimatePresence>
-                  {mobile.length >= 10 && (
-                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                      <CheckCircle2 size={16} className="text-emerald-500 fill-emerald-50 shrink-0" />
+                  {activeInput === "pickup" && pickupResults.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-2xl shadow-2xl max-h-48 overflow-y-auto z-50 p-1"
+                    >
+                      {pickupResults.map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => selectSuggestion(p, "pickup")}
+                          className="w-full text-left text-xs font-semibold p-2.5 hover:bg-zinc-50 rounded-xl flex items-start gap-2 text-zinc-800 transition"
+                        >
+                          <MapPin size={12} className="text-zinc-400 shrink-0 mt-0.5" />
+                          <span className="truncate">{p.name}</span>
+                        </button>
+                      ))}
                     </motion.div>
                   )}
                 </AnimatePresence>
               </div>
-              <p className="text-zinc-400 text-[10px] mt-1.5 ml-1">Ride updates will be sent to this number</p>
-            </motion.div>
 
-            {/* DIVIDER */}
-            <div className="h-px bg-zinc-100" />
+              {/* Separator Line */}
+              <div className="h-px bg-zinc-200 mx-4" />
 
-            {/* ══ STEP 3 — LOCATIONS ══ */}
-            <motion.div variants={stepVariants} initial="hidden" animate="visible" transition={{ delay: 0.22 }} className="space-y-3">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-5 h-5 rounded-full bg-zinc-900 flex items-center justify-center shrink-0">
-                  <span className="text-white text-[9px] font-black">3</span>
+              {/* Drop location */}
+              <div className="relative">
+                <div className="flex items-center gap-3 px-4 py-3.5 focus-within:bg-white rounded-b-2xl transition">
+                  <div className="w-2.5 h-2.5 rounded-sm bg-black border-2 border-white shadow shrink-0" />
+                  <input
+                    value={drop}
+                    onFocus={() => setActiveInput("drop")}
+                    onChange={e => handleQueryChange(e.target.value, "drop")}
+                    placeholder="Enter destination address"
+                    className="flex-1 bg-transparent text-xs font-bold text-zinc-900 outline-none placeholder:text-zinc-400"
+                  />
                 </div>
-                <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Route</p>
-              </div>
 
-              {/* Route visual connector */}
-              <div className="bg-zinc-50 border border-zinc-200 rounded-2xl overflow-visible">
-
-                {/* PICKUP INPUT */}
-                <div className="relative z-20">
-                  <div className="flex items-center gap-3 px-4 py-3.5 focus-within:bg-white rounded-t-2xl transition-colors">
-                    <div className="flex flex-col items-center shrink-0">
-                      <div className="w-3 h-3 rounded-full bg-zinc-900 border-2 border-white shadow" />
-                      <div className="w-px h-5 bg-zinc-300 mt-1" />
-                    </div>
-                    <input
-                      value={pickup}
-                      onChange={e => { setPickup(e.target.value); searchAddress(e.target.value, setPickupResults); }}
-                      placeholder="Pickup location"
-                      className="flex-1 bg-transparent text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 outline-none"
-                    />
-                    <motion.button
-                      whileTap={{ scale: 0.88 }}
-                      onClick={useCurrentLocation}
-                      disabled={locating}
-                      className="w-8 h-8 rounded-xl bg-zinc-200 hover:bg-zinc-300 transition-colors flex items-center justify-center shrink-0"
+                <AnimatePresence>
+                  {activeInput === "drop" && dropResults.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-2xl shadow-2xl max-h-48 overflow-y-auto z-50 p-1"
                     >
-                      <LocateFixed size={14} className={`text-zinc-700 ${locating ? "animate-spin" : ""}`} />
-                    </motion.button>
-                  </div>
-
-                  <AnimatePresence>
-                    {pickupResults.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -4, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-2xl shadow-xl max-h-52 overflow-y-auto z-50"
-                      >
-                        {pickupResults.map((p, i) => (
-                          <motion.button
-                            key={p.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: i * 0.03 }}
-                            onClick={() => {
-                              setPickup(fmt(p));
-                              setPickupCountry(p.countrycode || null);
-                              setPickupLat(p.lat); setPickupLng(p.lng);
-                              setPickupResults([]);
-                            }}
-                            className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-0"
-                          >
-                            <MapPin size={13} className="text-zinc-400 shrink-0" />
-                            <span className="text-sm text-zinc-800 font-medium truncate">{fmt(p)}</span>
-                            <ChevronRight size={13} className="text-zinc-300 shrink-0 ml-auto" />
-                          </motion.button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-                {locationError && (
-                  <p className="px-4 pb-3 text-[10px] font-medium text-amber-600">
-                    {locationError}
-                  </p>
-                )}
-
-                {/* SEPARATOR */}
-                <div className="h-px bg-zinc-200 mx-4" />
-
-                {/* DROP INPUT */}
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 px-4 py-3.5 focus-within:bg-white rounded-b-2xl transition-colors">
-                    <div className="shrink-0">
-                      <div className="w-3 h-3 rounded-sm bg-zinc-900 border-2 border-white shadow" />
-                    </div>
-                    <input
-                      value={drop}
-                      onChange={e => { setDrop(e.target.value); searchAddress(e.target.value, setDropResults, pickupCountry); }}
-                      disabled={!pickupCountry}
-                      placeholder={pickupCountry ? "Drop location" : "Select pickup first"}
-                      className="flex-1 bg-transparent text-sm font-semibold text-zinc-900 placeholder:text-zinc-400 outline-none disabled:opacity-50"
-                    />
-                    <Navigation size={14} className="text-zinc-300 shrink-0" />
-                  </div>
-
-                  <AnimatePresence>
-                    {dropResults.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -4, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                        transition={{ duration: 0.2 }}
-                        className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-2xl shadow-xl max-h-52 overflow-y-auto z-50"
-                      >
-                        {dropResults.map((p, i) => (
-                          <motion.button
-                            key={p.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ delay: i * 0.03 }}
-                            onClick={() => {
-                              setDrop(fmt(p));
-                              setDropLat(p.lat); setDropLng(p.lng);
-                              setDropResults([]);
-                            }}
-                            className="flex items-center gap-3 w-full px-4 py-3 text-left hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-0"
-                          >
-                            <Navigation size={13} className="text-zinc-400 shrink-0" />
-                            <span className="text-sm text-zinc-800 font-medium truncate">{fmt(p)}</span>
-                            <ChevronRight size={13} className="text-zinc-300 shrink-0 ml-auto" />
-                          </motion.button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
+                      {dropResults.map(p => (
+                        <button
+                          key={p.id}
+                          onClick={() => selectSuggestion(p, "drop")}
+                          className="w-full text-left text-xs font-semibold p-2.5 hover:bg-zinc-50 rounded-xl flex items-start gap-2 text-zinc-800 transition"
+                        >
+                          <Navigation size={12} className="text-zinc-400 shrink-0 mt-0.5" />
+                          <span className="truncate">{p.name}</span>
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            </motion.div>
+            </div>
 
-            {/* ══ CTA ══ */}
-            <motion.div
-              variants={stepVariants} initial="hidden" animate="visible" transition={{ delay: 0.3 }}
-            >
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                whileHover={canContinue ? { scale: 1.02 } : {}}
-                disabled={!canContinue || continuing}
-                onClick={handleContinue}
-                className="w-full h-14 rounded-2xl bg-zinc-900 hover:bg-black disabled:opacity-35 text-white font-black text-sm tracking-wide flex items-center justify-center gap-2.5 transition-colors shadow-lg disabled:shadow-none"
+            {/* Kashmir Quick Pins shortcuts */}
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              <button
+                onClick={() => selectShortcut("Chadoora, Budgam, J&K", 33.9189, 74.7979, "pickup")}
+                className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200/60 text-[9px] font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
               >
-                <span>{continuing ? "Finding route..." : "Continue"}</span>
+                Chadoora (Budgam)
+              </button>
+              <button
+                onClick={() => selectShortcut("Chanapora, Srinagar, J&K", 34.0298, 74.8052, "drop")}
+                className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200/60 text-[9px] font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
+              >
+                Chanapora (Srinagar)
+              </button>
+              <button
+                onClick={() => selectShortcut("Dal Lake, Srinagar, J&K", 34.0772, 74.8727, "drop")}
+                className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200/60 text-[9px] font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
+              >
+                Dal Lake (Srinagar)
+              </button>
+            </div>
+          </motion.div>
+
+          {/* DIVIDER */}
+          <div className="h-px bg-zinc-100" />
+
+          {/* ══ STEP 4: SCHEDULING SELECTION ══ */}
+          <motion.div variants={stepVariants} initial="hidden" animate="visible" transition={{ delay: 0.2 }}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-5 h-5 rounded-full bg-black text-white flex items-center justify-center text-[10px] font-black">4</span>
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Schedule Options</p>
+            </div>
+
+            <div className="flex bg-zinc-100 p-1 rounded-2xl mb-4">
+              <button
+                onClick={() => setScheduleMode("now")}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${scheduleMode === "now" ? "bg-white shadow-xs font-black text-black" : "text-gray-400"}`}
+              >
+                Book Now (Instant)
+              </button>
+              <button
+                onClick={() => setScheduleMode("later")}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${scheduleMode === "later" ? "bg-white shadow-xs font-black text-black" : "text-gray-400"}`}
+              >
+                Schedule Ride
+              </button>
+            </div>
+
+            <AnimatePresence>
+              {scheduleMode === "later" && (
                 <motion.div
-                  animate={canContinue && !continuing ? { x: [0, 4, 0] } : {}}
-                  transition={{ duration: 1.2, repeat: Infinity, repeatDelay: 1 }}
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="overflow-hidden space-y-3"
                 >
-                  <ArrowRight size={17} />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3">
+                      <Calendar size={14} className="text-zinc-400" />
+                      <input
+                        type="date"
+                        value={scheduleDate}
+                        onChange={e => setScheduleDate(e.target.value)}
+                        className="bg-transparent text-xs font-bold text-zinc-900 outline-none w-full"
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3">
+                      <Clock size={14} className="text-zinc-400" />
+                      <input
+                        type="time"
+                        value={scheduleTime}
+                        onChange={e => setScheduleTime(e.target.value)}
+                        className="bg-transparent text-xs font-bold text-zinc-900 outline-none w-full"
+                      />
+                    </div>
+                  </div>
                 </motion.div>
-              </motion.button>
+              )}
+            </AnimatePresence>
+          </motion.div>
 
-              {/* Completion hint */}
-              <AnimatePresence>
-                {!canContinue && (
-                  <motion.p
-                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="text-center text-zinc-400 text-[10px] font-medium mt-2.5 tracking-wide"
-                  >
-                    {!vehicle ? "Select a vehicle to continue" :
-                     mobile.length < 10 ? "Enter a valid mobile number" :
-                     !pickup ? "Enter pickup location" :
-                     !drop ? "Enter drop location" : ""}
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-          </div>
         </div>
 
-        {/* Bottom hint */}
-        <motion.p
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-          className="text-center text-zinc-400 text-[10px] mt-4 tracking-wide"
-        >
-          Rides are subject to driver availability
-        </motion.p>
+        {/* Dynamic validation messages and booking confirm CTA */}
+        <div className="p-6 bg-zinc-50 border-t border-zinc-200 space-y-4">
+          <AnimatePresence>
+            {validationError && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="bg-rose-50 border border-rose-100 p-3.5 rounded-2xl text-xs text-rose-600 font-bold flex items-start gap-2"
+              >
+                <Info size={14} className="shrink-0 mt-0.5" />
+                <span>{validationError}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-      </motion.div>
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={handleContinue}
+            disabled={continuing}
+            className="w-full h-14 bg-zinc-950 hover:bg-black text-white font-black rounded-2xl text-xs tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-lg"
+          >
+            {continuing ? "Pre-routing..." : "Search Rates & Drivers"}
+            <ArrowRight size={14} />
+          </motion.button>
+        </div>
+
+      </div>
+
+      {/* ── RIGHT PANEL: INTERACTIVE ROUTE MAP PREVIEW ── */}
+      <div className="hidden lg:block lg:col-span-7 h-full relative z-0">
+        <RouteMap
+          pickup={pickup}
+          drop={drop}
+          pickupCoord={pickupLat && pickupLng ? [pickupLat, pickupLng] : null}
+          dropCoord={dropLat && dropLng ? [dropLat, dropLng] : null}
+          previewMode={true}
+          onDistance={setKm}
+        />
+      </div>
+
     </div>
   );
 }
