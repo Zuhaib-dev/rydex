@@ -82,6 +82,8 @@ interface LiveBooking {
   status: "Requested" | "In Progress" | "Completed";
   driver: string | null;
   fare: number;
+  passengers?: number;
+  notes?: string;
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -120,9 +122,9 @@ export default function PartnerAnalyticsHub() {
   ]);
 
   const [bookings, setBookings] = useState<LiveBooking[]>([
-    { id: "b1", pickup: "Chadoora, Budgam", drop: "Chanapora, Srinagar", status: "In Progress", driver: "Ranjeet K.", fare: 450 },
-    { id: "b2", pickup: "Dal Lake, Srinagar", drop: "Lal Chowk, Srinagar", status: "Requested", driver: null, fare: 320 },
-    { id: "b3", pickup: "Lal Chowk, Srinagar", drop: "Chadoora, Budgam", status: "Completed", driver: "Pradeep S.", fare: 280 }
+    { id: "b1", pickup: "Chadoora, Budgam", drop: "Chanapora, Srinagar", status: "In Progress", driver: "Ranjeet K.", fare: 450, passengers: 2, notes: "Please arrive at back gate" },
+    { id: "b2", pickup: "Dal Lake, Srinagar", drop: "Lal Chowk, Srinagar", status: "Requested", driver: null, fare: 320, passengers: 1 },
+    { id: "b3", pickup: "Lal Chowk, Srinagar", drop: "Chadoora, Budgam", status: "Completed", driver: "Pradeep S.", fare: 280, passengers: 4 }
   ]);
 
   const [selectedVehicle, setSelectedVehicle] = useState<FleetVehicle | null>(null);
@@ -586,6 +588,13 @@ export default function PartnerAnalyticsHub() {
                           <p className="flex items-center gap-1"><MapPin size={10} className="text-rose-500" /> {b.pickup}</p>
                           <p className="flex items-center gap-1"><MapPin size={10} className="text-emerald-500" /> {b.drop}</p>
                         </div>
+
+                        {(b.passengers || b.notes) && (
+                          <div className="text-[10px] text-zinc-500 bg-zinc-100/50 border border-zinc-200/40 rounded-xl p-2.5 space-y-1">
+                            {b.passengers && <p className="font-bold">Seats: {b.passengers} Pax</p>}
+                            {b.notes && <p className="italic font-semibold">"{b.notes}"</p>}
+                          </div>
+                        )}
 
                         {/* Dispatch controls */}
                         <div className="border-t border-gray-50 pt-3 flex justify-between items-center flex-wrap gap-2">

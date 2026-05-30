@@ -40,6 +40,14 @@ const stepVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
+const getMaxSeats = (type: VehicleType | null): number => {
+  if (!type) return 4;
+  if (type === "bike") return 2;
+  if (type === "auto") return 3;
+  if (type === "car") return 4;
+  return 2; // loading, truck
+};
+
 export default function BookPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -79,6 +87,17 @@ export default function BookPage() {
   const [continuing, setContinuing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [km, setKm] = useState<number | null>(null);
+
+  const maxSeats = useMemo(() => {
+    return getMaxSeats(vehicle);
+  }, [vehicle]);
+
+  useEffect(() => {
+    const max = getMaxSeats(vehicle);
+    if (passengerCount > max) {
+      setPassengerCount(max);
+    }
+  }, [vehicle, passengerCount]);
 
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
@@ -433,7 +452,7 @@ export default function BookPage() {
                       onChange={e => setPassengerCount(Number(e.target.value))}
                       className="bg-transparent text-xs font-bold text-zinc-900 outline-none"
                     >
-                      {[1, 2, 3, 4, 5, 6].map(n => (
+                      {Array.from({ length: maxSeats }, (_, i) => i + 1).map(n => (
                         <option key={n} value={n}>{n} Seat{n > 1 ? "s" : ""}</option>
                       ))}
                     </select>
@@ -663,15 +682,44 @@ export default function BookPage() {
       </div>
 
       {/* ── RIGHT PANEL: INTERACTIVE ROUTE MAP PREVIEW ── */}
-      <div className="hidden lg:block lg:col-span-7 h-full relative z-0">
-        <RouteMap
-          pickup={pickup}
-          drop={drop}
-          pickupCoord={pickupLat && pickupLng ? [pickupLat, pickupLng] : null}
-          dropCoord={dropLat && dropLng ? [dropLat, dropLng] : null}
-          previewMode={true}
-          onDistance={setKm}
-        />
+      <div className="hidden lg:block lg:col-span-7 h-full relative z-0 bg-zinc-50">
+        {pickupLat && pickupLng ? (
+          <RouteMap
+            pickup={pickup}
+            drop={drop}
+            pickupCoord={[pickupLat, pickupLng]}
+            dropCoord={dropLat && dropLng ? [dropLat, dropLng] : null}
+            previewMode={true}
+            onDistance={setKm}
+          />
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center p-12 relative overflow-hidden bg-zinc-50">
+            {/* Subtle premium radar / wave pulse */}
+            <div className="absolute inset-0 pointer-events-none"
+              style={{ backgroundImage: "radial-gradient(circle, #e4e4e7 1px, transparent 1px)", backgroundSize: "32px 32px", opacity: 0.6 }}
+            />
+            <div className="absolute w-[500px] h-[500px] rounded-full border border-zinc-200/50 flex items-center justify-center animate-[ping_8s_infinite_ease-in-out]">
+              <div className="w-[300px] h-[300px] rounded-full border border-zinc-200/70" />
+            </div>
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="max-w-sm text-center relative z-10 space-y-6"
+            >
+              <div className="w-16 h-16 rounded-3xl bg-white shadow-[0_8px_30px_rgba(0,0,0,0.04)] border border-zinc-200/80 flex items-center justify-center mx-auto">
+                <Compass size={24} className="text-zinc-400 animate-spin" style={{ animationDuration: '15s' }} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-base font-black tracking-tight text-zinc-800">Map Route Preview</h3>
+                <p className="text-xs text-zinc-400 font-medium leading-relaxed">
+                  Enter a pickup address or choose a coordinate shortcut to initialize the Kashmir satellite route map.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
       </div>
 
     </div>
