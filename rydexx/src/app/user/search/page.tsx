@@ -83,6 +83,11 @@ function SearchContent() {
   const params = useSearchParams();
   const router = useRouter();
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Search parameters & address states
   const [pickup, setPickup] = useState(params.get("pickup") || "");
   const [drop, setDrop] = useState(params.get("drop") || "");
@@ -297,6 +302,10 @@ function SearchContent() {
       setLockingFare(false);
     }
   };
+
+  if (!mounted) {
+    return <div className="min-h-screen bg-zinc-50" />;
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 text-zinc-900 grid grid-cols-1 lg:grid-cols-12 h-screen overflow-hidden">
