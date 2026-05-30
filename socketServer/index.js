@@ -44,7 +44,7 @@ app.get("/", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
-  res.json({ success: true });
+  res.json({ success: true, clientsCount: io.engine.clientsCount });
 });
 
 const activeTimers = new Map();
