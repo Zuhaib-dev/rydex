@@ -37,6 +37,9 @@ type Booking = {
   createdAt: string;
   driverAssignedAt?: string;
   dispatch?: DispatchMeta;
+  passengers?: number;
+  notes?: string;
+  scheduledAt?: string;
 };
 
 const ACCEPT_SECONDS = Math.floor(MATCH_ACCEPT_TIMEOUT_MS / 1000);
@@ -276,6 +279,33 @@ export default function VendorPendingPage() {
                             </p>
                           </div>
                         </div>
+
+                        {(booking.passengers || booking.notes) && (
+                          <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-4 mt-4 space-y-3">
+                            <div className="flex items-center gap-4 text-xs font-semibold text-zinc-600">
+                              {booking.passengers && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400 font-bold">Seats:</span>
+                                  <span className="text-zinc-900 font-bold bg-zinc-200/60 px-2 py-0.5 rounded-md">{booking.passengers} Pax</span>
+                                </div>
+                              )}
+                              {booking.scheduledAt && (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] font-black uppercase text-zinc-400 font-bold">Schedule:</span>
+                                  <span className="text-zinc-900 font-bold bg-zinc-200/60 px-2 py-0.5 rounded-md">
+                                    {new Date(booking.scheduledAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            {booking.notes && (
+                              <div className="text-xs border-t border-zinc-200/40 pt-2.5">
+                                <span className="text-[10px] font-black uppercase text-zinc-400 font-bold block mb-1">Driver Instructions:</span>
+                                <p className="text-zinc-800 font-medium italic">"{booking.notes}"</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-col items-stretch lg:items-end gap-5 lg:min-w-[220px]">
