@@ -6,6 +6,7 @@ import {
   Bike, Car, Truck, Loader2, CheckCircle2,
   XCircle, Clock, CreditCard, Banknote,
   ArrowLeft, ArrowRight, RotateCcw, AlertCircle, Wallet,
+  Users, Calendar, FileText,
 } from "lucide-react";
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -19,7 +20,8 @@ const FrozenRouteMap = dynamic(
   { ssr: false },
 );
 
-const VEHICLE_ICONS: Record<string, any> = {
+type VehicleIconMap = Record<string, any>;
+const VEHICLE_ICONS: VehicleIconMap = {
   bike: Bike, auto: Car, car: Car, loading: Truck, truck: Truck,
 };
 
@@ -377,6 +379,50 @@ function CheckoutContent() {
                   <Navigation size={14} className="text-zinc-400 shrink-0 mt-1" />
                 </div>
               </div>
+
+              {/* Additional Details: Passengers, Scheduled Time, Notes */}
+              {(snapshot?.passengers || snapshot?.scheduledAt || snapshot?.notes) && (
+                <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-5 mb-8 space-y-4">
+                  <p className="text-[9px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Booking Parameters</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    {snapshot?.passengers && (
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-zinc-200/60 flex items-center justify-center text-zinc-600 shrink-0">
+                          <Users size={14} />
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-400">Seats Reserved</p>
+                          <p className="text-xs font-bold text-zinc-800">{snapshot.passengers} Seat{snapshot.passengers > 1 ? "s" : ""}</p>
+                        </div>
+                      </div>
+                    )}
+                    {snapshot?.scheduledAt && (
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-zinc-200/60 flex items-center justify-center text-zinc-600 shrink-0">
+                          <Calendar size={14} />
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-400">Scheduled For</p>
+                          <p className="text-xs font-bold text-zinc-800">
+                            {new Date(snapshot.scheduledAt).toLocaleDateString([], { month: "short", day: "numeric" })} @ {new Date(snapshot.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {snapshot?.notes && (
+                    <div className="flex items-start gap-2.5 pt-3 border-t border-zinc-200/50">
+                      <div className="w-8 h-8 rounded-xl bg-zinc-200/60 flex items-center justify-center text-zinc-600 shrink-0">
+                        <FileText size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-400">Driver Instructions</p>
+                        <p className="text-xs font-bold text-zinc-800 italic leading-snug break-words">"{snapshot.notes}"</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Fare */}
               <div className="flex items-end justify-between pt-6 border-t border-zinc-100">

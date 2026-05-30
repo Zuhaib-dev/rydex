@@ -284,6 +284,9 @@ function SearchContent() {
           dropLng,
           vehicleId: v._id,
           driverId: typeof v.owner === "object" ? v.owner?._id : v.owner,
+          passengers: Number(params.get("passengers")) || 1,
+          notes: params.get("notes") || "",
+          scheduledAt: params.get("scheduledAt") || undefined,
         }),
       });
       const data = await res.json();
