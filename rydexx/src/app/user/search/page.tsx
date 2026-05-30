@@ -209,6 +209,20 @@ function SearchContent() {
     setActiveInput(null);
   };
 
+  const selectShortcut = (address: string, lat: number, lng: number, inputType: "pickup" | "drop") => {
+    if (inputType === "pickup") {
+      setPickup(address);
+      setPickupLat(lat);
+      setPickupLng(lng);
+      fetchNearbyVehicles(lat, lng, selectedType);
+    } else {
+      setDrop(address);
+      setDropLat(lat);
+      setDropLng(lng);
+    }
+    triggerToast(`Set ${inputType} to ${address}`);
+  };
+
   // Current location geolocator
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -379,18 +393,24 @@ function SearchContent() {
           </AnimatePresence>
 
           {/* Saved places shortcuts */}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => handleQueryChange("Sector 62, Noida", "pickup")}
+              onClick={() => selectShortcut("Chadoora, Budgam, J&K", 33.9189, 74.7979, "pickup")}
               className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
             >
-              📍 Noida Sector 62
+              📍 Chadoora (Budgam)
             </button>
             <button
-              onClick={() => handleQueryChange("IGI Airport Terminal 3", "drop")}
+              onClick={() => selectShortcut("Chanapora, Srinagar, J&K", 34.0298, 74.8052, "drop")}
               className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
             >
-              ✈️ IGI Airport
+              📍 Chanapora (Srinagar)
+            </button>
+            <button
+              onClick={() => selectShortcut("Dal Lake, Srinagar, J&K", 34.0772, 74.8727, "drop")}
+              className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
+            >
+              ⛵ Dal Lake (Srinagar)
             </button>
           </div>
         </div>
