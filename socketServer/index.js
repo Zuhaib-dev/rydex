@@ -156,7 +156,7 @@ io.on("connection", (socket) => {
         socketId: socket.id,
         isOnline: true,
       },
-      { new: true, select: "role" },
+      { returnDocument: "after", select: "role" },
     ).lean();
 
     if (user?.role === "admin") {
@@ -221,7 +221,7 @@ io.on("connection", (socket) => {
         lastLocationAt: now,
         lastLocationUpdate: now,
       },
-      { new: true, select: "role" },
+      { returnDocument: "after", select: "role" },
     ).lean();
 
     if (user?.role === "partner") {
