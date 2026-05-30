@@ -48,8 +48,25 @@ const EmptyState = () => (
     </motion.div>
   );
 
-const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabType }) => {
+const ContentList = ({ 
+  data, 
+  activeTab, 
+  refetch 
+}: { 
+  data: DashboardData; 
+  activeTab: TabType; 
+  refetch: () => void 
+}) => {
   const [kycLoadingId, setKycLoadingId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkRejectModal, setBulkRejectModal] = useState(false);
+  const [bulkRejectReason, setBulkRejectReason] = useState("");
+
+  // Clear selections when changing tabs
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [activeTab]);
 
   const initiateKycCall = async (partnerId: string) => {
     setKycLoadingId(partnerId);
@@ -63,11 +80,59 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
     }
   };
 
+  const handleSelectToggle = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = (items: any[]) => {
+    if (selectedIds.length === items.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(items.map(item => item._id));
+    }
+  };
+
+  const handleBulkAction = async (action: "approve" | "reject", reason?: string) => {
+    setBulkLoading(true);
+    try {
+      await axios.post("/api/admin/reviews/bulk", {
+        ids: selectedIds,
+        type: activeTab === "partner" ? "partner" : "vehicle",
+        action,
+        reason
+      });
+      setSelectedIds([]);
+      setBulkRejectModal(false);
+      setBulkRejectReason("");
+      refetch();
+    } catch (error) {
+      console.error(`Bulk ${action} failed:`, error);
+      alert(`Bulk ${action} failed. Please try again.`);
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
   switch (activeTab) {
-    case "partner":
-      return data?.pendingPartnerReviews && data.pendingPartnerReviews.length > 0 ? (
-        <div className="space-y-3">
-          {data.pendingPartnerReviews.map((partner) => (
+    case "partner": {
+      const partners = data?.pendingPartnerReviews || [];
+      return partners.length > 0 ? (
+        <div className="space-y-3 relative pb-20">
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-xl">
+            <label className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === partners.length}
+                onChange={() => handleSelectAll(partners)}
+                className="rounded border-gray-300 accent-black focus:ring-black"
+              />
+              Select All Pending Partners ({selectedIds.length}/{partners.length})
+            </label>
+          </div>
+
+          {partners.map((partner) => (
             <motion.div
               key={partner._id}
               initial={{ opacity: 0, x: -10 }}
@@ -75,6 +140,12 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
               className="bg-white p-4 rounded-2xl border border-gray-100/50 shadow-sm flex items-center justify-between hover:border-gray-200 transition-all group"
             >
               <div className="flex items-center gap-4">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(partner._id)}
+                  onChange={() => handleSelectToggle(partner._id)}
+                  className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black cursor-pointer"
+                />
                 <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black text-lg border border-purple-100">
                   {partner.name[0].toUpperCase()}
                 </div>
@@ -92,13 +163,97 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
               </Link>
             </motion.div>
           ))}
+
+          {/* Floating Action Bar */}
+          <AnimatePresence>
+            {selectedIds.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 border border-white/10 z-40"
+              >
+                <span className="text-xs font-black uppercase tracking-widest text-gray-400">
+                  {selectedIds.length} Selected
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    disabled={bulkLoading}
+                    onClick={() => handleBulkAction("approve")}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                  >
+                    Bulk Approve
+                  </button>
+                  <button
+                    disabled={bulkLoading}
+                    onClick={() => setBulkRejectModal(true)}
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                  >
+                    Bulk Reject
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Bulk Reject Reason Modal */}
+          <AnimatePresence>
+            {bulkRejectModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-white p-6 rounded-3xl max-w-md w-full border border-gray-100 shadow-2xl space-y-4 text-black"
+                >
+                  <h3 className="text-lg font-black uppercase tracking-tight">Bulk Reject Applications?</h3>
+                  <p className="text-xs text-gray-400">Specify rejection reasons for all selected {selectedIds.length} partners.</p>
+                  <textarea
+                    value={bulkRejectReason}
+                    onChange={(e) => setBulkRejectReason(e.target.value)}
+                    placeholder="e.g. Incomplete verification, invalid details..."
+                    className="w-full h-24 bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all resize-none"
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      disabled={bulkLoading || !bulkRejectReason.trim()}
+                      onClick={() => handleBulkAction("reject", bulkRejectReason)}
+                      className="flex-1 py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      Confirm Reject
+                    </button>
+                    <button
+                      onClick={() => setBulkRejectModal(false)}
+                      className="px-4 py-3 border border-gray-200 hover:bg-gray-50 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       ) : <EmptyState />;
+    }
 
-    case "vehicle":
-      return data?.pendingVehicleReviews && data.pendingVehicleReviews.length > 0 ? (
-        <div className="space-y-3">
-          {data.pendingVehicleReviews.map((vehicle) => (
+    case "vehicle": {
+      const vehicles = data?.pendingVehicleReviews || [];
+      return vehicles.length > 0 ? (
+        <div className="space-y-3 relative pb-20">
+          <div className="flex items-center justify-between px-4 py-2 bg-gray-50 rounded-xl">
+            <label className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedIds.length === vehicles.length}
+                onChange={() => handleSelectAll(vehicles)}
+                className="rounded border-gray-300 accent-black focus:ring-black"
+              />
+              Select All Pending Vehicles ({selectedIds.length}/{vehicles.length})
+            </label>
+          </div>
+
+          {vehicles.map((vehicle) => (
             <motion.div
               key={vehicle._id}
               initial={{ opacity: 0, x: -10 }}
@@ -106,6 +261,12 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
               className="bg-white p-4 rounded-2xl border border-gray-100/50 shadow-sm flex items-center justify-between hover:border-gray-200 transition-all group"
             >
               <div className="flex items-center gap-4">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(vehicle._id)}
+                  onChange={() => handleSelectToggle(vehicle._id)}
+                  className="h-4 w-4 rounded border-gray-300 accent-black focus:ring-black cursor-pointer"
+                />
                 <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-lg border border-blue-100">
                   {vehicle.type[0].toUpperCase()}
                 </div>
@@ -127,8 +288,79 @@ const ContentList = ({ data, activeTab }: { data: DashboardData; activeTab: TabT
               </Link>
             </motion.div>
           ))}
+
+          {/* Floating Action Bar */}
+          <AnimatePresence>
+            {selectedIds.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 border border-white/10 z-40"
+              >
+                <span className="text-xs font-black uppercase tracking-widest text-gray-400">
+                  {selectedIds.length} Selected
+                </span>
+                <div className="flex items-center gap-3">
+                  <button
+                    disabled={bulkLoading}
+                    onClick={() => handleBulkAction("approve")}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                  >
+                    Bulk Approve
+                  </button>
+                  <button
+                    disabled={bulkLoading}
+                    onClick={() => setBulkRejectModal(true)}
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                  >
+                    Bulk Reject
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Bulk Reject Reason Modal */}
+          <AnimatePresence>
+            {bulkRejectModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-sm">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-white p-6 rounded-3xl max-w-md w-full border border-gray-100 shadow-2xl space-y-4 text-black"
+                >
+                  <h3 className="text-lg font-black uppercase tracking-tight">Bulk Reject Vehicles?</h3>
+                  <p className="text-xs text-gray-400">Specify rejection reasons for all selected {selectedIds.length} vehicles.</p>
+                  <textarea
+                    value={bulkRejectReason}
+                    onChange={(e) => setBulkRejectReason(e.target.value)}
+                    placeholder="e.g. Invalid vehicle document photos, blurred license plate..."
+                    className="w-full h-24 bg-gray-50 border border-gray-100 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all resize-none"
+                  />
+                  <div className="flex gap-3">
+                    <button
+                      disabled={bulkLoading || !bulkRejectReason.trim()}
+                      onClick={() => handleBulkAction("reject", bulkRejectReason)}
+                      className="flex-1 py-3 bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      Confirm Reject
+                    </button>
+                    <button
+                      onClick={() => setBulkRejectModal(false)}
+                      className="px-4 py-3 border border-gray-200 hover:bg-gray-50 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
         </div>
       ) : <EmptyState />;
+    }
 
     case "kyc":
       return data?.pendingVideoKYC && data.pendingVideoKYC.length > 0 ? (
