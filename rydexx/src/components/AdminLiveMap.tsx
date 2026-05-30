@@ -9,11 +9,12 @@ import useSWR from "swr";
 import { useAdminRealtimeRefresh } from "@/hooks/useAdminRealtime";
 import { getSocket } from "@/lib/socket";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
+import { motion, AnimatePresence } from "motion/react";
 import { 
   Car, Bike, Truck, Navigation, Save, X, Activity, AlertTriangle, 
   Crosshair, Radio, ShieldAlert, Layers, Clock3, Search, 
   Compass, Map as MapIcon, Battery, Gauge, Phone, ShieldCheck,
-  ChevronLeft, ChevronRight, CheckCircle2
+  ChevronLeft, ChevronRight, CheckCircle2, Lock, RefreshCw
 } from "lucide-react";
 import axios from "axios";
 
