@@ -19,6 +19,9 @@ export async function POST(req: Request) {
     dropLng,
     vehicleId,
     driverId,
+    passengers,
+    notes,
+    scheduledAt,
   } = body;
 
   if (
@@ -46,6 +49,9 @@ export async function POST(req: Request) {
     dropLng,
     vehicleId,
     driverId,
+    passengers,
+    notes,
+    scheduledAt,
   });
 
   if (!result.success) {

@@ -143,6 +143,9 @@ export async function POST(req: Request) {
     driverAssignedAt: new Date(),
     matchRadiusMeters,
     matchRadiusTierIndex,
+    passengers: snapshot.passengers,
+    notes: snapshot.notes,
+    scheduledAt: snapshot.scheduledAt,
   });
 
   quote.usedAt = new Date();
