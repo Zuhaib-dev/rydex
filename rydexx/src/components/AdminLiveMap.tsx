@@ -870,9 +870,9 @@ export default function AdminLiveMap() {
       <AnimatePresence>
         {selectedDriver && (
           <motion.aside
-            initial={{ w: 0, opacity: 0 }}
-            animate={{ w: 300, opacity: 1 }}
-            exit={{ w: 0, opacity: 0 }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 300, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
             className="w-[300px] border-l border-gray-100 flex flex-col bg-white shrink-0 relative z-30 h-full"
           >
             <div className="p-5 border-b border-gray-50 flex items-center justify-between">
