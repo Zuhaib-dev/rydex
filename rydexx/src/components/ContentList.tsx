@@ -1,10 +1,10 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { ChevronRight, Video, Check, Loader2 } from "lucide-react";
 import Link from "next/link";
 import axios from "axios";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 type TabType = "partner" | "kyc" | "vehicle";
 
