@@ -86,7 +86,7 @@ app.post("/emit", async (req, res) => {
   const bookingRoomId = roomFromBody || data?.bookingId;
 
   try {
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select("socketId").lean();
 
     if (user?.socketId) {
       io.to(user.socketId).emit(event, data);
@@ -115,9 +115,10 @@ app.post("/emit", async (req, res) => {
           await axios.post(
             `${nextBaseUrl.replace(/\/+$/, "")}/api/booking/${bookingId}/cascade`,
             { driverId },
-            cascadeSecret
-              ? { headers: { "x-cascade-secret": cascadeSecret } }
-              : undefined,
+            {
+              timeout: 10000,
+              ...(cascadeSecret ? { headers: { "x-cascade-secret": cascadeSecret } } : {}),
+            }
           );
         } catch (err) {
           console.warn(`Error running cascade for booking ${bookingId}:`, err.message);
@@ -155,15 +156,15 @@ io.on("connection", (socket) => {
         socketId: socket.id,
         isOnline: true,
       },
-      { new: true },
-    );
+      { new: true, select: "role" },
+    ).lean();
 
     if (user?.role === "admin") {
       socket.join("admin-dashboard");
     }
 
     if (user?.role === "partner") {
-      await User.findByIdAndUpdate(userId, {
+      await User.updateOne({ _id: userId }, {
         isPartnerAvailable: true,
       });
     }
@@ -172,7 +173,7 @@ io.on("connection", (socket) => {
   socket.on("join-admin", async () => {
     if (!socket.userId) return;
 
-    const user = await User.findById(socket.userId).select("role");
+    const user = await User.findById(socket.userId).select("role").lean();
     if (user?.role === "admin") {
       socket.join("admin-dashboard");
     }
@@ -220,8 +221,8 @@ io.on("connection", (socket) => {
         lastLocationAt: now,
         lastLocationUpdate: now,
       },
-      { new: true },
-    );
+      { new: true, select: "role" },
+    ).lean();
 
     if (user?.role === "partner") {
       io.to("admin-dashboard").emit("admin-driver-location", {
@@ -237,7 +238,7 @@ io.on("connection", (socket) => {
   socket.on("partner-availability", async ({ available }) => {
     if (!socket.userId) return;
 
-    await User.findByIdAndUpdate(socket.userId, {
+    await User.updateOne({ _id: socket.userId }, {
       isPartnerAvailable: Boolean(available),
       ...(available
         ? { isOnline: true }
@@ -248,7 +249,7 @@ io.on("connection", (socket) => {
   socket.on("disconnect", async () => {
     if (!socket.userId) return;
 
-    const user = await User.findById(socket.userId).select("role");
+    const user = await User.findById(socket.userId).select("role").lean();
     const update = {
       socketId: null,
       isPartnerAvailable: false,
@@ -258,7 +259,7 @@ io.on("connection", (socket) => {
       update.isOnline = false;
     }
 
-    await User.findByIdAndUpdate(socket.userId, update);
+    await User.updateOne({ _id: socket.userId }, update);
   });
 });
 
