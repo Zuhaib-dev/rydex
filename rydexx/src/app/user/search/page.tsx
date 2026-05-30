@@ -7,7 +7,8 @@ import dynamic from "next/dynamic";
 import {
   ArrowLeft, MapPin, Navigation,
   Bike, Car, Truck, Clock, Route,
-  Zap, Search, RefreshCw
+  Zap, Search, RefreshCw, Star, Info,
+  Compass, CreditCard, Ticket, Check
 } from "lucide-react";
 import VehicleBookingCard from "@/components/VehicleBookingCard";
 
@@ -48,6 +49,8 @@ const VEHICLE_META: Record<string, VehicleMeta> = {
   truck:   { label: "Truck",   Icon: Truck },
 };
 
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
 function estimateRoadKm(
   pickupLat: number,
   pickupLng: number,
@@ -80,40 +83,57 @@ function SearchContent() {
   const params = useSearchParams();
   const router = useRouter();
 
-  const [pickup,   setPickup]   = useState(params.get("pickup") || "");
-  const [drop,     setDrop]     = useState(params.get("drop") || "");
-  const [km,       setKm]       = useState<number | null>(null);
+  // Search parameters & address states
+  const [pickup, setPickup] = useState(params.get("pickup") || "");
+  const [drop, setDrop] = useState(params.get("drop") || "");
+  const [pickupLat, setPickupLat] = useState(Number(params.get("pickupLat")) || 0);
+  const [pickupLng, setPickupLng] = useState(Number(params.get("pickupLng")) || 0);
+  const [dropLat, setDropLat] = useState(Number(params.get("dropLat")) || 0);
+  const [dropLng, setDropLng] = useState(Number(params.get("dropLng")) || 0);
+
+  // Discovery UI States
+  const [selectedType, setSelectedType] = useState<"bike" | "auto" | "car" | "loading" | "truck">(
+    (params.get("vehicle") as any) || "car"
+  );
   const [vehicles, setVehicles] = useState<NearbyVehicle[]>([]);
   const [nearbyCount, setNearbyCount] = useState(0);
   const [searchRadiusKm, setSearchRadiusKm] = useState<number | null>(null);
-  const [loading,  setLoading]  = useState(false);
+  const [km, setKm] = useState<number | null>(null);
+  const [loading, setLoading] = useState(false);
   const [lockingFare, setLockingFare] = useState(false);
 
-  const vehicle      = params.get("vehicle") || "";
-  const mobileNumber = params.get("mobileNumber") || "";
-  const pickupLat = Number(params.get("pickupLat"));
-  const pickupLng = Number(params.get("pickupLng"));
-  const dropLat = Number(params.get("dropLat"));
-  const dropLng = Number(params.get("dropLng"));
-  const meta         = VEHICLE_META[vehicle];
+  // Autocomplete suggestions state
+  const [activeInput, setActiveInput] = useState<"pickup" | "drop" | null>(null);
+  const [suggestions, setSuggestions] = useState<{ name: string; lat: number; lng: number }[]>([]);
+  const [suggestLoading, setSuggestLoading] = useState(false);
+
+  // Bottom Sheet Height state for mobile (peeking, half-height, or fully-expanded)
+  const [sheetState, setSheetState] = useState<"peek" | "half" | "full">("half");
+
+  // Payment Options & Promo simulated states
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "upi" | "cash">("upi");
+  const [couponCode, setCouponCode] = useState("");
+  const [discountApplied, setDiscountApplied] = useState(false);
+
+  const meta = VEHICLE_META[selectedType];
   const fallbackTripKm = useMemo(
     () => estimateRoadKm(pickupLat, pickupLng, dropLat, dropLng),
     [pickupLat, pickupLng, dropLat, dropLng],
   );
   const tripKm = km ?? fallbackTripKm;
-  const eta          = tripKm !== null ? Math.max(3, Math.round((tripKm / 25) * 60)) : null;
-  const hasPickupCoordinates =
-    Number.isFinite(pickupLat) && Number.isFinite(pickupLng);
-  const hasRouteCoordinates =
-    hasPickupCoordinates && Number.isFinite(dropLat) && Number.isFinite(dropLng);
+  const eta = tripKm !== null ? Math.max(3, Math.round((tripKm / 25) * 60)) : null;
 
-  const fetchNearbyVehicles = useCallback(async (lat: number, lng: number) => {
+  const hasPickupCoordinates = Number.isFinite(pickupLat) && Number.isFinite(pickupLng) && pickupLat !== 0;
+  const hasRouteCoordinates = hasPickupCoordinates && Number.isFinite(dropLat) && Number.isFinite(dropLng) && dropLat !== 0;
+
+  // Nearby vehicles fetcher
+  const fetchNearbyVehicles = useCallback(async (lat: number, lng: number, type: string) => {
     try {
       setLoading(true);
-      const res  = await fetch("/api/vehicles/nearby", {
+      const res = await fetch("/api/vehicles/nearby", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ latitude: lat, longitude: lng, vehicleType: vehicle }),
+        body: JSON.stringify({ latitude: lat, longitude: lng, vehicleType: type }),
       });
       const data = await res.json();
       if (data.success) {
@@ -130,248 +150,454 @@ function SearchContent() {
     } finally {
       setLoading(false);
     }
-  }, [vehicle]);
+  }, []);
 
   useEffect(() => {
     if (!hasPickupCoordinates) return;
-    fetchNearbyVehicles(pickupLat, pickupLng);
-  }, [fetchNearbyVehicles, hasPickupCoordinates, pickupLat, pickupLng]);
+    fetchNearbyVehicles(pickupLat, pickupLng, selectedType);
+  }, [fetchNearbyVehicles, hasPickupCoordinates, pickupLat, pickupLng, selectedType]);
+
+  // Autocomplete Geocoding lookup
+  const handleQueryChange = async (query: string, inputType: "pickup" | "drop") => {
+    if (inputType === "pickup") setPickup(query);
+    else setDrop(query);
+
+    if (!query || query.length < 3 || !MAPBOX_TOKEN) {
+      setSuggestions([]);
+      return;
+    }
+
+    try {
+      setSuggestLoading(true);
+      const res = await fetch(
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=5`
+      );
+      const data = await res.json();
+      if (data.features) {
+        const list = data.features.map((f: any) => {
+          const [lng, lat] = f.center;
+          return { name: f.place_name, lat, lng };
+        });
+        setSuggestions(list);
+      }
+    } catch (err) {
+      console.warn("Geocoding failed:", err);
+    } finally {
+      setSuggestLoading(false);
+    }
+  };
+
+  // Click handler for suggestions
+  const selectSuggestion = (item: { name: string; lat: number; lng: number }) => {
+    if (activeInput === "pickup") {
+      setPickup(item.name);
+      setPickupLat(item.lat);
+      setPickupLng(item.lng);
+      fetchNearbyVehicles(item.lat, item.lng, selectedType);
+    } else {
+      setDrop(item.name);
+      setDropLat(item.lat);
+      setDropLng(item.lng);
+    }
+    setSuggestions([]);
+    setActiveInput(null);
+  };
+
+  // Current location geolocator
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setPickupLat(latitude);
+        setPickupLng(longitude);
+        setPickup("Current Coordinates Location");
+        fetchNearbyVehicles(latitude, longitude, selectedType);
+
+        if (MAPBOX_TOKEN) {
+          try {
+            const res = await fetch(
+              `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_TOKEN}&limit=1`
+            );
+            const data = await res.json();
+            if (data.features?.length) {
+              setPickup(data.features[0].place_name);
+            }
+          } catch {
+            /* ignore */
+          }
+        }
+      },
+      () => {
+        alert("Failed to access your device location");
+      }
+    );
+  };
+
+  // Lock Fare Booking Handler
+  const handleBooking = async () => {
+    if (vehicles.length === 0) return;
+    const v = vehicles[0];
+    if (!hasRouteCoordinates) {
+      alert("Please select both Pickup and Drop locations first.");
+      return;
+    }
+    try {
+      setLockingFare(true);
+      const res = await fetch("/api/booking/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pickupAddress: pickup,
+          dropAddress: drop,
+          pickupLat,
+          pickupLng,
+          dropLat,
+          dropLng,
+          vehicleId: v._id,
+          driverId: typeof v.owner === "object" ? v.owner?._id : v.owner,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.quoteId) {
+        alert(data.message || "Could not lock fare");
+        return;
+      }
+      const url = new URLSearchParams({
+        quoteId: data.quoteId,
+        mobileNumber: params.get("mobileNumber") || "",
+      });
+      router.push(`/checkout?${url.toString()}`);
+    } catch {
+      alert("Could not lock fare. Try again.");
+    } finally {
+      setLockingFare(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-zinc-100 text-zinc-900 overflow-x-hidden">
-
-      {/* ── BACK BUTTON ── */}
-      <div className="absolute top-5 left-5 z-50">
-        <motion.button
-          whileTap={{ scale: 0.88 }}
-          onClick={() => router.back()}
-          className="w-11 h-11 rounded-full bg-white border border-zinc-200 shadow-md flex items-center justify-center hover:bg-zinc-50 transition-colors"
-        >
-          <ArrowLeft size={17} className="text-zinc-900" />
-        </motion.button>
-      </div>
-
-      {/* ── MAP ── */}
-      <div className="relative w-full h-[52vh] z-0">
-        <RouteMap
-          pickup={pickup}
-          drop={drop}
-          pickupCoord={
-            hasPickupCoordinates ? [pickupLat, pickupLng] : null
-          }
-          dropCoord={hasRouteCoordinates ? [dropLat, dropLng] : null}
-          previewMode
-          onDistance={setKm}
-          onChange={(p, d) => {
-            setPickup(p);
-            setDrop(d);
-          }}
-        />
-
-        {/* Soft fade at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-lineart-to-t from-zinc-100 to-transparent pointer-events-none z-10" />
-
-        {/* FLOATING METRICS — top center */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="absolute top-5 left-1/2 -translate-x-1/2 flex items-center gap-2 z-999"
-        >
-          <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-zinc-200 shadow-sm px-4 py-2 rounded-full text-xs font-semibold text-zinc-700">
-            <Route size={12} className="text-zinc-400" />
-            <span>{tripKm ? `${tripKm} km` : "Calculating…"}</span>
-          </div>
-          <div className="flex items-center gap-2 bg-white/90 backdrop-blur-sm border border-zinc-200 shadow-sm px-4 py-2 rounded-full text-xs font-semibold text-zinc-700">
-            <Clock size={12} className="text-zinc-400" />
-            <span>{eta ? `${eta} min` : "—"}</span>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* ── BOTTOM SHEET ── */}
-      <motion.div
-        initial={{ y: 60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 160, damping: 22 }}
-        className="relative z-20 -mt-10 bg-white rounded-t-[28px] border-t border-zinc-200 shadow-[0_-8px_40px_rgba(0,0,0,0.08)] pt-5 pb-20 min-h-[52vh]"
-      >
-        {/* Drag handle */}
-        <div className="w-10 h-1 bg-zinc-200 rounded-full mx-auto mb-5" />
-
-        <div className="px-5 lg:px-8 max-w-6xl mx-auto">
-
-          {/* ROUTE SUMMARY */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.12 }}
-            className="bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden mb-5"
+    <div className="min-h-screen bg-zinc-50 text-zinc-900 grid grid-cols-1 lg:grid-cols-12 h-screen overflow-hidden">
+      
+      {/* ── LEFT SIDEBAR (DESKTOP CONTROL CENTER) ── */}
+      <div className="hidden lg:flex lg:col-span-4 bg-white border-r border-zinc-200 z-10 flex-col h-full overflow-y-auto shadow-2xl relative">
+        {/* Top Header */}
+        <div className="p-6 border-b border-zinc-100 flex items-center gap-4">
+          <button
+            onClick={() => router.back()}
+            className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 transition"
           >
-            <div className="flex gap-3 px-4 py-3 border-b border-zinc-100">
-              <div className="flex flex-col items-center pt-1.5 shrink-0">
-                <div className="w-2.5 h-2.5 rounded-full bg-zinc-900" />
-                <div className="w-px flex-1 bg-zinc-300 my-1" style={{ minHeight: 14 }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-semibold mb-0.5">Pickup</p>
-                <p className="text-sm text-zinc-900 font-semibold leading-snug truncate">{pickup || "—"}</p>
-              </div>
-              <MapPin size={14} className="text-zinc-400 hrink-0 mt-1.5" />
-            </div>
-            <div className="flex gap-3 px-4 py-3">
-              <div className="shrink-0 pt-1.5">
-                <div className="w-2.5 h-2.5 rounded-sm bg-zinc-900" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[10px] text-zinc-400 uppercase tracking-widest font-semibold mb-0.5">Drop</p>
-                <p className="text-sm text-zinc-900 font-semibold leading-snug truncate">{drop || "—"}</p>
-              </div>
-              <Navigation size={14} className="text-zinc-400 shrink-0 mt-1.5" />
-            </div>
-          </motion.div>
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <h1 className="text-lg font-black tracking-tight text-zinc-900">Rydex Discovery</h1>
+            <p className="text-3xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">Secure Fares & Drivers</p>
+          </div>
+        </div>
 
-          {/* SECTION HEADER */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="flex items-center justify-between mb-4"
-          >
-            <div>
-              <h2 className="text-zinc-900 text-lg font-black tracking-tight">
-                {loading
-                  ? "Finding vehicles…"
-                  : nearbyCount > 0
-                  ? `${nearbyCount} rider${nearbyCount === 1 ? "" : "s"} nearby`
-                  : "No vehicles nearby"}
-              </h2>
-              {meta && (
-                <p className="text-zinc-400 text-xs mt-0.5">
-                  {meta.label} rides
-                  {searchRadiusKm ? ` within ${searchRadiusKm} km` : " near your pickup"}
-                </p>
-              )}
+        {/* Dynamic Route Inputs */}
+        <div className="p-6 border-b border-zinc-100 space-y-4">
+          <div className="relative">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Pickup Location</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={pickup}
+                onFocus={() => setActiveInput("pickup")}
+                onChange={(e) => handleQueryChange(e.target.value, "pickup")}
+                placeholder="Enter pickup address..."
+                className="w-full text-xs font-bold bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-3 pr-8 focus:ring-black focus:border-black"
+              />
+              <button
+                onClick={useCurrentLocation}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black transition"
+                title="Use current location"
+              >
+                <Compass size={14} />
+              </button>
             </div>
+          </div>
 
-            <AnimatePresence mode="wait">
-              {loading ? (
-                <motion.div
-                  key="searching"
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  className="flex items-center gap-2 bg-zinc-100 border border-zinc-200 px-3 py-1.5 rounded-full"
-                >
-                  <div className="w-3.5 h-3.5 rounded-full border-2 border-zinc-300 border-t-zinc-700 animate-spin" />
-                  <span className="text-zinc-500 text-xs font-semibold">Searching</span>
-                </motion.div>
-              ) : vehicles.length > 0 ? (
-                <motion.div
-                  key="live"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full"
-                >
-                  <Zap size={11} className="text-emerald-600 fill-emerald-600" />
-                  <span className="text-emerald-700 text-xs font-bold">Live</span>
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          </motion.div>
+          <div className="relative">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Dropoff Location</label>
+            <input
+              type="text"
+              value={drop}
+              onFocus={() => setActiveInput("drop")}
+              onChange={(e) => handleQueryChange(e.target.value, "drop")}
+              placeholder="Enter destination address..."
+              className="w-full text-xs font-bold bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-3 focus:ring-black focus:border-black"
+            />
+          </div>
 
-          {/* EMPTY STATE */}
+          {/* Autocomplete Suggestions Box */}
           <AnimatePresence>
-            {!loading && vehicles.length === 0 && (
+            {activeInput && suggestions.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
+                initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="flex flex-col items-center justify-center py-14 text-center"
+                className="absolute left-6 right-6 z-50 bg-white border border-zinc-200 rounded-2xl shadow-2xl p-2 max-h-60 overflow-y-auto"
               >
-                <div className="w-20 h-20 rounded-full bg-zinc-100 border border-zinc-200 flex items-center justify-center mb-4">
-                  <Search size={26} className="text-zinc-400" />
-                </div>
-                <p className="text-zinc-900 font-bold text-base mb-1">No vehicles found</p>
-                <p className="text-zinc-400 text-sm max-w-xs leading-relaxed">
-                  No {meta?.label || "vehicle"} drivers are available near your pickup right now.
-                </p>
-                <motion.button
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => fetchNearbyVehicles(pickupLat, pickupLng)}
-                  className="mt-5 flex items-center gap-2 bg-zinc-900 text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-zinc-800 transition-colors"
-                >
-                  <RefreshCw size={14} /> Retry Search
-                </motion.button>
+                {suggestLoading && (
+                  <div className="p-3 text-center text-xs text-zinc-400">Loading suggestions...</div>
+                )}
+                {suggestions.map((item, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => selectSuggestion(item)}
+                    className="w-full text-left text-xs font-semibold p-2.5 hover:bg-zinc-50 rounded-xl flex items-start gap-2 text-zinc-800 transition"
+                  >
+                    <MapPin size={13} className="text-zinc-400 shrink-0 mt-0.5" />
+                    <span className="truncate">{item.name}</span>
+                  </button>
+                ))}
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* VEHICLE GRID */}
-          <div className="flex justify-center max-w-md mx-auto">
-            {vehicles.length > 0 && (
-              <motion.div
-                key={vehicles[0]._id}
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-                className="w-full"
+          {/* Saved places shortcuts */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleQueryChange("Sector 62, Noida", "pickup")}
+              className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
+            >
+              📍 Noida Sector 62
+            </button>
+            <button
+              onClick={() => handleQueryChange("IGI Airport Terminal 3", "drop")}
+              className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
+            >
+              ✈️ IGI Airport
+            </button>
+          </div>
+        </div>
+
+        {/* Categories Tab Selector */}
+        <div className="p-6 border-b border-zinc-100">
+          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-3">Vehicle Categories</label>
+          <div className="grid grid-cols-5 gap-2 bg-zinc-100 p-1 rounded-2xl">
+            {(["bike", "auto", "car", "loading", "truck"] as const).map((type) => (
+              <button
+                key={type}
+                onClick={() => setSelectedType(type)}
+                className={`py-2 rounded-xl flex flex-col items-center gap-1 transition ${
+                  selectedType === type ? "bg-white shadow-xs text-black font-black" : "text-gray-400 hover:text-black"
+                }`}
               >
-                <VehicleBookingCard
-                  vehicle={vehicles[0]}
-                  bookingDisabled={lockingFare}
-                  distanceKm={
-                    tripKm ?? undefined
-                  }
-                  isRecommended={true}
-                  onBook={async () => {
-                    const v = vehicles[0];
-                    if (!hasRouteCoordinates) {
-                      alert("Missing route coordinates");
-                      return;
-                    }
-                    try {
-                      setLockingFare(true);
-                      const res = await fetch("/api/booking/quote", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          pickupAddress: pickup,
-                          dropAddress: drop,
-                          pickupLat,
-                          pickupLng,
-                          dropLat,
-                          dropLng,
-                          vehicleId: v._id,
-                          driverId:
-                            typeof v.owner === "object"
-                              ? v.owner?._id
-                              : v.owner,
-                        }),
-                      });
-                      const data = await res.json();
-                      if (!res.ok || !data.quoteId) {
-                        alert(data.message || "Could not lock fare");
-                        return;
-                      }
-                      const url = new URLSearchParams({
-                        quoteId: data.quoteId,
-                        mobileNumber,
-                      });
-                      router.push(`/checkout?${url.toString()}`);
-                    } catch {
-                      alert("Could not lock fare. Try again.");
-                    } finally {
-                      setLockingFare(false);
-                    }
-                  }}
-                />
-              </motion.div>
-            )}
+                {type === "bike" && <Bike size={14} />}
+                {type === "auto" && <Car size={14} />}
+                {type === "car" && <Car size={14} />}
+                {type === "loading" && <Truck size={14} />}
+                {type === "truck" && <Truck size={14} />}
+                <span className="text-[9px] capitalize">{type}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Vehicle Selection Roster List */}
+        <div className="p-6 flex-1 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">Available Quotes</h3>
+            <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full font-bold">
+              {vehicles.length > 0 ? "Best price locked" : "No vehicle"}
+            </span>
           </div>
 
+          <div className="space-y-4">
+            {loading ? (
+              <div className="py-12 flex flex-col items-center justify-center gap-2 text-zinc-400 text-xs">
+                <RefreshCw size={20} className="animate-spin text-zinc-300" />
+                Searching best quotes nearby...
+              </div>
+            ) : vehicles.length > 0 ? (
+              <VehicleBookingCard
+                vehicle={vehicles[0]}
+                bookingDisabled={lockingFare}
+                distanceKm={tripKm ?? undefined}
+                isRecommended={true}
+                onBook={handleBooking}
+              />
+            ) : (
+              <div className="border border-dashed border-zinc-200 p-8 rounded-3xl text-center text-xs text-zinc-400">
+                No nearby drivers matching category found. Try adjusting radius or swapping category.
+              </div>
+            )}
+          </div>
         </div>
-      </motion.div>
+
+        {/* Payment & Coupon footer splits */}
+        <div className="p-6 bg-zinc-50 border-t border-zinc-200 space-y-4">
+          <div className="flex justify-between items-center text-xs font-bold">
+            <span className="text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CreditCard size={14} />
+              Payment Method
+            </span>
+            <div className="flex bg-zinc-200/60 p-0.5 rounded-lg text-3xs">
+              <button
+                onClick={() => setPaymentMethod("upi")}
+                className={`px-2 py-1 rounded transition ${paymentMethod === "upi" ? "bg-white shadow-xs font-black" : "text-gray-500"}`}
+              >
+                UPI
+              </button>
+              <button
+                onClick={() => setPaymentMethod("card")}
+                className={`px-2 py-1 rounded transition ${paymentMethod === "card" ? "bg-white shadow-xs font-black" : "text-gray-500"}`}
+              >
+                Card
+              </button>
+              <button
+                onClick={() => setPaymentMethod("cash")}
+                className={`px-2 py-1 rounded transition ${paymentMethod === "cash" ? "bg-white shadow-xs font-black" : "text-gray-500"}`}
+              >
+                Cash
+              </button>
+            </div>
+          </div>
+
+          {/* Coupon inputs */}
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                placeholder="Apply Coupon (e.g. RYDEX50)"
+                className="w-full text-xs font-bold bg-white border border-zinc-200 rounded-xl px-3 py-2 focus:ring-black focus:border-black uppercase"
+              />
+            </div>
+            <button
+              onClick={() => {
+                if (couponCode.toUpperCase() === "RYDEX50") {
+                  setDiscountApplied(true);
+                  triggerToast("Coupon RYDEX50 applied! 50% discount locked.");
+                } else {
+                  triggerToast("Invalid Coupon Code");
+                }
+              }}
+              className="px-4 bg-zinc-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIGHT PANEL (MAP VIEWPORT) ── */}
+      <div className="col-span-12 lg:col-span-8 h-full relative z-0">
+        
+        {/* Back button override for Mobile (floating) */}
+        <div className="absolute top-5 left-5 z-40 lg:hidden">
+          <motion.button
+            whileTap={{ scale: 0.88 }}
+            onClick={() => router.back()}
+            className="w-11 h-11 rounded-full bg-white border border-zinc-200 shadow-md flex items-center justify-center hover:bg-zinc-50"
+          >
+            <ArrowLeft size={17} className="text-zinc-900" />
+          </motion.button>
+        </div>
+
+        {/* Route Map WebGL Layer */}
+        <div className="absolute inset-0 z-0">
+          <RouteMap
+            pickup={pickup}
+            drop={drop}
+            pickupCoord={hasPickupCoordinates ? [pickupLat, pickupLng] : null}
+            dropCoord={hasRouteCoordinates ? [dropLat, dropLng] : null}
+            previewMode
+            onDistance={setKm}
+            onChange={(p, d) => {
+              setPickup(p);
+              setDrop(d);
+            }}
+          />
+        </div>
+
+        {/* Dynamic Route Metrics Overlay HUD (Floating) */}
+        <AnimatePresence>
+          {hasRouteCoordinates && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="absolute top-5 left-1/2 -translate-x-1/2 flex items-center gap-2 z-40"
+            >
+              <div className="flex items-center gap-2 bg-black/90 backdrop-blur-md border border-white/10 shadow-2xl px-4 py-2 rounded-full text-2xs font-bold text-white tracking-widest uppercase">
+                <Route size={12} className="text-emerald-400" />
+                <span>{tripKm ? `${tripKm} km` : "Calculating…"}</span>
+              </div>
+              <div className="flex items-center gap-2 bg-black/90 backdrop-blur-md border border-white/10 shadow-2xl px-4 py-2 rounded-full text-2xs font-bold text-white tracking-widest uppercase">
+                <Clock size={12} className="text-blue-400 animate-pulse" />
+                <span>{eta ? `${eta} min ETA` : "—"}</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── MOBILE / TABLET OVERLAY SHEET ── */}
+        <div className="lg:hidden absolute inset-x-0 bottom-0 z-20 flex flex-col justify-end bg-transparent pointer-events-none">
+          <motion.div
+            initial={{ y: 200, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="bg-white rounded-t-[32px] shadow-2xl border-t border-zinc-200 p-5 pb-12 pointer-events-auto flex flex-col gap-4"
+          >
+            {/* Drag Handle HUD */}
+            <div className="w-12 h-1.5 bg-zinc-200 rounded-full mx-auto" />
+
+            {/* Inputs summary */}
+            <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200 flex flex-col gap-2">
+              <div className="flex justify-between items-center text-xs">
+                <span className="text-gray-400 font-bold uppercase tracking-wider">Route summary</span>
+                <span className="text-3xs font-black bg-zinc-200 px-2 py-0.5 rounded-full">{tripKm ? `${tripKm} km` : "—"}</span>
+              </div>
+              <p className="text-xs font-bold text-zinc-800 truncate">From: {pickup || "—"}</p>
+              <p className="text-xs font-bold text-zinc-800 truncate">To: {drop || "—"}</p>
+            </div>
+
+            {/* Selector list for Mobile */}
+            <div className="grid grid-cols-5 gap-1 bg-zinc-100 p-1 rounded-xl">
+              {(["bike", "auto", "car", "loading", "truck"] as const).map(type => (
+                <button
+                  key={type}
+                  onClick={() => setSelectedType(type)}
+                  className={`py-1.5 rounded-lg flex flex-col items-center gap-1 transition ${
+                    selectedType === type ? "bg-white shadow-xs text-black font-black" : "text-gray-400"
+                  }`}
+                >
+                  <span className="text-[10px] capitalize">{type}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Quote details & checkout */}
+            {loading ? (
+              <div className="py-6 text-center text-xs text-zinc-400 animate-pulse">Searching nearby rides...</div>
+            ) : vehicles.length > 0 ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex justify-between items-center bg-zinc-50 border border-zinc-100 p-3 rounded-2xl">
+                  <div>
+                    <h4 className="text-xs font-black text-gray-900">{vehicles[0].vehicleModel}</h4>
+                    <p className="text-[10px] text-gray-400 mt-0.5">{vehicles[0].vehicleNumber}</p>
+                  </div>
+                  <span className="text-base font-black text-zinc-900 font-mono">₹{Math.round((vehicles[0].baseFare || 0) + (tripKm || 0) * (vehicles[0].perKmRate || 0))}</span>
+                </div>
+                <button
+                  onClick={handleBooking}
+                  disabled={lockingFare}
+                  className="w-full py-4 bg-zinc-950 hover:bg-black text-white font-black rounded-2xl text-xs transition"
+                >
+                  {lockingFare ? "Locking fare..." : "Book Ride"}
+                </button>
+              </div>
+            ) : (
+              <div className="p-4 border border-dashed rounded-2xl text-center text-xs text-zinc-400">No vehicles available nearby.</div>
+            )}
+          </motion.div>
+        </div>
+      </div>
     </div>
   );
 }
