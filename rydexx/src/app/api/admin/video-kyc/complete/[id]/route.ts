@@ -47,6 +47,19 @@ export async function POST(
     }
     await partner.save();
 
+    // Log the admin action
+    const { logAdminAction } = await import("@/lib/auditLogger");
+    await logAdminAction({
+      adminEmail: session.user.email,
+      action: `${action}_video_kyc`,
+      targetId: partner._id,
+      targetModel: "User",
+      targetName: partner.name,
+      details: action === "approved" 
+        ? "Approved partner Video KYC (Moved to Step 5)." 
+        : `Rejected partner Video KYC. Reason: ${reason}`
+    });
+
     await notifyAdminDashboard({ scope: "dashboard", reason: `kyc-${action}` });
 
     return NextResponse.json({

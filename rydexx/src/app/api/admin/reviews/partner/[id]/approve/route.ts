@@ -48,6 +48,18 @@ export async function GET(
     partnerBank?.set({ status: "verified" });
     await partnerDocs?.save();
     await partnerBank?.save();
+    
+    // Log the admin action
+    const { logAdminAction } = await import("@/lib/auditLogger");
+    await logAdminAction({
+      adminEmail: session.user.email,
+      action: "approve_partner_documents",
+      targetId: partner._id,
+      targetModel: "User",
+      targetName: partner.name,
+      details: "Approved partner documents and set status to pending Video KYC."
+    });
+
     await notifyAdminDashboard({ scope: "dashboard", reason: "partner-approved" });
     return NextResponse.json(
       { message: "Partner Approved Successfully" },

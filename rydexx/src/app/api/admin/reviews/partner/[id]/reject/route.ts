@@ -36,6 +36,18 @@ export async function POST(
     partner.partnerStatus = "rejected";
     partner.rejectionReason = rejectionReason;
     await partner.save();
+
+    // Log the admin action
+    const { logAdminAction } = await import("@/lib/auditLogger");
+    await logAdminAction({
+      adminEmail: session.user.email,
+      action: "reject_partner",
+      targetId: partner._id,
+      targetModel: "User",
+      targetName: partner.name,
+      details: `Rejected partner documents. Reason: ${rejectionReason}`
+    });
+
     await notifyAdminDashboard({ scope: "dashboard", reason: "partner-rejected" });
     return NextResponse.json(
       { message: "Partner Rejected Successfully" },

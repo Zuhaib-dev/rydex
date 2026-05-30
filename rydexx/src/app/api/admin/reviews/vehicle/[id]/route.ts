@@ -76,6 +76,19 @@ export async function PUT(
 
     await user.save();
 
+    // Log the admin action
+    const { logAdminAction } = await import("@/lib/auditLogger");
+    await logAdminAction({
+      adminEmail: session.user.email,
+      action: `${action}_vehicle`,
+      targetId: vehicle._id,
+      targetModel: "Vehicle",
+      targetName: `${vehicle.vehicleModel} (${vehicle.vehicleNumber})`,
+      details: action === "approved" 
+        ? "Approved vehicle and finalized driver onboarding (Step 8)." 
+        : `Rejected vehicle. Reason: ${reason}`
+    });
+
     await notifyAdminDashboard({
       scope: "dashboard",
       reason: `vehicle-${action}`,
