@@ -3,6 +3,7 @@ import Booking from "@/models/booking.model";
 import { emitBookingUpdated } from "@/lib/bookingEvents";
 import { getBookingDriverId } from "@/lib/bookingDriver";
 import { auth } from "@/lib/auth";
+import { getRedisClient } from "@/lib/redis";
 import { NextResponse, NextRequest } from "next/server";
 
 export async function POST(
@@ -36,6 +37,10 @@ export async function POST(
   booking.paymentDeadline = new Date(Date.now() + 5 * 60 * 1000);
 
   await booking.save();
+
+  // Release Redis driver lock on successful accept
+  const redis = getRedisClient();
+  await redis.del(`lock:driver:${assignedDriverId}`);
 
   const populated = await Booking.findById(id).populate("driver vehicle");
 

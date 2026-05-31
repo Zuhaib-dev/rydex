@@ -12,6 +12,7 @@ import {
   loadValidQuote,
   quoteToSnapshot,
 } from "@/lib/createBookingQuote";
+import { getRedisClient } from "@/lib/redis";
 
 export async function POST(req: Request) {
   await connectDb();
@@ -75,14 +76,22 @@ export async function POST(req: Request) {
       "mobileNumber isOnline isPartnerAvailable partnerStatus",
     );
 
+    const redis = getRedisClient();
+    const lockKey = `lock:driver:${matchedDriverId}`;
+    const acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
+
     if (
       driver &&
       driver.partnerStatus === "approved" &&
       driver.isOnline &&
-      driver.isPartnerAvailable !== false
+      driver.isPartnerAvailable !== false &&
+      acquired === "OK"
     ) {
       matchedDriverMobile = driver.mobileNumber || "";
     } else {
+      if (acquired === "OK") {
+        await redis.del(lockKey);
+      }
       matchedDriverId = undefined;
       matchedVehicleId = undefined;
     }

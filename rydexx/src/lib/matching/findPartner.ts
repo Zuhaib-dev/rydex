@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
 import Booking from "@/models/booking.model";
+import { getRedisClient } from "@/lib/redis";
 import {
   MATCH_LOCATION_MAX_AGE_MS,
   MATCH_RADIUS_TIERS_METERS,
@@ -73,16 +74,46 @@ export async function findClosestEligiblePartner(
     radiusMeters,
   } = options;
 
+  const redis = getRedisClient();
+  const redisGeoResults = (await redis.geosearch(
+    "driver:locations:active",
+    "FROMLONLAT",
+    pickupCoordinates[0],
+    pickupCoordinates[1],
+    "BYRADIUS",
+    radiusMeters,
+    "m",
+    "ASC",
+    "WITHDIST"
+  )) as Array<[string, string]>;
+
+  if (!redisGeoResults || redisGeoResults.length === 0) {
+    return null;
+  }
+
+  const driverGeoMap = new Map<string, number>();
+  const nearbyDriverIds: string[] = [];
+  for (const [id, dist] of redisGeoResults) {
+    driverGeoMap.set(id, parseFloat(dist));
+    nearbyDriverIds.push(id);
+  }
+
+  const excludeStrIds = new Set(excludePartnerIds.map(id => String(id)));
+  const candidateIds = nearbyDriverIds.filter(id => !excludeStrIds.has(id));
+  if (candidateIds.length === 0) {
+    return null;
+  }
+
+  const candidateObjectIds = candidateIds.map(id => new mongoose.Types.ObjectId(id));
   const locationCutoff = new Date(Date.now() - MATCH_LOCATION_MAX_AGE_MS);
-  const excludeObjectIds = toObjectIds(excludePartnerIds);
 
   const partners = await User.find({
+    _id: { $in: candidateObjectIds },
     role: "partner",
     isOnline: true,
     isPartnerAvailable: { $ne: false },
     partnerStatus: "approved",
     isPartnerBlocked: { $ne: true },
-    _id: { $nin: excludeObjectIds },
     $or: [
       { lastLocationAt: { $gte: locationCutoff } },
       {
@@ -91,22 +122,22 @@ export async function findClosestEligiblePartner(
         "location.coordinates.0": { $exists: true },
       },
     ],
-    location: {
-      $near: {
-        $geometry: {
-          type: "Point",
-          coordinates: pickupCoordinates,
-        },
-        $maxDistance: radiusMeters,
-      },
-    },
   })
     .select("_id mobileNumber name location ratingAverage ratingCount")
     .lean();
 
   if (!partners.length) return null;
 
-  const partnerIds = partners.map((p) => p._id as mongoose.Types.ObjectId);
+  const partnerMap = new Map<string, typeof partners[0]>();
+  for (const p of partners) {
+    partnerMap.set(String(p._id), p);
+  }
+
+  const sortedPartners = candidateIds
+    .map(id => partnerMap.get(id))
+    .filter(Boolean) as typeof partners;
+
+  const partnerIds = sortedPartners.map((p) => p._id as mongoose.Types.ObjectId);
   const busyIds = await getBusyPartnerIds(partnerIds);
 
   const vehicles = await Vehicle.find({
@@ -123,7 +154,7 @@ export async function findClosestEligiblePartner(
     vehicleByOwner.set(String(v.owner), v);
   }
 
-  for (const partner of partners) {
+  for (const partner of sortedPartners) {
     const pid = String(partner._id);
     if (busyIds.has(pid)) continue;
 
@@ -133,11 +164,19 @@ export async function findClosestEligiblePartner(
     const coords = partner.location?.coordinates as LngLat | undefined;
     if (!coords?.length) continue;
 
-    const straightMeters = estimateRoadDistanceMeters(
+    const straightMeters = driverGeoMap.get(pid) ?? estimateRoadDistanceMeters(
       pickupCoordinates,
       coords,
     );
     const roadMeters = straightMeters;
+
+    // --- Distributed Lock (Redlock) ---
+    const lockKey = `lock:driver:${pid}`;
+    const acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
+    if (acquired !== "OK") {
+      console.log(`[Redlock] Driver ${pid} is locked by another dispatch. Skipping...`);
+      continue;
+    }
 
     return {
       partnerId: pid,
@@ -184,9 +223,27 @@ export async function countEligiblePartners(
   vehicleType: string,
   radiusMeters: number,
 ): Promise<number> {
+  const redis = getRedisClient();
+  const redisGeoResults = (await redis.geosearch(
+    "driver:locations:active",
+    "FROMLONLAT",
+    pickupCoordinates[0],
+    pickupCoordinates[1],
+    "BYRADIUS",
+    radiusMeters,
+    "m",
+    "ASC"
+  )) as string[];
+
+  if (!redisGeoResults || redisGeoResults.length === 0) {
+    return 0;
+  }
+
+  const candidateObjectIds = redisGeoResults.map(id => new mongoose.Types.ObjectId(id));
   const locationCutoff = new Date(Date.now() - MATCH_LOCATION_MAX_AGE_MS);
 
   const partners = await User.find({
+    _id: { $in: candidateObjectIds },
     role: "partner",
     isOnline: true,
     isPartnerAvailable: { $ne: false },
@@ -200,12 +257,6 @@ export async function countEligiblePartners(
         "location.coordinates.0": { $exists: true },
       },
     ],
-    location: {
-      $near: {
-        $geometry: { type: "Point", coordinates: pickupCoordinates },
-        $maxDistance: radiusMeters,
-      },
-    },
   })
     .select("_id")
     .lean();

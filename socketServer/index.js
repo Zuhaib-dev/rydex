@@ -280,6 +280,26 @@ io.on("connection", (socket) => {
     if (!socket.userId) return;
     if (typeof latitude !== "number" || typeof longitude !== "number") return;
 
+    // Rate Limit Check: Max 10 location updates per 5 seconds (average 2/sec)
+    const timestamp = Date.now();
+    const rateLimitKey = `rate:limit:location:${socket.userId}`;
+    try {
+      const pipeline = redisPub.multi();
+      pipeline.zremrangebyscore(rateLimitKey, 0, timestamp - 5000);
+      pipeline.zcard(rateLimitKey);
+      pipeline.zadd(rateLimitKey, timestamp, `${timestamp}-${Math.random()}`);
+      pipeline.expire(rateLimitKey, 6);
+      
+      const results = await pipeline.exec();
+      const count = results[1][1];
+      if (count >= 10) {
+        console.warn(`[RateLimiter] Driver ${socket.userId} throttled on update-location.`);
+        return; // Ignore update
+      }
+    } catch (err) {
+      console.error("Rate Limiter error on location update:", err);
+    }
+
     const now = new Date();
     const user = await User.findByIdAndUpdate(
       socket.userId,

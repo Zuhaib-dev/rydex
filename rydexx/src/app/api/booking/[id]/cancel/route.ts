@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { emitBookingUpdated } from "@/lib/bookingEvents";
+import { getRedisClient } from "@/lib/redis";
 
 export async function POST(
   req: NextRequest,
@@ -16,9 +17,13 @@ export async function POST(
 
   if (!booking)
     return NextResponse.json({ message: "Not found" }, { status: 404 });
-booking.status = "cancelled";
+  booking.status = "cancelled";
 
-
+  // Release Redis driver lock if there was a driver assigned
+  if (booking.driver) {
+    const redis = getRedisClient();
+    await redis.del(`lock:driver:${String(booking.driver)}`);
+  }
 
   await booking.save();
 

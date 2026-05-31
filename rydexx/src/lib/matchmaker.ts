@@ -9,6 +9,7 @@ import {
 import { findClosestEligiblePartner } from "./matching/findPartner";
 import { dispatchBookingToPartner } from "./matching/dispatch";
 import { emitBookingUpdated } from "./bookingEvents";
+import { getRedisClient } from "@/lib/redis";
 
 export async function cascadeBooking(bookingId: string, currentDriverId: string) {
   await connectDb();
@@ -27,6 +28,11 @@ export async function cascadeBooking(bookingId: string, currentDriverId: string)
   }
 
   const oldDriverId = String(booking.driver);
+  
+  // Release old driver's lock
+  const redis = getRedisClient();
+  await redis.del(`lock:driver:${oldDriverId}`);
+
   const pickupCoordinates = booking.pickupLocation.coordinates as [
     number,
     number,
