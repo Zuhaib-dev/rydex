@@ -10,6 +10,19 @@ import mongoose from "mongoose";
 import User from "./models/user.models.js";
 
 await mongoose.connect(process.env.MONGODB_URL);
+
+// Clean up stale online connections on startup
+try {
+  const resetResult = await User.updateMany({}, {
+    isOnline: false,
+    socketId: null,
+    isPartnerAvailable: false,
+  });
+  console.log("Database startup cleanup completed. Reset result:", resetResult);
+} catch (error) {
+  console.error("Database startup cleanup failed:", error);
+}
+
 const app = express();
 app.use(express.json());
 const server = http.createServer(app);

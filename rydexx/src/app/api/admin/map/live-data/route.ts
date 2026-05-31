@@ -20,6 +20,7 @@ export async function GET() {
     const drivers = await User.find({
       role: "partner",
       isOnline: true,
+      partnerStatus: "approved",
       location: { $exists: true },
     }).select("name mobileNumber location image socketId lastLocationAt _id").lean();
 
