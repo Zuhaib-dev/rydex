@@ -27,6 +27,46 @@ try {
   console.error("Database startup cleanup failed:", error);
 }
 
+// Enable Redis keyspace event notifications for key expiration (Ex)
+try {
+  await redisPub.config("SET", "notify-keyspace-events", "Ex");
+  console.log("Redis keyspace events notifications configured successfully.");
+} catch (error) {
+  console.error("Failed to configure Redis keyspace events:", error.message);
+}
+
+// Listen to expired keyspace events for auto-offline
+redisSub.subscribe("__keyevent@0__:expired", (err) => {
+  if (err) {
+    console.error("Failed to subscribe to Redis expiration channel:", err.message);
+  } else {
+    console.log("Subscribed to Redis keyspace expiration notifications.");
+  }
+});
+
+redisSub.on("message", async (channel, message) => {
+  if (channel === "__keyevent@0__:expired") {
+    if (message.startsWith("presence:driver:")) {
+      const driverId = message.split(":")[2];
+      console.log(`Presence heartbeat expired for driver ${driverId}. Mark offline.`);
+      try {
+        const updateResult = await User.updateOne(
+          { _id: driverId },
+          {
+            isOnline: false,
+            socketId: null,
+            isPartnerAvailable: false,
+          }
+        );
+        console.log(`Driver ${driverId} marked offline. Result:`, updateResult);
+        notifyAdminMapThrottled();
+      } catch (err) {
+        console.error(`Error processing offline expiry for driver ${driverId}:`, err);
+      }
+    }
+  }
+});
+
 const app = express();
 app.use(express.json());
 const server = http.createServer(app);
@@ -291,6 +331,10 @@ io.on("connection", (socket) => {
     }
 
     await User.updateOne({ _id: socket.userId }, update);
+
+    if (user?.role === "partner") {
+      notifyAdminMapThrottled();
+    }
   });
 });
 
