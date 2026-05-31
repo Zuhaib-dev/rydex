@@ -28,6 +28,7 @@ export async function GET() {
     const onlinePartners = await User.countDocuments({
       role: "partner",
       isOnline: true,
+      partnerStatus: "approved",
     });
     const activeRides = await Booking.countDocuments({
       status: { $in: ["requested", "awaiting_payment", "confirmed", "arriving", "arrived", "started"] },
