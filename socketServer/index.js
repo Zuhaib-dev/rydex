@@ -27,6 +27,14 @@ try {
   console.error("Database startup cleanup failed:", error);
 }
 
+// Clean up active driver locations GeoSet in Redis on startup
+try {
+  await redisPub.del("driver:locations:active");
+  console.log("Redis active locations cleared on startup.");
+} catch (error) {
+  console.error("Failed to clear Redis active locations on startup:", error.message);
+}
+
 // Enable Redis keyspace event notifications for key expiration (Ex)
 try {
   await redisPub.config("SET", "notify-keyspace-events", "Ex");
@@ -59,6 +67,8 @@ redisSub.on("message", async (channel, message) => {
           }
         );
         console.log(`Driver ${driverId} marked offline. Result:`, updateResult);
+        // Remove from active driver locations GeoSet
+        await redisPub.zrem("driver:locations:active", driverId);
         notifyAdminMapThrottled();
       } catch (err) {
         console.error(`Error processing offline expiry for driver ${driverId}:`, err);
@@ -288,6 +298,9 @@ io.on("connection", (socket) => {
       // Refresh Redis presence heartbeat
       await redisPub.set(`presence:driver:${socket.userId}`, "online", "EX", 10);
 
+      // Store coordinate in Redis active driver locations GeoSet
+      await redisPub.geoadd("driver:locations:active", longitude, latitude, socket.userId);
+
       io.to("admin-dashboard").emit("admin-driver-location", {
         driverId: String(user._id),
         latitude,
@@ -307,6 +320,7 @@ io.on("connection", (socket) => {
       await redisPub.set(`presence:driver:${socket.userId}`, "online", "EX", 10);
     } else {
       await redisPub.del(`presence:driver:${socket.userId}`);
+      await redisPub.zrem("driver:locations:active", socket.userId);
     }
 
     await User.updateOne({ _id: socket.userId }, {
@@ -328,6 +342,7 @@ io.on("connection", (socket) => {
       update.isOnline = false;
       // Remove presence key on clean disconnect
       await redisPub.del(`presence:driver:${socket.userId}`);
+      await redisPub.zrem("driver:locations:active", socket.userId);
     }
 
     await User.updateOne({ _id: socket.userId }, update);
