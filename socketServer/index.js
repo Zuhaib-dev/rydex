@@ -3,8 +3,12 @@ import http from "http";
 import dotenv from "dotenv";
 import { Server } from "socket.io";
 import axios from "axios";
+import Redis from "ioredis";
 
 dotenv.config();
+
+const redisPub = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
+const redisSub = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
 
 import mongoose from "mongoose";
 import User from "./models/user.models.js";
@@ -177,6 +181,9 @@ io.on("connection", (socket) => {
     }
 
     if (user?.role === "partner") {
+      // Set driver presence in Redis (10s TTL)
+      await redisPub.set(`presence:driver:${userId}`, "online", "EX", 10);
+
       await User.updateOne({ _id: userId }, {
         isPartnerAvailable: true,
       });
@@ -238,6 +245,9 @@ io.on("connection", (socket) => {
     ).lean();
 
     if (user?.role === "partner") {
+      // Refresh Redis presence heartbeat
+      await redisPub.set(`presence:driver:${socket.userId}`, "online", "EX", 10);
+
       io.to("admin-dashboard").emit("admin-driver-location", {
         driverId: String(user._id),
         latitude,
@@ -251,11 +261,17 @@ io.on("connection", (socket) => {
   socket.on("partner-availability", async ({ available }) => {
     if (!socket.userId) return;
 
+    const isAvailable = Boolean(available);
+
+    if (isAvailable) {
+      await redisPub.set(`presence:driver:${socket.userId}`, "online", "EX", 10);
+    } else {
+      await redisPub.del(`presence:driver:${socket.userId}`);
+    }
+
     await User.updateOne({ _id: socket.userId }, {
-      isPartnerAvailable: Boolean(available),
-      ...(available
-        ? { isOnline: true }
-        : { isPartnerAvailable: false }),
+      isPartnerAvailable: isAvailable,
+      isOnline: isAvailable,
     });
   });
 
@@ -270,6 +286,8 @@ io.on("connection", (socket) => {
 
     if (user?.role === "partner") {
       update.isOnline = false;
+      // Remove presence key on clean disconnect
+      await redisPub.del(`presence:driver:${socket.userId}`);
     }
 
     await User.updateOne({ _id: socket.userId }, update);
