@@ -157,8 +157,9 @@ export async function POST(req: Request) {
     scheduledAt: snapshot.scheduledAt,
   });
 
-  quote.usedAt = new Date();
-  await quote.save();
+  // Delete the cached quote from Redis now that the booking has been converted
+  const redis = getRedisClient();
+  await redis.del(`quote:${quoteId}`);
 
   let dispatch = null;
 
