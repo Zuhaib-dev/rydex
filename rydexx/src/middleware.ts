@@ -11,7 +11,7 @@ const PUBLIC_ROUTES = [
   "/terms",
 ];
 
-const PUBLIC_PREFIXES = ["/ride/"];
+const PUBLIC_PREFIXES = ["/share/"];
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
