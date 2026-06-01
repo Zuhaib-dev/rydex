@@ -17,5 +17,9 @@ export const getRedisClient = (): Redis => {
     maxRetriesPerRequest: null, // Critical for Redis queues/streams
   });
 
+  cached.client.on("error", (err) => {
+    console.error("Redis Client Error:", err.message);
+  });
+
   return cached.client;
 };

@@ -15,6 +15,12 @@ const redisSub = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
 const socketPub = redisPub.duplicate();
 const socketSub = redisPub.duplicate();
 
+// Prevent unhandled rejection crashes during transient connection dropouts
+redisPub.on("error", (err) => console.error("Redis Pub Client Error:", err.message));
+redisSub.on("error", (err) => console.error("Redis Sub Client Error:", err.message));
+socketPub.on("error", (err) => console.error("Redis SocketPub Client Error:", err.message));
+socketSub.on("error", (err) => console.error("Redis SocketSub Client Error:", err.message));
+
 import mongoose from "mongoose";
 import User from "./models/user.models.js";
 
