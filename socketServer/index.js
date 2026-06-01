@@ -65,6 +65,7 @@ redisSub.subscribe("__keyevent@0__:expired", (err) => {
 
 redisSub.on("message", async (channel, message) => {
   if (channel === "__keyevent@0__:expired") {
+    // ── Presence heartbeat expiration → mark partner offline ──
     if (message.startsWith("presence:driver:")) {
       const driverId = message.split(":")[2];
       console.log(`Presence heartbeat expired for driver ${driverId}. Mark offline.`);
@@ -78,11 +79,41 @@ redisSub.on("message", async (channel, message) => {
           }
         );
         console.log(`Driver ${driverId} marked offline. Result:`, updateResult);
-        // Remove from active driver locations GeoSet
         await redisPub.zrem("driver:locations:active", driverId);
         notifyAdminMapThrottled();
       } catch (err) {
         console.error(`Error processing offline expiry for driver ${driverId}:`, err);
+      }
+    }
+
+    // ── Dispatch timer expiration → cascade to next driver ──
+    if (message.startsWith("dispatch:timer:")) {
+      const bookingId = message.replace("dispatch:timer:", "");
+      // Prevent double-cascade: check if in-memory timer already handled it
+      if (activeTimers.has(bookingId)) {
+        console.log(`[RedisDispatch] Skipping cascade for ${bookingId} — in-memory timer still active.`);
+        return;
+      }
+      console.log(`[RedisDispatch] dispatch:timer:${bookingId} expired via Redis keyspace. Triggering cascade...`);
+      try {
+        const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
+        const cascadeSecret = process.env.CASCADE_INTERNAL_SECRET;
+        // Retrieve driverId from Redis before the key was deleted by expiration
+        // (We store it in a companion key that lasts slightly longer)
+        const driverIdRaw = await redisPub.get(`dispatch:driver:${bookingId}`);
+        await axios.post(
+          `${nextBaseUrl.replace(/\/+$/, "")}/api/booking/${bookingId}/cascade`,
+          { driverId: driverIdRaw || undefined },
+          {
+            timeout: 10000,
+            ...(cascadeSecret ? { headers: { "x-cascade-secret": cascadeSecret } } : {}),
+          }
+        );
+      } catch (err) {
+        console.warn(`[RedisDispatch] Cascade error for booking ${bookingId}:`, err.message);
+      } finally {
+        // Clean up companion key
+        await redisPub.del(`dispatch:driver:${bookingId}`).catch(() => {});
       }
     }
   }
@@ -187,15 +218,39 @@ app.post("/emit", async (req, res) => {
       const bookingId = String(data._id);
       const driverId = String(data.driver);
 
+      // Clear any existing timers for this booking
       if (activeTimers.has(bookingId)) {
         clearTimeout(activeTimers.get(bookingId));
+        activeTimers.delete(bookingId);
       }
 
       console.log(`Starting 20s matchmaker countdown for booking ${bookingId}, targeting driver ${driverId}`);
 
+      // ── Primary: Redis key expiration (crash-resilient across server restarts) ──
+      // Store driverId in a companion key with 25s TTL (slight buffer after the 20s timer)
+      let redisTimerSet = false;
+      try {
+        await redisPub.set(`dispatch:timer:${bookingId}`, "1", "EX", 20);
+        await redisPub.set(`dispatch:driver:${bookingId}`, driverId, "EX", 25);
+        redisTimerSet = true;
+        console.log(`[RedisDispatch] Set dispatch:timer:${bookingId} (20s TTL)`);
+      } catch (err) {
+        console.warn(`[RedisDispatch] Redis timer unavailable, using in-memory fallback:`, err.message);
+      }
+
+      // ── Fallback: in-memory setTimeout (works when Redis keyspace events unavailable) ──
       const timer = setTimeout(async () => {
         try {
-          console.log(`Booking ${bookingId} dispatch timed out for driver ${driverId}. Triggering cascade...`);
+          // If Redis timer is handling it, skip (prevents double-cascade)
+          const timerStillExists = redisTimerSet
+            ? await redisPub.exists(`dispatch:timer:${bookingId}`).catch(() => 0)
+            : 0;
+          if (timerStillExists) {
+            console.log(`[InMemoryTimer] Redis timer still active for ${bookingId}, deferring to Redis.`);
+            return;
+          }
+
+          console.log(`[InMemoryTimer] Booking ${bookingId} dispatch timed out. Triggering cascade...`);
           const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
           const cascadeSecret = process.env.CASCADE_INTERNAL_SECRET;
           await axios.post(
@@ -207,13 +262,14 @@ app.post("/emit", async (req, res) => {
             }
           );
         } catch (err) {
-          console.warn(`Error running cascade for booking ${bookingId}:`, err.message);
+          console.warn(`[InMemoryTimer] Cascade error for booking ${bookingId}:`, err.message);
         } finally {
           activeTimers.delete(bookingId);
         }
       }, 20000);
 
       activeTimers.set(bookingId, timer);
+
     } else if (event === "booking-updated" && data?.bookingId && data?.status) {
       const bookingId = String(data.bookingId);
       const status = String(data.status);
@@ -222,6 +278,9 @@ app.post("/emit", async (req, res) => {
         console.log(`Clearing matchmaking timer for booking ${bookingId} (status updated to ${status})`);
         clearTimeout(activeTimers.get(bookingId));
         activeTimers.delete(bookingId);
+        // Also clean up Redis dispatch keys
+        redisPub.del(`dispatch:timer:${bookingId}`).catch(() => {});
+        redisPub.del(`dispatch:driver:${bookingId}`).catch(() => {});
       }
     }
 
