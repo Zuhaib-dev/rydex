@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import SurgeZone from "@/models/surgeZone.model";
+import { getRedisClient } from "@/lib/redis";
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,6 +27,10 @@ export async function POST(request: NextRequest) {
       area, // { type: 'Polygon', coordinates: [[[lng,lat],...]] }
       isActive: true
     });
+
+    // Invalidate Redis surge zones cache
+    const redis = getRedisClient();
+    await redis.del("cache:surge_zones");
 
     await notifyAdminDashboard({ scope: "map", reason: "surge-zone-created" });
 
@@ -52,6 +57,10 @@ export async function DELETE(request: NextRequest) {
 
     await dbConnect();
     await SurgeZone.findByIdAndDelete(id);
+
+    // Invalidate Redis surge zones cache
+    const redis = getRedisClient();
+    await redis.del("cache:surge_zones");
 
     await notifyAdminDashboard({ scope: "map", reason: "surge-zone-deleted" });
 
