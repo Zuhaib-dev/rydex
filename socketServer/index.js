@@ -13,7 +13,7 @@ const redisSub = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
 
 // Dedicated Redis clients for Socket.IO horizontal scaling
 const socketPub = redisPub.duplicate();
-const socketSub = redisPub.duplicate();
+const socketSub = redisPub.duplicate(); 
 
 // Prevent unhandled rejection crashes during transient connection dropouts
 redisPub.on("error", (err) => console.error("Redis Pub Client Error:", err.message));
