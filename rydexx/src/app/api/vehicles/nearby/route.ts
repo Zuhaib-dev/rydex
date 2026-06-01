@@ -62,6 +62,7 @@ export async function POST(req: NextRequest) {
       vehicleType: resolvedType,
       excludePartnerIds: [],
       radiusMeters,
+      skipLock: true,
     });
 
     if (!nearest) {

@@ -41,6 +41,7 @@ type FindOptions = {
   radiusMeters: number;
   /** When true, walks all radius tiers until a match or exhaustion */
   expandRadius?: boolean;
+  skipLock?: boolean;
 };
 
 function toObjectIds(ids: string[]) {
@@ -171,11 +172,13 @@ export async function findClosestEligiblePartner(
     const roadMeters = straightMeters;
 
     // --- Distributed Lock (Redlock) ---
-    const lockKey = `lock:driver:${pid}`;
-    const acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
-    if (acquired !== "OK") {
-      console.log(`[Redlock] Driver ${pid} is locked by another dispatch. Skipping...`);
-      continue;
+    if (!options.skipLock) {
+      const lockKey = `lock:driver:${pid}`;
+      const acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
+      if (acquired !== "OK") {
+        console.log(`[Redlock] Driver ${pid} is locked by another dispatch. Skipping...`);
+        continue;
+      }
     }
 
     return {
