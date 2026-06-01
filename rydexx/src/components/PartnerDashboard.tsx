@@ -68,8 +68,13 @@ function PartnerDashboard() {
              setPolledCompletedSteps(u.partnerOnboardingSteps);
           }
         }
-      } catch {
-        // silently ignore poll errors
+      } catch (error: any) {
+        if (error.response?.status === 404 || error.response?.status === 401) {
+          import("next-auth/react").then(({ signOut }) => {
+            signOut({ callbackUrl: "/signin" });
+          });
+        }
+        // silently ignore other poll errors
       }
     };
 

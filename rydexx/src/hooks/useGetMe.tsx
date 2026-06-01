@@ -15,8 +15,13 @@ function useGetMe(enabled:boolean) {
         try {
           const { data } = await axios.get("/api/user/me");
           dispatch(setUserData(data.user));
-        } catch (error) {
+        } catch (error: any) {
           console.log(error);
+          if (error.response?.status === 404 || error.response?.status === 401) {
+            import("next-auth/react").then(({ signOut }) => {
+              signOut({ callbackUrl: "/signin" });
+            });
+          }
         }
       };
       getMe();
