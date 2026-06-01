@@ -5,6 +5,7 @@ import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
 import Booking from "@/models/booking.model";
 import SurgeZone from "@/models/surgeZone.model";
+import { getRedisClient } from "@/lib/redis";
 
 export async function GET() {
   try {
@@ -47,8 +48,27 @@ export async function GET() {
       status: { $in: ["arriving", "started"] }
     }).select("pickupLocation dropLocation driver status user sosTriggered sosTriggeredAt").lean();
 
-    // 3. Fetch active surge zones
-    const surgeZones = await SurgeZone.find({ isActive: true }).lean();
+    // 3. Fetch active surge zones (with Redis cache fallback, 2-minute TTL)
+    const redis = getRedisClient();
+    const cacheKey = "cache:surge_zones";
+    let surgeZones = null;
+    try {
+      const cachedZones = await redis.get(cacheKey);
+      if (cachedZones) {
+        surgeZones = JSON.parse(cachedZones);
+      }
+    } catch (err) {
+      console.error("Redis error reading surge zones cache:", err);
+    }
+
+    if (!surgeZones) {
+      surgeZones = await SurgeZone.find({ isActive: true }).lean();
+      try {
+        await redis.set(cacheKey, JSON.stringify(surgeZones), "EX", 120);
+      } catch (err) {
+        console.error("Redis error writing surge zones cache:", err);
+      }
+    }
 
     return NextResponse.json({
       success: true,
