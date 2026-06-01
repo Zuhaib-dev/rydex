@@ -14,11 +14,28 @@ export const getRedisClient = (): Redis => {
   }
 
   cached.client = new Redis(redisUrl, {
-    maxRetriesPerRequest: null, // Critical for Redis queues/streams
+    maxRetriesPerRequest: null,
+    // Do not block app startup waiting for Redis — fail fast and let callers handle it
+    enableReadyCheck: false,
+    lazyConnect: false,
+    connectTimeout: 5000,
+    retryStrategy(times) {
+      // Retry up to 3 times with short backoff, then stop retrying
+      if (times > 3) return null;
+      return Math.min(times * 200, 1000);
+    },
   });
 
   cached.client.on("error", (err) => {
-    console.error("Redis Client Error:", err.message);
+    console.error("[Redis] Client error:", err.message);
+  });
+
+  cached.client.on("connect", () => {
+    console.log("[Redis] Connected successfully.");
+  });
+
+  cached.client.on("ready", () => {
+    console.log("[Redis] Client is ready.");
   });
 
   return cached.client;
