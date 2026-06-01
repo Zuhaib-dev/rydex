@@ -41,14 +41,9 @@ type FindOptions = {
   radiusMeters: number;
   /** When true, walks all radius tiers until a match or exhaustion */
   expandRadius?: boolean;
+  /** When true, skips distributed locking (for read-only preview searches) */
   skipLock?: boolean;
 };
-
-function toObjectIds(ids: string[]) {
-  return ids
-    .filter(Boolean)
-    .map((id) => new mongoose.Types.ObjectId(id));
-}
 
 async function getBusyPartnerIds(candidateIds: mongoose.Types.ObjectId[]) {
   if (!candidateIds.length) return new Set<string>();
@@ -62,8 +57,117 @@ async function getBusyPartnerIds(candidateIds: mongoose.Types.ObjectId[]) {
 }
 
 /**
+ * Try to get nearby driver IDs from Redis GeoSet.
+ * Returns null if Redis is unavailable or GeoSet is empty —
+ * callers should fall back to MongoDB $near.
+ */
+async function getNearbyIdsFromRedis(
+  pickupCoordinates: LngLat,
+  radiusMeters: number,
+  withDist: true
+): Promise<Map<string, number> | null>;
+async function getNearbyIdsFromRedis(
+  pickupCoordinates: LngLat,
+  radiusMeters: number,
+  withDist: false
+): Promise<string[] | null>;
+async function getNearbyIdsFromRedis(
+  pickupCoordinates: LngLat,
+  radiusMeters: number,
+  withDist: boolean
+): Promise<Map<string, number> | string[] | null> {
+  try {
+    const redis = getRedisClient();
+
+    if (withDist) {
+      const results = (await redis.geosearch(
+        "driver:locations:active",
+        "FROMLONLAT",
+        pickupCoordinates[0],
+        pickupCoordinates[1],
+        "BYRADIUS",
+        radiusMeters,
+        "m",
+        "ASC",
+        "WITHDIST"
+      )) as Array<[string, string]>;
+
+      if (!results || results.length === 0) return null;
+
+      const map = new Map<string, number>();
+      for (const [id, dist] of results) {
+        map.set(id, parseFloat(dist));
+      }
+      return map;
+    } else {
+      const results = (await redis.geosearch(
+        "driver:locations:active",
+        "FROMLONLAT",
+        pickupCoordinates[0],
+        pickupCoordinates[1],
+        "BYRADIUS",
+        radiusMeters,
+        "m",
+        "ASC"
+      )) as string[];
+
+      if (!results || results.length === 0) return null;
+      return results;
+    }
+  } catch (err) {
+    console.warn("[findPartner] Redis GeoSearch failed, will use MongoDB fallback:", err);
+    return null;
+  }
+}
+
+/**
+ * MongoDB $near fallback — returns candidate IDs sorted by proximity.
+ * Used when Redis is unavailable or GeoSet is empty.
+ */
+async function getNearbyIdsFromMongo(
+  pickupCoordinates: LngLat,
+  radiusMeters: number,
+  excludePartnerIds: string[],
+): Promise<string[]> {
+  const locationCutoff = new Date(Date.now() - MATCH_LOCATION_MAX_AGE_MS);
+  const excludeObjectIds = excludePartnerIds
+    .filter(Boolean)
+    .map((id) => new mongoose.Types.ObjectId(id));
+
+  const partners = await User.find({
+    role: "partner",
+    isOnline: true,
+    isPartnerAvailable: { $ne: false },
+    partnerStatus: "approved",
+    isPartnerBlocked: { $ne: true },
+    ...(excludeObjectIds.length ? { _id: { $nin: excludeObjectIds } } : {}),
+    $or: [
+      { lastLocationAt: { $gte: locationCutoff } },
+      {
+        lastLocationAt: { $exists: false },
+        updatedAt: { $gte: locationCutoff },
+        "location.coordinates.0": { $exists: true },
+      },
+    ],
+    location: {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: pickupCoordinates,
+        },
+        $maxDistance: radiusMeters,
+      },
+    },
+  })
+    .select("_id")
+    .lean();
+
+  return partners.map((p) => String(p._id));
+}
+
+/**
  * Finds the closest eligible partner+vehicle for a pickup point.
- * Uses MongoDB $near for geo index efficiency, then filters in-memory.
+ * Tries Redis GeoSet first for sub-millisecond lookup, falls back to MongoDB $near.
  */
 export async function findClosestEligiblePartner(
   options: FindOptions,
@@ -75,37 +179,31 @@ export async function findClosestEligiblePartner(
     radiusMeters,
   } = options;
 
-  const redis = getRedisClient();
-  const redisGeoResults = (await redis.geosearch(
-    "driver:locations:active",
-    "FROMLONLAT",
-    pickupCoordinates[0],
-    pickupCoordinates[1],
-    "BYRADIUS",
-    radiusMeters,
-    "m",
-    "ASC",
-    "WITHDIST"
-  )) as Array<[string, string]>;
+  // --- Step 1: Get nearby candidate IDs (Redis first, MongoDB fallback) ---
+  let nearbyDriverIds: string[];
+  let driverGeoMap = new Map<string, number>();
 
-  if (!redisGeoResults || redisGeoResults.length === 0) {
-    return null;
+  const redisResult = await getNearbyIdsFromRedis(pickupCoordinates, radiusMeters, true);
+
+  if (redisResult !== null) {
+    // Redis fast-path succeeded
+    driverGeoMap = redisResult;
+    nearbyDriverIds = Array.from(redisResult.keys());
+  } else {
+    // Redis unavailable or empty — fall back to MongoDB
+    console.log("[findPartner] Using MongoDB $near fallback for candidate lookup");
+    nearbyDriverIds = await getNearbyIdsFromMongo(pickupCoordinates, radiusMeters, excludePartnerIds);
   }
 
-  const driverGeoMap = new Map<string, number>();
-  const nearbyDriverIds: string[] = [];
-  for (const [id, dist] of redisGeoResults) {
-    driverGeoMap.set(id, parseFloat(dist));
-    nearbyDriverIds.push(id);
-  }
+  if (nearbyDriverIds.length === 0) return null;
 
-  const excludeStrIds = new Set(excludePartnerIds.map(id => String(id)));
-  const candidateIds = nearbyDriverIds.filter(id => !excludeStrIds.has(id));
-  if (candidateIds.length === 0) {
-    return null;
-  }
+  // --- Step 2: Filter out excluded partners ---
+  const excludeStrIds = new Set(excludePartnerIds.map((id) => String(id)));
+  const candidateIds = nearbyDriverIds.filter((id) => !excludeStrIds.has(id));
+  if (candidateIds.length === 0) return null;
 
-  const candidateObjectIds = candidateIds.map(id => new mongoose.Types.ObjectId(id));
+  // --- Step 3: Fetch partner details from MongoDB ---
+  const candidateObjectIds = candidateIds.map((id) => new mongoose.Types.ObjectId(id));
   const locationCutoff = new Date(Date.now() - MATCH_LOCATION_MAX_AGE_MS);
 
   const partners = await User.find({
@@ -135,9 +233,10 @@ export async function findClosestEligiblePartner(
   }
 
   const sortedPartners = candidateIds
-    .map(id => partnerMap.get(id))
+    .map((id) => partnerMap.get(id))
     .filter(Boolean) as typeof partners;
 
+  // --- Step 4: Check busy partners and fetch vehicles ---
   const partnerIds = sortedPartners.map((p) => p._id as mongoose.Types.ObjectId);
   const busyIds = await getBusyPartnerIds(partnerIds);
 
@@ -155,6 +254,7 @@ export async function findClosestEligiblePartner(
     vehicleByOwner.set(String(v.owner), v);
   }
 
+  // --- Step 5: Pick first available, non-busy partner with a vehicle and optional lock ---
   for (const partner of sortedPartners) {
     const pid = String(partner._id);
     if (busyIds.has(pid)) continue;
@@ -165,19 +265,23 @@ export async function findClosestEligiblePartner(
     const coords = partner.location?.coordinates as LngLat | undefined;
     if (!coords?.length) continue;
 
-    const straightMeters = driverGeoMap.get(pid) ?? estimateRoadDistanceMeters(
-      pickupCoordinates,
-      coords,
-    );
+    const straightMeters =
+      driverGeoMap.get(pid) ?? estimateRoadDistanceMeters(pickupCoordinates, coords);
     const roadMeters = straightMeters;
 
-    // --- Distributed Lock (Redlock) ---
+    // --- Distributed Lock (Redlock) — skip for preview searches ---
     if (!options.skipLock) {
-      const lockKey = `lock:driver:${pid}`;
-      const acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
-      if (acquired !== "OK") {
-        console.log(`[Redlock] Driver ${pid} is locked by another dispatch. Skipping...`);
-        continue;
+      try {
+        const redis = getRedisClient();
+        const lockKey = `lock:driver:${pid}`;
+        const acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
+        if (acquired !== "OK") {
+          console.log(`[Redlock] Driver ${pid} is locked by another dispatch. Skipping...`);
+          continue;
+        }
+      } catch (err) {
+        console.warn("[findPartner] Redis lock failed, proceeding without lock:", err);
+        // Don't block matching if Redis lock is unavailable — continue without it
       }
     }
 
@@ -226,23 +330,22 @@ export async function countEligiblePartners(
   vehicleType: string,
   radiusMeters: number,
 ): Promise<number> {
-  const redis = getRedisClient();
-  const redisGeoResults = (await redis.geosearch(
-    "driver:locations:active",
-    "FROMLONLAT",
-    pickupCoordinates[0],
-    pickupCoordinates[1],
-    "BYRADIUS",
-    radiusMeters,
-    "m",
-    "ASC"
-  )) as string[];
+  // Try Redis first
+  const redisIds = await getNearbyIdsFromRedis(pickupCoordinates, radiusMeters, false);
 
-  if (!redisGeoResults || redisGeoResults.length === 0) {
-    return 0;
+  let candidateIds: string[];
+
+  if (redisIds !== null) {
+    candidateIds = redisIds as string[];
+  } else {
+    // Redis unavailable — fall back to MongoDB $near
+    console.log("[countEligiblePartners] Using MongoDB $near fallback");
+    candidateIds = await getNearbyIdsFromMongo(pickupCoordinates, radiusMeters, []);
   }
 
-  const candidateObjectIds = redisGeoResults.map(id => new mongoose.Types.ObjectId(id));
+  if (candidateIds.length === 0) return 0;
+
+  const candidateObjectIds = candidateIds.map((id) => new mongoose.Types.ObjectId(id));
   const locationCutoff = new Date(Date.now() - MATCH_LOCATION_MAX_AGE_MS);
 
   const partners = await User.find({
@@ -281,7 +384,6 @@ export async function countEligiblePartners(
   const ownersWithVehicle = new Set(vehicles.map((v) => String(v.owner)));
 
   return partners.filter(
-    (p) =>
-      !busyIds.has(String(p._id)) && ownersWithVehicle.has(String(p._id)),
+    (p) => !busyIds.has(String(p._id)) && ownersWithVehicle.has(String(p._id)),
   ).length;
 }
