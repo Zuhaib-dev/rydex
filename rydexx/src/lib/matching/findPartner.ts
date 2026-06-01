@@ -222,7 +222,7 @@ export async function findClosestEligiblePartner(
       },
     ],
   })
-    .select("_id mobileNumber name location ratingAverage ratingCount")
+    .select("_id mobileNumber name location ratingAverage ratingCount updatedAt")
     .lean();
 
   if (!partners.length) return null;
@@ -232,9 +232,24 @@ export async function findClosestEligiblePartner(
     partnerMap.set(String(p._id), p);
   }
 
-  const sortedPartners = candidateIds
-    .map((id) => partnerMap.get(id))
-    .filter(Boolean) as typeof partners;
+  // Fair-share priority scoring:
+  //   score = distanceKm - (idleHours * 0.15) + (rating * 0.1)
+  //   Lower score = higher priority (closer + idler + higher-rated wins)
+  const nowMs = Date.now();
+  const scored = candidateIds
+    .map((id) => {
+      const partner = partnerMap.get(id);
+      if (!partner) return null;
+      const distanceKm = (driverGeoMap.get(id) ?? 5000) / 1000;
+      const idleHours = (nowMs - new Date(partner.updatedAt as Date).getTime()) / 3_600_000;
+      const rating = partner.ratingAverage ?? 0;
+      const score = distanceKm - idleHours * 0.15 + rating * 0.1;
+      return { partner, score };
+    })
+    .filter(Boolean) as { partner: typeof partners[0]; score: number }[];
+
+  scored.sort((a, b) => a.score - b.score);
+  const sortedPartners = scored.map((s) => s.partner);
 
   // --- Step 4: Check busy partners and fetch vehicles ---
   const partnerIds = sortedPartners.map((p) => p._id as mongoose.Types.ObjectId);
