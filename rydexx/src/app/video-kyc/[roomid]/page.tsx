@@ -39,6 +39,7 @@ export default function VideoKYCRoom() {
   const partnerId = roomid?.split("-").slice(1, -1).join("-") ?? "";
 
   const isInitializing = useRef<string | null>(null);
+  const isUnmounting = useRef(false);
 
   const startCall = async () => {
     if (!containerRef.current || !roomid || zpRef.current || isInitializing.current) {
@@ -101,8 +102,10 @@ export default function VideoKYCRoom() {
           mode: ZegoUIKitPrebuilt.OneONoneCall,
         },
         onLeaveRoom: () => {
-          setCallState("ended");
-          setShowPostCall(isAdmin);
+          if (!isUnmounting.current) {
+            setCallState("ended");
+            setShowPostCall(isAdmin);
+          }
         },
       });
     } catch (error) {
@@ -114,11 +117,13 @@ export default function VideoKYCRoom() {
 
   // Auto-start on mount with stable dependencies
   useEffect(() => {
+    isUnmounting.current = false;
     if (userData?._id) {
       startCall();
     }
 
     return () => {
+      isUnmounting.current = true;
       if (zpRef.current) {
         console.log("Cleaning up Zego instance");
         try {

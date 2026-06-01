@@ -203,12 +203,21 @@ export default function RidePage() {
     }
   };
 
-  /* ── FETCH ── */
   const fetchBooking = async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/booking/${id}`);
-      if (!res.ok) throw new Error("Failed to fetch booking");
+      
+      if (res.status === 401) {
+        router.push("/signin");
+        return;
+      }
+      
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.message || "Failed to fetch booking");
+      }
+      
       const data = await res.json();
       setBooking(data);
       setPickupPos([
