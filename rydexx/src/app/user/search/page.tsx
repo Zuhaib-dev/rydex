@@ -120,6 +120,8 @@ function SearchContent() {
   const [discountApplied, setDiscountApplied] = useState(false);
 
   const [notification, setNotification] = useState<string | null>(null);
+  // Geo-fence state — set when quote API returns cashOnly flag
+  const [cashOnlyZone, setCashOnlyZone] = useState<{ reason: string; zoneName?: string } | null>(null);
 
   const triggerToast = (msg: string) => {
     setNotification(msg);
@@ -290,13 +292,30 @@ function SearchContent() {
         }),
       });
       const data = await res.json();
+
+      // Geo-fence: blocked zone
+      if (res.status === 403 && data.code === "GEO_BLOCKED") {
+        alert(`🚫 ${data.message}`);
+        return;
+      }
+
       if (!res.ok || !data.quoteId) {
         alert(data.message || "Could not lock fare");
         return;
       }
+
+      // Geo-fence: cash-only zone — update payment method and show notice
+      if (data.cashOnly) {
+        setPaymentMethod("cash");
+        setCashOnlyZone({ reason: data.cashOnlyReason, zoneName: data.cashOnlyZone });
+      } else {
+        setCashOnlyZone(null);
+      }
+
       const url = new URLSearchParams({
         quoteId: data.quoteId,
         mobileNumber: params.get("mobileNumber") || "",
+        ...(data.cashOnly ? { cashOnly: "true" } : {}),
       });
       router.push(`/checkout?${url.toString()}`);
     } catch {
