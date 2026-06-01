@@ -236,27 +236,46 @@ io.on("connection", (socket) => {
   socket.on("identity", async (userId) => {
     socket.userId = userId;
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      {
-        socketId: socket.id,
-        isOnline: true,
-      },
-      { returnDocument: "after", select: "role" },
-    ).lean();
+    const user = await User.findById(userId).select("role location").lean();
+    if (!user) return;
 
-    if (user?.role === "admin") {
+    const now = new Date();
+    const updateFields = {
+      socketId: socket.id,
+      isOnline: true,
+    };
+
+    if (user.role === "admin") {
       socket.join("admin-dashboard");
     }
 
-    if (user?.role === "partner") {
-      // Set driver presence in Redis (10s TTL)
-      await redisPub.set(`presence:driver:${userId}`, "online", "EX", 10);
+    if (user.role === "partner") {
+      // Set driver presence in Redis (60s TTL for lag resilience)
+      await redisPub.set(`presence:driver:${userId}`, "online", "EX", 60);
 
-      await User.updateOne({ _id: userId }, {
-        isPartnerAvailable: true,
-      });
+      updateFields.isPartnerAvailable = true;
+
+      const hasCoordinates = user.location?.coordinates && user.location.coordinates.length === 2;
+      if (hasCoordinates) {
+        updateFields.lastLocationAt = now;
+        updateFields.lastLocationUpdate = now;
+
+        const [longitude, latitude] = user.location.coordinates;
+        // Seed driver location in GeoSet immediately so they are instantly discoverable
+        await redisPub.geoadd("driver:locations:active", longitude, latitude, userId);
+
+        // Notify admin map of the driver location immediately
+        io.to("admin-dashboard").emit("admin-driver-location", {
+          driverId: String(user._id),
+          latitude,
+          longitude,
+          at: now.getTime(),
+        });
+        notifyAdminMapThrottled();
+      }
     }
+
+    await User.updateOne({ _id: userId }, updateFields);
   });
 
   socket.on("join-admin", async () => {
@@ -334,8 +353,8 @@ io.on("connection", (socket) => {
     ).lean();
 
     if (user?.role === "partner") {
-      // Refresh Redis presence heartbeat
-      await redisPub.set(`presence:driver:${socket.userId}`, "online", "EX", 10);
+      // Refresh Redis presence heartbeat (60s TTL)
+      await redisPub.set(`presence:driver:${socket.userId}`, "online", "EX", 60);
 
       // Store coordinate in Redis active driver locations GeoSet
       await redisPub.geoadd("driver:locations:active", longitude, latitude, socket.userId);
@@ -356,7 +375,7 @@ io.on("connection", (socket) => {
     const isAvailable = Boolean(available);
 
     if (isAvailable) {
-      await redisPub.set(`presence:driver:${socket.userId}`, "online", "EX", 10);
+      await redisPub.set(`presence:driver:${socket.userId}`, "online", "EX", 60);
     } else {
       await redisPub.del(`presence:driver:${socket.userId}`);
       await redisPub.zrem("driver:locations:active", socket.userId);
