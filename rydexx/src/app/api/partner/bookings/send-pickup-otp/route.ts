@@ -36,17 +36,7 @@ export async function POST(req: Request) {
 
     await booking.save();
 
-    if (booking.user?.email) {
-      await sendMail(
-        booking.user.email,
-        "Your Pickup OTP - RYDEX",
-        getOtpEmailTemplate(
-          otp,
-          "Your driver has arrived! Share this OTP with your driver to start the ride.",
-          "Pickup OTP",
-        ),
-      );
-    }
+    // Email sending removed as per user request (OTP relies on real-time toast notifications)
 
     await emitBookingUpdated(booking, {
       bookingId: booking._id,
