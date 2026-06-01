@@ -4,11 +4,16 @@ import dotenv from "dotenv";
 import { Server } from "socket.io";
 import axios from "axios";
 import Redis from "ioredis";
+import { createAdapter } from "@socket.io/redis-adapter";
 
 dotenv.config();
 
 const redisPub = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
 const redisSub = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
+
+// Dedicated Redis clients for Socket.IO horizontal scaling
+const socketPub = redisPub.duplicate();
+const socketSub = redisPub.duplicate();
 
 import mongoose from "mongoose";
 import User from "./models/user.models.js";
@@ -105,6 +110,14 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
   },
 });
+
+// Configure Socket.IO Redis Adapter for horizontal scalability
+try {
+  io.adapter(createAdapter(socketPub, socketSub));
+  console.log("Socket.IO Redis Adapter configured successfully.");
+} catch (error) {
+  console.error("Failed to configure Socket.IO Redis Adapter:", error);
+}
 
 app.get("/", (req, res) => {
   res.json({ success: true, service: "rydex-socket-server" });
