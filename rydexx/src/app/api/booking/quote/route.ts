@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { createLockedBookingQuote } from "@/lib/createBookingQuote";
 import { snapshotToClientPayload } from "@/lib/bookingSnapshot";
 import { isRateLimited } from "@/lib/rateLimit";
+import { checkBookingGeoFence } from "@/lib/geoFence";
 
 export async function POST(req: Request) {
   const session = await auth();
@@ -50,6 +51,20 @@ export async function POST(req: Request) {
     );
   }
 
+  // ── Kashmir Geo-Fence Check ──
+  const geoFence = await checkBookingGeoFence(pickupLat, pickupLng, dropLat, dropLng);
+
+  if (!geoFence.allowed) {
+    return NextResponse.json(
+      {
+        message: geoFence.reason || "Bookings are not available for this route.",
+        code: "GEO_BLOCKED",
+        zoneName: geoFence.zoneName,
+      },
+      { status: 403 },
+    );
+  }
+
   const result = await createLockedBookingQuote({
     userId: session.user.id,
     pickupAddress,
@@ -77,5 +92,9 @@ export async function POST(req: Request) {
     quoteId: result.quoteId,
     expiresAt: result.expiresAt,
     snapshot: snapshotToClientPayload(result.snapshot),
+    // Include geo-fence cash-only flag so frontend can update payment UI
+    cashOnly: geoFence.cashOnly,
+    cashOnlyReason: geoFence.cashOnly ? geoFence.reason : undefined,
+    cashOnlyZone: geoFence.cashOnly ? geoFence.zoneName : undefined,
   });
 }
