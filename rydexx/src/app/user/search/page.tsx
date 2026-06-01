@@ -502,6 +502,25 @@ function SearchContent() {
 
         {/* Payment & Coupon footer splits */}
         <div className="p-6 bg-zinc-50 border-t border-zinc-200 space-y-4">
+
+          {/* Cash-Only Zone Notice Banner */}
+          <AnimatePresence>
+            {cashOnlyZone && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="flex items-start gap-2.5 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3"
+              >
+                <Info size={14} className="text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-[10px] font-black text-amber-800 uppercase tracking-wider">Cash-Only Zone{cashOnlyZone.zoneName ? ` — ${cashOnlyZone.zoneName}` : ""}</p>
+                  <p className="text-[11px] text-amber-700 mt-0.5 leading-relaxed">{cashOnlyZone.reason}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex justify-between items-center text-xs font-bold">
             <span className="text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
               <CreditCard size={14} />
@@ -509,14 +528,16 @@ function SearchContent() {
             </span>
             <div className="flex bg-zinc-200/60 p-0.5 rounded-lg text-3xs">
               <button
-                onClick={() => setPaymentMethod("upi")}
-                className={`px-2 py-1 rounded transition ${paymentMethod === "upi" ? "bg-white shadow-xs font-black" : "text-gray-500"}`}
+                onClick={() => !cashOnlyZone && setPaymentMethod("upi")}
+                disabled={!!cashOnlyZone}
+                className={`px-2 py-1 rounded transition ${paymentMethod === "upi" ? "bg-white shadow-xs font-black" : "text-gray-500"} ${cashOnlyZone ? "opacity-40 cursor-not-allowed" : ""}`}
               >
                 UPI
               </button>
               <button
-                onClick={() => setPaymentMethod("card")}
-                className={`px-2 py-1 rounded transition ${paymentMethod === "card" ? "bg-white shadow-xs font-black" : "text-gray-500"}`}
+                onClick={() => !cashOnlyZone && setPaymentMethod("card")}
+                disabled={!!cashOnlyZone}
+                className={`px-2 py-1 rounded transition ${paymentMethod === "card" ? "bg-white shadow-xs font-black" : "text-gray-500"} ${cashOnlyZone ? "opacity-40 cursor-not-allowed" : ""}`}
               >
                 Card
               </button>
@@ -556,6 +577,7 @@ function SearchContent() {
           </div>
         </div>
       </div>
+
 
       {/* ── RIGHT PANEL (MAP VIEWPORT) ── */}
       <div className="col-span-12 lg:col-span-8 h-full relative z-0">
