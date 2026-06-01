@@ -13,8 +13,6 @@ import {
 import type { LngLat } from "@/lib/matching/geo";
 import { tripDistanceKmFromCoords } from "@/lib/fare";
 
-const QUOTE_TTL_MS = 30 * 60 * 1000;
-
 type CreateQuoteInput = {
   userId: string;
   pickupAddress: string;
@@ -87,21 +85,37 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
     scheduledAt: input.scheduledAt,
   };
 
-  // Generate a valid MongoDB ObjectId on the client-side
   const quoteId = new mongoose.Types.ObjectId().toString();
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10-minute expiration
 
-  const quoteData = {
-    _id: quoteId,
-    user: input.userId,
-    ...snapshot,
-    driverId: input.driverId,
-    expiresAt: expiresAt.toISOString(),
-  };
+  // Try Redis first — fall back to MongoDB if Redis is unavailable
+  let storedInRedis = false;
+  try {
+    const redis = getRedisClient();
+    const quoteData = {
+      _id: quoteId,
+      user: input.userId,
+      ...snapshot,
+      driverId: input.driverId,
+      expiresAt: expiresAt.toISOString(),
+    };
+    await redis.set(`quote:${quoteId}`, JSON.stringify(quoteData), "EX", 600);
+    storedInRedis = true;
+  } catch (err) {
+    console.warn("[createLockedBookingQuote] Redis unavailable, falling back to MongoDB:", err);
+  }
 
-  // Cache in Redis for 10 minutes (600 seconds)
-  const redis = getRedisClient();
-  await redis.set(`quote:${quoteId}`, JSON.stringify(quoteData), "EX", 600);
+  // MongoDB fallback — always write when Redis failed
+  if (!storedInRedis) {
+    await BookingQuote.create({
+      _id: quoteId,
+      user: input.userId,
+      ...snapshot,
+      vehicleId: new mongoose.Types.ObjectId(String(snapshot.vehicleId)),
+      driverId: input.driverId ? new mongoose.Types.ObjectId(input.driverId) : undefined,
+      expiresAt,
+    });
+  }
 
   return {
     success: true as const,
@@ -112,18 +126,32 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
 }
 
 export async function loadValidQuote(quoteId: string, userId: string) {
-  const redis = getRedisClient();
-  const data = await redis.get(`quote:${quoteId}`);
-  if (!data) return null;
-
+  // 1. Try Redis first
   try {
-    const quote = JSON.parse(data);
-    if (String(quote.user) !== String(userId)) return null;
-    if (quote.usedAt) return null;
-    if (new Date(quote.expiresAt) < new Date()) return null;
-    return quote;
-  } catch (error) {
-    console.error("Failed to parse quote from Redis:", error);
+    const redis = getRedisClient();
+    const data = await redis.get(`quote:${quoteId}`);
+    if (data) {
+      const quote = JSON.parse(data);
+      if (String(quote.user) !== String(userId)) return null;
+      if (quote.usedAt) return null;
+      if (new Date(quote.expiresAt) < new Date()) return null;
+      return quote;
+    }
+  } catch (err) {
+    console.warn("[loadValidQuote] Redis unavailable, falling back to MongoDB:", err);
+  }
+
+  // 2. MongoDB fallback
+  try {
+    const doc = await BookingQuote.findOne({
+      _id: quoteId,
+      user: userId,
+      expiresAt: { $gt: new Date() },
+      usedAt: { $exists: false },
+    }).lean();
+    return doc || null;
+  } catch (err) {
+    console.error("[loadValidQuote] MongoDB fallback also failed:", err);
     return null;
   }
 }

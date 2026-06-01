@@ -76,24 +76,41 @@ export async function POST(req: Request) {
       "mobileNumber isOnline isPartnerAvailable partnerStatus",
     );
 
-    const redis = getRedisClient();
-    const lockKey = `lock:driver:${matchedDriverId}`;
-    const acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
+    let acquired: string | null = null;
+    try {
+      const redis = getRedisClient();
+      const lockKey = `lock:driver:${matchedDriverId}`;
+      acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
 
-    if (
-      driver &&
-      driver.partnerStatus === "approved" &&
-      driver.isOnline &&
-      driver.isPartnerAvailable !== false &&
-      acquired === "OK"
-    ) {
-      matchedDriverMobile = driver.mobileNumber || "";
-    } else {
-      if (acquired === "OK") {
-        await redis.del(lockKey);
+      if (
+        driver &&
+        driver.partnerStatus === "approved" &&
+        driver.isOnline &&
+        driver.isPartnerAvailable !== false &&
+        acquired === "OK"
+      ) {
+        matchedDriverMobile = driver.mobileNumber || "";
+      } else {
+        if (acquired === "OK") {
+          await redis.del(`lock:driver:${matchedDriverId}`);
+        }
+        matchedDriverId = undefined;
+        matchedVehicleId = undefined;
       }
-      matchedDriverId = undefined;
-      matchedVehicleId = undefined;
+    } catch (err) {
+      console.warn("[booking/create] Redis lock unavailable, proceeding without lock:", err);
+      // If Redis is down, still proceed if driver looks valid in MongoDB
+      if (
+        driver &&
+        driver.partnerStatus === "approved" &&
+        driver.isOnline &&
+        driver.isPartnerAvailable !== false
+      ) {
+        matchedDriverMobile = driver.mobileNumber || "";
+      } else {
+        matchedDriverId = undefined;
+        matchedVehicleId = undefined;
+      }
     }
   }
 
@@ -158,8 +175,12 @@ export async function POST(req: Request) {
   });
 
   // Delete the cached quote from Redis now that the booking has been converted
-  const redis = getRedisClient();
-  await redis.del(`quote:${quoteId}`);
+  try {
+    const redis = getRedisClient();
+    await redis.del(`quote:${quoteId}`);
+  } catch (err) {
+    console.warn("[booking/create] Redis quote cleanup failed (non-critical):", err);
+  }
 
   let dispatch = null;
 
