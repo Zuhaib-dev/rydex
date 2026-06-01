@@ -1,7 +1,9 @@
+import mongoose from "mongoose";
 import connectDb from "@/lib/db";
 import Vehicle from "@/models/vehicle.model";
 import BookingQuote from "@/models/bookingQuote.model";
 import { fetchDrivingRoute } from "@/lib/mapboxRouting";
+import { getRedisClient } from "@/lib/redis";
 import { calculateTripFare } from "@/lib/fare";
 import {
   PRICING_VERSION,
@@ -85,29 +87,45 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
     scheduledAt: input.scheduledAt,
   };
 
-  const quote = await BookingQuote.create({
+  // Generate a valid MongoDB ObjectId on the client-side
+  const quoteId = new mongoose.Types.ObjectId().toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10-minute expiration
+
+  const quoteData = {
+    _id: quoteId,
     user: input.userId,
     ...snapshot,
     driverId: input.driverId,
-    expiresAt: new Date(Date.now() + QUOTE_TTL_MS),
-  });
+    expiresAt: expiresAt.toISOString(),
+  };
+
+  // Cache in Redis for 10 minutes (600 seconds)
+  const redis = getRedisClient();
+  await redis.set(`quote:${quoteId}`, JSON.stringify(quoteData), "EX", 600);
 
   return {
     success: true as const,
-    quoteId: String(quote._id),
+    quoteId,
     snapshot,
-    expiresAt: quote.expiresAt,
+    expiresAt,
   };
 }
 
 export async function loadValidQuote(quoteId: string, userId: string) {
-  await connectDb();
-  const quote = await BookingQuote.findById(quoteId);
-  if (!quote) return null;
-  if (String(quote.user) !== String(userId)) return null;
-  if (quote.usedAt) return null;
-  if (quote.expiresAt < new Date()) return null;
-  return quote;
+  const redis = getRedisClient();
+  const data = await redis.get(`quote:${quoteId}`);
+  if (!data) return null;
+
+  try {
+    const quote = JSON.parse(data);
+    if (String(quote.user) !== String(userId)) return null;
+    if (quote.usedAt) return null;
+    if (new Date(quote.expiresAt) < new Date()) return null;
+    return quote;
+  } catch (error) {
+    console.error("Failed to parse quote from Redis:", error);
+    return null;
+  }
 }
 
 export function quoteToSnapshot(quote: {
@@ -144,6 +162,6 @@ export function quoteToSnapshot(quote: {
     kashmirAdjusted: quote.kashmirAdjusted,
     passengers: quote.passengers,
     notes: quote.notes,
-    scheduledAt: quote.scheduledAt,
+    scheduledAt: quote.scheduledAt ? new Date(quote.scheduledAt) : undefined,
   };
 }
