@@ -104,7 +104,7 @@ export default function AdminAnalyticsHub() {
             <h3 className="text-lg font-bold">Revenue & Ride Volume</h3>
           </div>
           <div className="h-80 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <ComposedChart data={data.dailyStats}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis dataKey="date" tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
@@ -136,7 +136,7 @@ export default function AdminAnalyticsHub() {
             <h3 className="text-lg font-bold">Driver Status</h3>
           </div>
           <div className="flex-1 min-h-[250px] relative">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <PieChart>
                 <Pie
                   data={data.driverStats}
@@ -197,7 +197,7 @@ export default function AdminAnalyticsHub() {
             </div>
           </div>
           <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
               <AreaChart data={data.dailyStats}>
                 <defs>
                   <linearGradient id="colorDuration" x1="0" y1="0" x2="0" y2="1">
