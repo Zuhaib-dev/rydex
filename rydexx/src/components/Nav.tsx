@@ -73,6 +73,24 @@ export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const profileRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+  // Lock scroll when either menu or mobile profile sheet is open
+  useScrollLock(menuOpen || profileOpen);
+  useFocusTrap(mobileMenuRef, menuOpen);
+  useFocusTrap(profileRef, profileOpen);
+
+  // Global Escape Listener for menus
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (menuOpen) setMenuOpen(false);
+        if (profileOpen) setProfileOpen(false);
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [menuOpen, profileOpen]);
 
   const dispatch = useDispatch<AppDispatch>();
   const { userData } = useSelector((state: RootState) => state.user);
@@ -329,8 +347,11 @@ export default function Nav() {
 
             {/* BURGER */}
             <button
+              aria-label="Toggle navigation menu"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-menu"
               onClick={() => setMenuOpen((p) => !p)}
-              className="md:hidden text-white"
+              className="md:hidden text-white focus-visible:ring-2 focus-visible:ring-white rounded p-1"
             >
               {menuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
