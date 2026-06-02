@@ -105,6 +105,8 @@ export default function PartnerAnalyticsHub() {
   const [timeframe, setTimeframe] = useState<TimeframeType>("daily");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [userStats, setUserStats] = useState<any>(null);
 
   // Enterprise Live State Simulation
   const [vehicles, setVehicles] = useState<FleetVehicle[]>([
@@ -133,15 +135,18 @@ export default function PartnerAnalyticsHub() {
   const [notification, setNotification] = useState<string | null>(null);
 
   useEffect(() => {
-    axios
-      .get("/api/partner/analytics")
-      .then((res) => {
-        if (res.data?.success) {
-          setData(res.data.data);
-        }
-      })
-      .catch((err) => console.error("Error fetching analytics data:", err))
-      .finally(() => setLoading(false));
+    Promise.all([
+      axios.get("/api/partner/analytics").catch(() => null),
+      axios.get("/api/partner/analytics/leaderboard").catch(() => null)
+    ]).then(([analyticsRes, leaderboardRes]) => {
+      if (analyticsRes?.data?.success) {
+        setData(analyticsRes.data.data);
+      }
+      if (leaderboardRes?.data?.success) {
+        setLeaderboard(leaderboardRes.data.data.leaderboard || []);
+        setUserStats(leaderboardRes.data.data.userStats || null);
+      }
+    }).finally(() => setLoading(false));
   }, []);
 
   const triggerToast = (msg: string) => {
