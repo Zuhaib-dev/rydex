@@ -524,6 +524,9 @@ function AdminDashboardContent() {
                 </div>
               )}
 
+              {/* --- VIEW: ANALYTICS --- */}
+              {activeTab === "analytics" && <AdminAnalyticsHub />}
+
               {/* --- VIEW: LIVE MAP --- */}
               {activeTab === "map" && <AdminLiveMap />}
 
