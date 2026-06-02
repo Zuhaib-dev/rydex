@@ -48,9 +48,13 @@ const getMaxSeats = (type: VehicleType | null): number => {
   return 2; // loading, truck
 };
 
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+
 export default function BookPage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
+  const userData = useSelector((state: RootState) => state.user.userData);
 
   // Client Hydration Check
   useEffect(() => {
@@ -62,6 +66,12 @@ export default function BookPage() {
   const [drop, setDrop] = useState("");
   const [vehicle, setVehicle] = useState<VehicleType | null>(null);
   const [mobile, setMobile] = useState("");
+  
+  useEffect(() => {
+    if (userData?.mobileNumber) {
+      setMobile(userData.mobileNumber);
+    }
+  }, [userData?.mobileNumber]);
   const [passengerCount, setPassengerCount] = useState(1);
   const [notes, setNotes] = useState("");
 

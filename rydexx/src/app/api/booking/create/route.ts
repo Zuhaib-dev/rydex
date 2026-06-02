@@ -145,6 +145,11 @@ export async function POST(req: Request) {
       { status: 404 },
     );
   }
+  if (mobileNumber) {
+    await User.findByIdAndUpdate(session.user.id, {
+      $set: { mobileNumber },
+    });
+  }
 
   const booking = await Booking.create({
     user: session.user.id,
