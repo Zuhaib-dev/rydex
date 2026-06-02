@@ -33,6 +33,8 @@ export interface IUser extends Document {
   ratingAverage: number;
   ratingCount: number;
   praiseTags: Map<string, number>;
+  isPremiumPartner?: boolean;
+  lifetimeRides?: number;
 }
 const userSchema = new mongoose.Schema<IUser>(
   {
