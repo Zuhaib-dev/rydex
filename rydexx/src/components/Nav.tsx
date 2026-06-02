@@ -305,8 +305,11 @@ export default function Nav() {
               ) : (
                 <>
                   <button
+                    aria-haspopup="true"
+                    aria-expanded={profileOpen}
+                    aria-controls="profile-menu"
                     onClick={() => setProfileOpen((p) => !p)}
-                    className="w-11 h-11 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold shrink-0"
+                    className="w-11 h-11 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold shrink-0 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                     aria-label="Open profile menu"
                   >
                     <UserAvatar image={profileImage} name={profileName} />
@@ -336,8 +339,11 @@ export default function Nav() {
                 </button>
               ) : (
                 <button
+                    aria-haspopup="true"
+                    aria-expanded={profileOpen}
+                    aria-controls="profile-menu-mobile"
                     onClick={() => setProfileOpen(true)}
-                    className="w-9 h-9 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold shrink-0"
+                    className="w-9 h-9 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold shrink-0 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                     aria-label="Open profile menu"
                   >
                     <UserAvatar image={profileImage} name={profileName} />
@@ -375,6 +381,10 @@ export default function Nav() {
 
       {/* Menu Panel */}
       <motion.div
+        id="mobile-menu"
+        ref={mobileMenuRef}
+        role="dialog"
+        aria-modal="true"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
