@@ -81,6 +81,7 @@ redisSub.on("message", async (channel, message) => {
         console.log(`Driver ${driverId} marked offline. Result:`, updateResult);
         await redisPub.zrem("driver:locations:active", driverId);
         notifyAdminMapThrottled();
+        notifyPublicAvailabilityThrottled("presence-expired");
       } catch (err) {
         console.error(`Error processing offline expiry for driver ${driverId}:`, err);
       }
@@ -166,6 +167,7 @@ app.get("/health", (req, res) => {
 
 const activeTimers = new Map();
 let adminMapNotifyTimer = null;
+let publicAvailabilityNotifyTimer = null;
 
 function notifyAdminMapThrottled() {
   if (adminMapNotifyTimer) return;
@@ -176,6 +178,17 @@ function notifyAdminMapThrottled() {
       at: Date.now(),
     });
     adminMapNotifyTimer = null;
+  }, 1000);
+}
+
+function notifyPublicAvailabilityThrottled(reason = "availability") {
+  if (publicAvailabilityNotifyTimer) return;
+  publicAvailabilityNotifyTimer = setTimeout(() => {
+    io.emit("driver-availability-updated", {
+      reason,
+      at: Date.now(),
+    });
+    publicAvailabilityNotifyTimer = null;
   }, 1000);
 }
 
@@ -346,6 +359,7 @@ io.on("connection", (socket) => {
           at: now.getTime(),
         });
         notifyAdminMapThrottled();
+        notifyPublicAvailabilityThrottled("location");
       }
     }
 
@@ -440,6 +454,7 @@ io.on("connection", (socket) => {
         at: now.getTime(),
       });
       notifyAdminMapThrottled();
+      notifyPublicAvailabilityThrottled("location");
     }
   });
 
@@ -459,6 +474,7 @@ io.on("connection", (socket) => {
       isPartnerAvailable: isAvailable,
       isOnline: isAvailable,
     });
+    notifyPublicAvailabilityThrottled("availability");
   });
 
   socket.on("disconnect", async () => {
@@ -481,6 +497,7 @@ io.on("connection", (socket) => {
 
     if (user?.role === "partner") {
       notifyAdminMapThrottled();
+      notifyPublicAvailabilityThrottled("disconnect");
     }
   });
 });

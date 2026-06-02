@@ -209,7 +209,12 @@ export default function RidePage() {
       const res = await fetch(`/api/booking/${id}`);
       
       if (res.status === 401) {
-        router.push("/signin");
+        router.push("/");
+        return;
+      }
+
+      if (res.status === 403) {
+        router.push("/");
         return;
       }
       

@@ -5,23 +5,23 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
 import {
-  ArrowLeft, MapPin, Navigation,
+  ArrowLeft, MapPin,
   Bike, Car, Truck, Clock, Route,
-  Zap, Search, RefreshCw, Star, Info,
-  Compass, CreditCard, Ticket, Check
+  RefreshCw, Info,
+  Compass, CreditCard
 } from "lucide-react";
 import VehicleBookingCard from "@/components/VehicleBookingCard";
+import { getSocket } from "@/lib/socket";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
 
-type VehicleMeta = {
-  label: string;
-  Icon: typeof Bike;
-};
+type VehicleType = "bike" | "auto" | "car" | "loading" | "truck";
+
+const VEHICLE_TYPES: readonly VehicleType[] = ["bike", "auto", "car", "loading", "truck"];
 
 type NearbyVehicle = {
   _id: string;
-  type: "bike" | "auto" | "car" | "loading" | "truck";
+  type: VehicleType;
   vehicleModel: string;
   vehicleNumber: string;
   imageUrl?: string;
@@ -41,15 +41,18 @@ type NearbyVehicle = {
     | string;
 };
 
-const VEHICLE_META: Record<string, VehicleMeta> = {
-  bike:    { label: "Bike",    Icon: Bike  },
-  auto:    { label: "Auto",    Icon: Car   },
-  car:     { label: "Car",     Icon: Car   },
-  loading: { label: "Loading", Icon: Truck },
-  truck:   { label: "Truck",   Icon: Truck },
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
+type MapboxFeature = {
+  place_name: string;
+  center: [number, number];
 };
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+function parseVehicleType(value: string | null): VehicleType {
+  return VEHICLE_TYPES.includes(value as VehicleType)
+    ? (value as VehicleType)
+    : "car";
+}
 
 function estimateRoadKm(
   pickupLat: number,
@@ -97,14 +100,15 @@ function SearchContent() {
   const [dropLng, setDropLng] = useState(Number(params.get("dropLng")) || 0);
 
   // Discovery UI States
-  const [selectedType, setSelectedType] = useState<"bike" | "auto" | "car" | "loading" | "truck">(
-    (params.get("vehicle") as any) || "car"
+  const [selectedType, setSelectedType] = useState<VehicleType>(
+    parseVehicleType(params.get("vehicle"))
   );
   const [vehicles, setVehicles] = useState<NearbyVehicle[]>([]);
   const [nearbyCount, setNearbyCount] = useState(0);
   const [searchRadiusKm, setSearchRadiusKm] = useState<number | null>(null);
   const [km, setKm] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
+  const [refreshingAvailability, setRefreshingAvailability] = useState(false);
   const [lockingFare, setLockingFare] = useState(false);
 
   // Autocomplete suggestions state
@@ -113,11 +117,9 @@ function SearchContent() {
   const [suggestLoading, setSuggestLoading] = useState(false);
 
   // Bottom Sheet Height state for mobile (peeking, half-height, or fully-expanded)
-  const [sheetState, setSheetState] = useState<"peek" | "half" | "full">("half");
-
   const [paymentMethod, setPaymentMethod] = useState<"card" | "upi" | "cash">("upi");
   const [couponCode, setCouponCode] = useState("");
-  const [discountApplied, setDiscountApplied] = useState(false);
+  const [, setDiscountApplied] = useState(false);
 
   const [notification, setNotification] = useState<string | null>(null);
   // Geo-fence state — set when quote API returns cashOnly flag
@@ -128,7 +130,6 @@ function SearchContent() {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  const meta = VEHICLE_META[selectedType];
   const fallbackTripKm = useMemo(
     () => estimateRoadKm(pickupLat, pickupLng, dropLat, dropLng),
     [pickupLat, pickupLng, dropLat, dropLng],
@@ -140,9 +141,20 @@ function SearchContent() {
   const hasRouteCoordinates = hasPickupCoordinates && Number.isFinite(dropLat) && Number.isFinite(dropLng) && dropLat !== 0;
 
   // Nearby vehicles fetcher
-  const fetchNearbyVehicles = useCallback(async (lat: number, lng: number, type: string) => {
+  const fetchNearbyVehicles = useCallback(async (
+    lat: number,
+    lng: number,
+    type: string,
+    options: { silent?: boolean } = {},
+  ) => {
+    if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat === 0) return;
+
     try {
-      setLoading(true);
+      if (options.silent) {
+        setRefreshingAvailability(true);
+      } else {
+        setLoading(true);
+      }
       const res = await fetch("/api/vehicles/nearby", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -162,12 +174,46 @@ function SearchContent() {
       console.error(err);
     } finally {
       setLoading(false);
+      setRefreshingAvailability(false);
     }
   }, []);
 
   useEffect(() => {
     if (!hasPickupCoordinates) return;
     fetchNearbyVehicles(pickupLat, pickupLng, selectedType);
+  }, [fetchNearbyVehicles, hasPickupCoordinates, pickupLat, pickupLng, selectedType]);
+
+  useEffect(() => {
+    if (!hasPickupCoordinates) return;
+
+    let refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    const refreshNearby = () => {
+      if (refreshTimer) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        void fetchNearbyVehicles(pickupLat, pickupLng, selectedType, { silent: true });
+      }, 250);
+    };
+
+    const socket = getSocket();
+    socket.on("driver-availability-updated", refreshNearby);
+    socket.on("connect", refreshNearby);
+
+    const interval = window.setInterval(refreshNearby, 5000);
+    const handleVisibility = () => {
+      if (!document.hidden) refreshNearby();
+    };
+    window.addEventListener("focus", refreshNearby);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      if (refreshTimer) window.clearTimeout(refreshTimer);
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshNearby);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      socket.off("driver-availability-updated", refreshNearby);
+      socket.off("connect", refreshNearby);
+    };
   }, [fetchNearbyVehicles, hasPickupCoordinates, pickupLat, pickupLng, selectedType]);
 
   // Autocomplete Geocoding lookup
@@ -187,7 +233,7 @@ function SearchContent() {
       );
       const data = await res.json();
       if (data.features) {
-        const list = data.features.map((f: any) => {
+        const list = (data.features as MapboxFeature[]).map((f) => {
           const [lng, lat] = f.center;
           return { name: f.place_name, lat, lng };
         });
@@ -473,8 +519,13 @@ function SearchContent() {
         <div className="p-6 flex-1 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-xs font-black uppercase tracking-widest text-zinc-400">Available Quotes</h3>
-            <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-100 px-2 py-0.5 rounded-full font-bold">
-              {vehicles.length > 0 ? "Best price locked" : "No vehicle"}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[9px] font-bold text-emerald-700">
+              {refreshingAvailability && <RefreshCw size={9} className="animate-spin" />}
+              {refreshingAvailability
+                ? "Live updating"
+                : vehicles.length > 0
+                  ? `${nearbyCount} nearby within ${searchRadiusKm ?? "?"} km`
+                  : "No vehicle"}
             </span>
           </div>
 
@@ -670,6 +721,12 @@ function SearchContent() {
               <div className="py-6 text-center text-xs text-zinc-400 animate-pulse">Searching nearby rides...</div>
             ) : vehicles.length > 0 ? (
               <div className="flex flex-col gap-3">
+                {refreshingAvailability && (
+                  <div className="flex items-center justify-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
+                    <RefreshCw size={11} className="animate-spin" />
+                    Live updating partners
+                  </div>
+                )}
                 <div className="flex justify-between items-center bg-zinc-50 border border-zinc-100 p-3 rounded-2xl">
                   <div>
                     <h4 className="text-xs font-black text-gray-900">{vehicles[0].vehicleModel}</h4>
