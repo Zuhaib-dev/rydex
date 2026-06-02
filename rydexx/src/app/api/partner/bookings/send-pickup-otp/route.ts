@@ -32,9 +32,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
-    if (!["arriving", "arrived"].includes(booking.status)) {
+    if (!["confirmed", "arriving", "arrived"].includes(booking.status)) {
       return NextResponse.json(
-        { message: "Driver must be arriving before sending pickup OTP" },
+        { message: "Driver must be confirmed or arriving before sending pickup OTP" },
         { status: 409 },
       );
     }
