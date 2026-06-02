@@ -17,8 +17,22 @@ import dynamic from "next/dynamic";
 
 const FrozenRouteMap = dynamic(
   () => import("@/components/map/FrozenRouteMap"),
-  { ssr: false },
+  { ssr: false, loading: () => <MapSkeleton /> }
 );
+
+function MapSkeleton() {
+  return (
+    <div className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[#0c0f14]">
+      <div className="absolute inset-0 bg-linear-to-b from-zinc-900/50 to-zinc-950" />
+      <div className="relative flex flex-col items-center gap-3">
+        <div className="h-12 w-12 animate-spin rounded-full border-2 border-white/10 border-t-landing-accent" />
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+          Loading map
+        </p>
+      </div>
+    </div>
+  );
+}
 
 type VehicleIconMap = Record<string, any>;
 const VEHICLE_ICONS: VehicleIconMap = {
