@@ -149,6 +149,14 @@ const userSchema = new mongoose.Schema<IUser>(
       type: Map,
       of: Number,
       default: {},
+    },
+    isPremiumPartner: {
+      type: Boolean,
+      default: false,
+    },
+    lifetimeRides: {
+      type: Number,
+      default: 0,
     }
   },
   { timestamps: true },
