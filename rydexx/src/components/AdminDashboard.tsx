@@ -21,6 +21,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
+  Bell,
 } from "lucide-react";
 import KPI from "./KPI";
 import { motion, AnimatePresence } from "motion/react";
@@ -42,13 +43,14 @@ import AdminLiveIndicator from "./admin/AdminLiveIndicator";
 import UserManagement from "./admin/UserManagement";
 import AuditLogs from "./admin/AuditLogs";
 import SystemHealth from "./admin/SystemHealth";
+import SendNotification from "./admin/SendNotification";
 
 // Import user context layouts to support client-side impersonation
 import Nav from "@/components/Nav";
 import PartnerDashboard from "@/components/PartnerDashboard";
 import PublicHome from "@/components/PublicHome";
 
-type TabType = "overview" | "map" | "queues" | "users" | "security" | "health";
+type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications";
 type QueueSubTab = "partner" | "kyc" | "vehicle";
 
 function AdminDashboardContent() {
@@ -155,6 +157,7 @@ function AdminDashboardContent() {
     { id: "map" as const, label: "Control Tower Map", icon: MapPin },
     { id: "queues" as const, label: "Operations Queue", icon: Clock, badge: totalPendingQueueCount },
     { id: "users" as const, label: "User Directory", icon: Users },
+    { id: "notifications" as const, label: "Broadcast", icon: Bell },
     { id: "security" as const, label: "Security Logs", icon: Lock },
     { id: "health" as const, label: "System Health", icon: Activity },
   ];
@@ -269,6 +272,7 @@ function AdminDashboardContent() {
                 {activeTab === "map" && "Control Tower Map"}
                 {activeTab === "queues" && "Operations Queue"}
                 {activeTab === "users" && "User Directory"}
+                {activeTab === "notifications" && "Broadcast Notifications"}
                 {activeTab === "security" && "Security Logs"}
                 {activeTab === "health" && "System Telemetry"}
               </h1>
@@ -589,6 +593,9 @@ function AdminDashboardContent() {
 
               {/* --- VIEW: USER MANAGEMENT --- */}
               {activeTab === "users" && <UserManagement />}
+
+              {/* --- VIEW: NOTIFICATIONS --- */}
+              {activeTab === "notifications" && <SendNotification />}
 
               {/* --- VIEW: SECURITY AUDIT --- */}
               {activeTab === "security" && <AuditLogs />}

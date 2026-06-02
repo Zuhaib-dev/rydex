@@ -27,6 +27,7 @@ import { signOut, useSession } from "next-auth/react";
 import { setUserData } from "@/redux/userSlice";
 import axios from "axios";
 import { getSocket } from "@/lib/socket";
+import NotificationBell from "./NotificationBell";
 
 const NAV_ITEMS = ["Home", "Bookings", "Fleet", "FAQ", "Contact"];
 const subscribeHydration = () => () => {};
@@ -282,9 +283,10 @@ export default function Nav() {
                 </button>
               ) : (
                 <>
+                  <NotificationBell />
                   <button
                     onClick={() => setProfileOpen((p) => !p)}
-                    className="w-11 h-11 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold"
+                    className="w-11 h-11 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold shrink-0"
                     aria-label="Open profile menu"
                   >
                     <UserAvatar image={profileImage} name={profileName} />
@@ -313,13 +315,16 @@ export default function Nav() {
                   Login
                 </button>
               ) : (
-                <button
-                  onClick={() => setProfileOpen(true)}
-                  className="w-9 h-9 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold"
-                  aria-label="Open profile menu"
-                >
-                  <UserAvatar image={profileImage} name={profileName} />
-                </button>
+                <div className="flex items-center gap-3">
+                  <NotificationBell />
+                  <button
+                    onClick={() => setProfileOpen(true)}
+                    className="w-9 h-9 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold shrink-0"
+                    aria-label="Open profile menu"
+                  >
+                    <UserAvatar image={profileImage} name={profileName} />
+                  </button>
+                </div>
               )}
             </div>
 
