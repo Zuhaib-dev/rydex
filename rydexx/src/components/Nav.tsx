@@ -271,6 +271,7 @@ export default function Nav() {
 
           {/* RIGHT */}
           <div className="flex items-center gap-3 relative">
+            {isLoggedIn && <NotificationBell />}
 
             {/* DESKTOP PROFILE */}
             <div className="hidden md:block relative" ref={profileRef}>
@@ -283,7 +284,6 @@ export default function Nav() {
                 </button>
               ) : (
                 <>
-                  <NotificationBell />
                   <button
                     onClick={() => setProfileOpen((p) => !p)}
                     className="w-11 h-11 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold shrink-0"
@@ -315,16 +315,13 @@ export default function Nav() {
                   Login
                 </button>
               ) : (
-                <div className="flex items-center gap-3">
-                  <NotificationBell />
-                  <button
+                <button
                     onClick={() => setProfileOpen(true)}
                     className="w-9 h-9 rounded-full overflow-hidden border border-white/20 flex items-center justify-center bg-white text-black font-bold shrink-0"
                     aria-label="Open profile menu"
                   >
                     <UserAvatar image={profileImage} name={profileName} />
                   </button>
-                </div>
               )}
             </div>
 
