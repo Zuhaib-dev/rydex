@@ -207,6 +207,12 @@ export default function DriverRidePage() {
               data.dropLocation.coordinates[0],
             ]);
           }
+          if (data.driver?.location?.coordinates) {
+            setDriverPos([
+              data.driver.location.coordinates[1],
+              data.driver.location.coordinates[0],
+            ]);
+          }
           if (data.status === "started") {
             setOtpVerified(true);
             setOtpMode(false);

@@ -388,13 +388,40 @@ io.on("connection", (socket) => {
     socket.leave(`booking-${bookingId}`);
   });
 
-  socket.on("driver-location-update", (data) => {
+  socket.on("driver-location-update", async (data) => {
     io.to(`booking-${data.bookingId}`) // ✅ already sahi
       .emit("driver-location", {
         latitude: data.latitude,
         longitude: data.longitude,
-        status: "arriving",
+        status: data.status || "arriving",
       });
+
+    if (socket.userId && typeof data.latitude === "number" && typeof data.longitude === "number") {
+      const now = new Date();
+      try {
+        await User.updateOne(
+          { _id: socket.userId },
+          {
+            location: {
+              type: "Point",
+              coordinates: [data.longitude, data.latitude],
+            },
+            lastLocationAt: now,
+            lastLocationUpdate: now,
+          }
+        );
+        await redisPub.geoadd("driver:locations:active", data.longitude, data.latitude, socket.userId);
+        io.to("admin-dashboard").emit("admin-driver-location", {
+          driverId: String(socket.userId),
+          latitude: data.latitude,
+          longitude: data.longitude,
+          at: now.getTime(),
+        });
+        notifyAdminMapThrottled();
+      } catch (err) {
+        console.error("Failed to update driver location in DB/Redis on driver-location-update:", err.message);
+      }
+    }
   });
 
   socket.on("chat-message", (msg) => {

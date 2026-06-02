@@ -13,11 +13,24 @@ export type RideSocketStatus =
 type UseRideSocketOptions = {
   bookingId: string | undefined;
   enabled?: boolean;
+  initialDriverLocation?: LatLng | null;
 };
 
 /** GPS + connection only. Booking state sync lives in useBookingRealtime. */
-export function useRideSocket({ bookingId, enabled = true }: UseRideSocketOptions) {
-  const [driverPosition, setDriverPosition] = useState<LatLng | null>(null);
+export function useRideSocket({
+  bookingId,
+  enabled = true,
+  initialDriverLocation,
+}: UseRideSocketOptions) {
+  const [driverPosition, setDriverPosition] = useState<LatLng | null>(
+    initialDriverLocation ?? null
+  );
+
+  useEffect(() => {
+    if (initialDriverLocation && !driverPosition) {
+      setDriverPosition(initialDriverLocation);
+    }
+  }, [initialDriverLocation, driverPosition]);
   const [connectionStatus, setConnectionStatus] =
     useState<RideSocketStatus>("connecting");
   const [lastLocationAt, setLastLocationAt] = useState<number | null>(null);

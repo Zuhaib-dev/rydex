@@ -54,7 +54,14 @@ type PaymentStatus = "pending" | "paid" | "cash" | "failed";
 
 interface BookingDetails {
   _id: string;
-  driver?: { _id: string; name: string };
+  driver?: {
+    _id: string;
+    name: string;
+    location?: {
+      type: string;
+      coordinates: [number, number];
+    };
+  };
   vehicle?: { vehicleModel: string; number: string };
   pickupAddress: string;
   dropAddress: string;
@@ -303,9 +310,14 @@ export default function RidePage() {
     fetchBooking();
   }, [id]);
 
+  const driverInitialLoc = booking?.driver?.location?.coordinates
+    ? ([booking.driver.location.coordinates[1], booking.driver.location.coordinates[0]] as [number, number])
+    : null;
+
   const { driverPosition: driverPos, connectionStatus, isLive } = useRideSocket({
     bookingId: id as string | undefined,
     enabled: Boolean(id && booking),
+    initialDriverLocation: driverInitialLoc,
   });
 
   useBookingRealtime<BookingDetails>({

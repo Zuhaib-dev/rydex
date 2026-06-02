@@ -130,10 +130,20 @@ export default function LiveRideMap({
   onStatsRef.current = onStats;
 
   const boundsPoints = useMemo(() => {
-    const pts: LatLng[] = [pickupLocation, dropLocation];
-    if (smoothDriver) pts.push(smoothDriver);
-    return pts;
-  }, [pickupLocation, dropLocation, smoothDriver]);
+    if (status === "arriving") {
+      const pts: LatLng[] = [pickupLocation];
+      if (smoothDriver) pts.push(smoothDriver);
+      return pts;
+    } else if (status === "ongoing") {
+      const pts: LatLng[] = [dropLocation];
+      if (smoothDriver) pts.push(smoothDriver);
+      return pts;
+    } else {
+      const pts: LatLng[] = [pickupLocation, dropLocation];
+      if (smoothDriver) pts.push(smoothDriver);
+      return pts;
+    }
+  }, [pickupLocation, dropLocation, smoothDriver, status]);
 
   // Pickup → Drop baseline route
   useEffect(() => {
