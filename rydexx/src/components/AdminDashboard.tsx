@@ -22,6 +22,7 @@ import {
   ChevronRight,
   ShieldAlert,
   Bell,
+  BarChart2,
 } from "lucide-react";
 import KPI from "./KPI";
 import { motion, AnimatePresence } from "motion/react";
@@ -44,13 +45,14 @@ import UserManagement from "./admin/UserManagement";
 import AuditLogs from "./admin/AuditLogs";
 import SystemHealth from "./admin/SystemHealth";
 import SendNotification from "./admin/SendNotification";
+import AdminAnalyticsHub from "./AdminAnalyticsHub";
 
 // Import user context layouts to support client-side impersonation
 import Nav from "@/components/Nav";
 import PartnerDashboard from "@/components/PartnerDashboard";
 import PublicHome from "@/components/PublicHome";
 
-type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications";
+type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications" | "analytics";
 type QueueSubTab = "partner" | "kyc" | "vehicle";
 
 function AdminDashboardContent() {
@@ -154,6 +156,7 @@ function AdminDashboardContent() {
 
   const navLinks = [
     { id: "overview" as const, label: "Overview", icon: LayoutDashboard },
+    { id: "analytics" as const, label: "Advanced Analytics", icon: BarChart2 },
     { id: "map" as const, label: "Control Tower Map", icon: MapPin },
     { id: "queues" as const, label: "Operations Queue", icon: Clock, badge: totalPendingQueueCount },
     { id: "users" as const, label: "User Directory", icon: Users },
