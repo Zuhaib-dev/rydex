@@ -11,6 +11,7 @@ import StatusCard from "./StatusCard";
 import VideoKYCBanner from "./VideoKYCBanner";
 import axios from "axios";
 import PartnerAnalyticsHub from "./PartnerAnalyticsHub";
+import WeatherWidget from "./WeatherWidget";
 
 function PartnerDashboard() {
   type step = {
@@ -108,6 +109,8 @@ function PartnerDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 px-4 pt-28 pb-20">
       <div className="max-w-6xl mx-auto">
+        {/* Weather Status */}
+        <WeatherWidget className="mb-8 max-w-sm" />
         {isFullyApproved ? (
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
