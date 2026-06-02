@@ -42,7 +42,7 @@ export default function NotificationBell() {
       setUnreadCount((c) => c + 1);
 
       // Show toast
-      toast.custom((t) => (
+      toast.custom((t: any) => (
         <div
           className={`${
             t.visible ? "animate-enter" : "animate-leave"
