@@ -1,4 +1,5 @@
 import { getRedisClient } from "./redis";
+import { randomUUID } from "crypto";
 
 /**
  * Checks if a key has exceeded a specific rate limit within a sliding time window.
@@ -20,10 +21,7 @@ export async function isRateLimited(
   const redisKey = `rate:limit:api:${key}`;
 
   try {
-    const requestId =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `${now}-${Math.random()}`;
+    const requestId = randomUUID();
 
     const result = await redis.eval(
       `
