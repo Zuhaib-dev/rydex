@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { emitBookingUpdated } from "@/lib/bookingEvents";
+import { auth } from "@/lib/auth";
 
 export async function POST(
   req: NextRequest,
@@ -10,12 +11,28 @@ export async function POST(
   const { id } = await context.params;
   await connectDb();
 
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
   const booking = await Booking.findById(id);
   if (!booking)
     return NextResponse.json({ message: "Not found" }, { status: 404 });
 
-booking.status = "started";
-booking.startedAt = new Date();
+  if (String(booking.driver) !== String(session.user.id)) {
+    return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+  }
+
+  if (booking.status !== "arrived") {
+    return NextResponse.json(
+      { message: "Booking must be arrived before it can start" },
+      { status: 409 },
+    );
+  }
+
+  booking.status = "started";
+  booking.startedAt = new Date();
 
   await booking.save();
 
