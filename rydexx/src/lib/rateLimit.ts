@@ -20,26 +20,33 @@ export async function isRateLimited(
   const redisKey = `rate:limit:api:${key}`;
 
   try {
-    const pipeline = redis.multi();
-    
-    // Remove entries older than the sliding window boundary
-    pipeline.zremrangebyscore(redisKey, 0, clearBefore);
-    // Count remaining request entries in the current window
-    pipeline.zcard(redisKey);
-    // Add the current request entry (using timestamp as score, and unique member string)
-    pipeline.zadd(redisKey, now, `${now}-${Math.random()}`);
-    // Set TTL on log to automatically clean up inactive keys
-    pipeline.expire(redisKey, windowSeconds + 1);
+    const requestId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${now}-${Math.random()}`;
 
-    const execResults = await pipeline.exec();
-    if (!execResults) {
-      return false; // Safely allow request on transaction failure
-    }
+    const result = await redis.eval(
+      `
+      redis.call("ZREMRANGEBYSCORE", KEYS[1], 0, ARGV[1])
+      local count = redis.call("ZCARD", KEYS[1])
+      if count >= tonumber(ARGV[3]) then
+        redis.call("EXPIRE", KEYS[1], ARGV[4])
+        return 1
+      end
+      redis.call("ZADD", KEYS[1], ARGV[2], ARGV[5])
+      redis.call("EXPIRE", KEYS[1], ARGV[4])
+      return 0
+      `,
+      1,
+      redisKey,
+      clearBefore,
+      now,
+      limit,
+      windowSeconds + 1,
+      requestId,
+    );
 
-    // Index 1 contains result of ZCARD command
-    const currentRequestCount = execResults[1][1] as number;
-    
-    return currentRequestCount >= limit;
+    return result === 1;
   } catch (error) {
     console.error(`Rate Limiter error for key ${key}:`, error);
     return false; // Fail open in production to prevent blocking users if Redis is down

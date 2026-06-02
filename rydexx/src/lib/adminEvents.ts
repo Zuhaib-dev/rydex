@@ -27,10 +27,14 @@ export async function notifyAdminDashboard(
   };
 
   try {
+    const socketSecret = process.env.SOCKET_INTERNAL_SECRET;
     await axios.post(
       `${SOCKET_SERVER.replace(/\/+$/, "")}/emit-admin`,
       { event: "admin-dashboard-update", data },
-      { timeout: 8000 },
+      {
+        timeout: 8000,
+        ...(socketSecret ? { headers: { "x-socket-secret": socketSecret } } : {}),
+      },
     );
   } catch (error) {
     console.warn("Admin dashboard notify failed:", error);

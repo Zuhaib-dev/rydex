@@ -1,13 +1,23 @@
 
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
+import { auth } from "@/lib/auth";
 
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req:NextRequest) {
     try {
         await connectDb()
+        const session = await auth()
+        if (!session?.user?.id) {
+            return NextResponse.json({message:"Unauthorized"},{status:401})
+        }
+
         const {userId,socketId}=await req.json()
+        if (!socketId || String(userId) !== String(session.user.id)) {
+            return NextResponse.json({message:"Forbidden"},{status:403})
+        }
+
         const user=await User.findByIdAndUpdate(userId,{
          socketId,
          isOnline:true

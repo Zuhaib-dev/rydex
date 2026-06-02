@@ -13,8 +13,10 @@ export async function emitToSocketServer(payload: {
   bookingId?: string;
 }) {
   try {
+    const socketSecret = process.env.SOCKET_INTERNAL_SECRET;
     await axios.post(`${SOCKET_SERVER.replace(/\/+$/, "")}/emit`, payload, {
       timeout: 8000,
+      ...(socketSecret ? { headers: { "x-socket-secret": socketSecret } } : {}),
     });
   } catch (error) {
     console.warn("Socket emit failed:", error);

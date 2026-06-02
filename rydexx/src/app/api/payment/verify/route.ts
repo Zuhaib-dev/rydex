@@ -2,12 +2,18 @@ import connectDb from "@/lib/db"
 import Booking from "@/models/booking.model"
 import crypto from "crypto"
 import { emitBookingUpdated } from "@/lib/bookingEvents"
+import { auth } from "@/lib/auth"
 
 
 
 export async function POST(req: Request) {
 
   await connectDb()
+
+  const session = await auth()
+  if (!session?.user?.id) {
+    return Response.json({ success:false, message:"Unauthorized" }, { status: 401 })
+  }
 
   const {
     bookingId,
@@ -30,7 +36,22 @@ export async function POST(req: Request) {
   const booking = await Booking.findById(bookingId).populate("driver vehicle")
 
   if (!booking) {
-    return Response.json({ success:false })
+    return Response.json({ success:false, message:"Booking not found" }, { status: 404 })
+  }
+
+  if (String(booking.user) !== String(session.user.id)) {
+    return Response.json({ success:false, message:"Forbidden" }, { status: 403 })
+  }
+
+  if (booking.paymentStatus === "paid") {
+    return Response.json({ success:true, message:"Payment already verified" })
+  }
+
+  if (booking.status !== "awaiting_payment") {
+    return Response.json(
+      { success:false, message:"Booking is not awaiting payment" },
+      { status: 409 },
+    )
   }
 
   /* SPLIT CALCULATION */

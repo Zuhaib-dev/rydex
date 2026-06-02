@@ -179,8 +179,23 @@ function notifyAdminMapThrottled() {
   }, 1000);
 }
 
+function requireSocketSecret(req, res, next) {
+  const secret = process.env.SOCKET_INTERNAL_SECRET;
+  if (!secret) {
+    next();
+    return;
+  }
+
+  if (req.get("x-socket-secret") !== secret) {
+    res.status(401).json({ success: false, message: "Unauthorized" });
+    return;
+  }
+
+  next();
+}
+
 /** Broadcast to all admins in the control-tower room */
-app.post("/emit-admin", (req, res) => {
+app.post("/emit-admin", requireSocketSecret, (req, res) => {
   const { event = "admin-dashboard-update", data } = req.body ?? {};
 
   try {
@@ -198,7 +213,7 @@ function emitToBookingRoom(bookingId, event, data) {
   io.to(room).emit(event, data);
 }
 
-app.post("/emit", async (req, res) => {
+app.post("/emit", requireSocketSecret, async (req, res) => {
   const { userId, event, data, bookingId: roomFromBody } = req.body;
   const bookingRoomId = roomFromBody || data?.bookingId;
 
