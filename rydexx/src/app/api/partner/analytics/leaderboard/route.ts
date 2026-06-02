@@ -47,7 +47,7 @@ export async function GET() {
     // Determine Top 10% (minimum 1 person gets it if there are drivers)
     const top10PercentCount = Math.max(1, Math.floor(scoredPartners.length * 0.1));
     
-    const bulkOps = [];
+    const bulkOps: any[] = [];
     
     // Assign ranks and Premium status
     const rankedPartners = scoredPartners.map((p, index) => {
