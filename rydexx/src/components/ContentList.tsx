@@ -137,9 +137,9 @@ const ContentList = ({
               key={partner._id}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white p-4 rounded-2xl border border-gray-100/50 shadow-sm flex items-center justify-between hover:border-gray-200 transition-all group"
+              className="bg-white p-4 rounded-2xl border border-gray-100/50 shadow-sm flex flex-col gap-4 hover:border-gray-200 transition-all group sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
                 <input
                   type="checkbox"
                   checked={selectedIds.includes(partner._id)}
@@ -149,14 +149,14 @@ const ContentList = ({
                 <div className="w-12 h-12 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center font-black text-lg border border-purple-100">
                   {partner.name[0].toUpperCase()}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h4 className="font-bold text-gray-900 text-base leading-tight">{partner.name}</h4>
-                  <p className="text-gray-400 text-xs mt-0.5 tracking-tight">{partner.email}</p>
+                  <p className="truncate text-gray-400 text-xs mt-0.5 tracking-tight">{partner.email}</p>
                 </div>
               </div>
               <Link 
                 href={`/admin/reviews/partner/${partner._id}`}
-                className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5"
+                className="flex w-full items-center justify-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5 sm:w-auto"
               >
                 Review
                 <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
@@ -171,12 +171,12 @@ const ContentList = ({
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 50 }}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 border border-white/10 z-40"
+                className="fixed bottom-6 left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 flex-col gap-3 rounded-2xl border border-white/10 bg-black px-4 py-4 text-white shadow-2xl sm:w-auto sm:flex-row sm:items-center sm:gap-6 sm:px-6"
               >
                 <span className="text-xs font-black uppercase tracking-widest text-gray-400">
                   {selectedIds.length} Selected
                 </span>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <button
                     disabled={bulkLoading}
                     onClick={() => handleBulkAction("approve")}
@@ -258,9 +258,9 @@ const ContentList = ({
               key={vehicle._id}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white p-4 rounded-2xl border border-gray-100/50 shadow-sm flex items-center justify-between hover:border-gray-200 transition-all group"
+              className="bg-white p-4 rounded-2xl border border-gray-100/50 shadow-sm flex flex-col gap-4 hover:border-gray-200 transition-all group sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
                 <input
                   type="checkbox"
                   checked={selectedIds.includes(vehicle._id)}
@@ -270,18 +270,18 @@ const ContentList = ({
                 <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-black text-lg border border-blue-100">
                   {vehicle.type[0].toUpperCase()}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h4 className="font-bold text-gray-900 text-base leading-tight">
                     {vehicle.vehicleModel} ({vehicle.vehicleNumber})
                   </h4>
-                  <p className="text-gray-400 text-xs mt-0.5 tracking-tight">
+                  <p className="truncate text-gray-400 text-xs mt-0.5 tracking-tight">
                     Owner: {vehicle.owner?.name || "Unknown"}
                   </p>
                 </div>
               </div>
               <Link 
                 href={`/admin/reviews/vehicle/${vehicle._id}`}
-                className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5"
+                className="flex w-full items-center justify-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5 sm:w-auto"
               >
                 Review
                 <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
@@ -296,12 +296,12 @@ const ContentList = ({
                 initial={{ opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 50 }}
-                className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-black text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 border border-white/10 z-40"
+                className="fixed bottom-6 left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 flex-col gap-3 rounded-2xl border border-white/10 bg-black px-4 py-4 text-white shadow-2xl sm:w-auto sm:flex-row sm:items-center sm:gap-6 sm:px-6"
               >
                 <span className="text-xs font-black uppercase tracking-widest text-gray-400">
                   {selectedIds.length} Selected
                 </span>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                   <button
                     disabled={bulkLoading}
                     onClick={() => handleBulkAction("approve")}
@@ -370,13 +370,13 @@ const ContentList = ({
               key={kyc._id}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="bg-white p-4 rounded-2xl border border-gray-100/50 shadow-sm flex items-center justify-between hover:border-gray-200 transition-all group"
+              className="bg-white p-4 rounded-2xl border border-gray-100/50 shadow-sm flex flex-col gap-4 hover:border-gray-200 transition-all group sm:flex-row sm:items-center sm:justify-between"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex min-w-0 items-center gap-4">
                 <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center font-black text-lg border border-amber-100">
                   {kyc.name[0].toUpperCase()}
                 </div>
-                <div>
+                <div className="min-w-0">
                   <h4 className="font-bold text-gray-900 text-base leading-tight">{kyc.name}</h4>
                   <p className="text-gray-400 text-xs mt-0.5 tracking-tight">KYC Verification Pending</p>
                 </div>
@@ -384,7 +384,7 @@ const ContentList = ({
               <button 
                 onClick={() => initiateKycCall(kyc._id)}
                 disabled={kycLoadingId === kyc._id}
-                className="flex items-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5 disabled:opacity-70 disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-2 px-5 py-2.5 bg-black text-white rounded-xl text-xs font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg hover:shadow-black/5 disabled:opacity-70 disabled:cursor-not-allowed sm:w-auto"
               >
                 {kycLoadingId === kyc._id ? (
                   <>
