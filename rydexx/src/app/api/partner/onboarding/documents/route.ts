@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-    const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
 
     const validateFile = (file: Blob, name: string) => {
       if (file.size > MAX_FILE_SIZE) {
@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
     await user.save();
     return Response.json({ message: "Documents uploaded successfully" });
   } catch (error) {
+    console.error("Error uploading partner documents:", error);
     return Response.json({ message: "Internal server error" }, { status: 500 });
   }
 }

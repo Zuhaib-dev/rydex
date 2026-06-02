@@ -112,7 +112,7 @@ export default function DocumentsPage() {
     if (!file) return;
 
     const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-    const ALLOWED = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
+    const ALLOWED = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
 
     if (file.size > MAX_SIZE) {
       alert("File size exceeds the 5MB limit. Please choose a smaller file.");
