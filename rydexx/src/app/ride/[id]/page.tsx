@@ -449,7 +449,7 @@ export default function RidePage() {
     chatOpen,
     onChatToggle: () => canChat && setChatOpen((v) => !v),
     onCancel: handleCancel,
-    onRetryPayment: fetchBooking,
+    onRetryPayment: handlePaymentConfirm,
     router,
     onShareTrip: handleShareTrip,
     onTriggerSos: handleTriggerSos,
@@ -1128,7 +1128,7 @@ function PanelContent({
               Complete payment to confirm your ride
             </p>
             <button
-              onClick={handlePaymentConfirm}
+              onClick={onRetryPayment}
               className="w-full bg-white text-purple-900 py-3 rounded-xl text-sm font-bold hover:bg-purple-50 transition-colors"
             >
               Pay Now
