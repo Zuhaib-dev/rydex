@@ -178,7 +178,7 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                   onClick={onClose}
                 >
                   <X size={20} />
-                </div>
+                </button>
                 <div className="mb-6 text-center">
                   <h1 className="text-3xl font-extrabold tracking-widest">
                     Rydexx
@@ -227,6 +227,7 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                           <input
                             onChange={(e) => setPassword(e.target.value)}
                             value={password}
+                            onKeyDown={(e) => e.key === "Enter" && handleLogin()}
                             className="w-full outline-none bg-transparent text-sm "
                             type="password"
                             placeholder="Password"
