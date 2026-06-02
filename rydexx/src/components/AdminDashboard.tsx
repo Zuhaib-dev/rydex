@@ -275,6 +275,20 @@ function AdminDashboardContent() {
             </div>
 
             <div className="flex items-center gap-2 sm:gap-3">
+              {/* Netlify Deploy Status Badge */}
+              <a 
+                href="https://app.netlify.com/projects/rydexx/deploys" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="hidden sm:inline-block hover:opacity-85 transition-opacity shrink-0"
+              >
+                <img 
+                  src="https://api.netlify.com/api/v1/badges/a5ed84fe-b787-4f6c-8e53-c55f72061d3c/deploy-status" 
+                  alt="Netlify Status" 
+                  className="h-5"
+                />
+              </a>
+
               <AdminLiveIndicator />
               <button
                 type="button"
