@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
+import WeatherWidget from "@/components/WeatherWidget";
 
 type Place = {
   id: string;
@@ -410,6 +411,8 @@ export default function BookPage() {
         </div>
 
         <div className="p-6 space-y-8 flex-1">
+          {/* Real-time Location Weather */}
+          <WeatherWidget lat={pickupLat} lng={pickupLng} />
           
           {/* ══ STEP 1: CHOOSE VEHICLE ══ */}
           <motion.div variants={stepVariants} initial="hidden" animate="visible">
