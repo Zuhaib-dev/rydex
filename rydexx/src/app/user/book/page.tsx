@@ -7,7 +7,7 @@ import dynamic from "next/dynamic";
 import {
   ArrowLeft, ArrowRight, MapPin, Navigation,
   Bike, Car, Truck, LocateFixed, Phone,
-  CheckCircle2, ChevronRight, Calendar, User, FileText, Info, Compass, Clock
+  Calendar, User, FileText, Info, Compass, Clock
 } from "lucide-react";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
@@ -24,6 +24,25 @@ type Place = {
 };
 
 type VehicleType = "bike" | "auto" | "car" | "loading" | "truck";
+
+type MapboxFeature = {
+  id: string;
+  place_name: string;
+  center: [number, number];
+};
+
+type PhotonFeature = {
+  properties: {
+    osm_id?: string | number;
+    name?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+  };
+  geometry: {
+    coordinates: [number, number];
+  };
+};
 
 const VEHICLES = [
   { id: "bike",    label: "Bike",    Icon: Bike,  desc: "Quick & affordable", capacity: "1 Pax" },
@@ -96,7 +115,6 @@ export default function BookPage() {
   const [validationError, setValidationError] = useState("");
   const [continuing, setContinuing] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [km, setKm] = useState<number | null>(null);
 
   const maxSeats = useMemo(() => {
     return getMaxSeats(vehicle);
@@ -146,7 +164,7 @@ export default function BookPage() {
         );
         const data = await res.json();
         if (data.features) {
-          const results: Place[] = data.features.map((f: any) => {
+          const results: Place[] = (data.features as MapboxFeature[]).map((f) => {
             const [lng, lat] = f.center;
             return {
               id: String(f.id),
@@ -167,7 +185,7 @@ export default function BookPage() {
     try {
       const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q.trim())}&limit=5&lang=en`);
       const data = await res.json();
-      const results: Place[] = (data?.features ?? []).map((f: any) => ({
+      const results: Place[] = ((data?.features ?? []) as PhotonFeature[]).map((f) => ({
         id: String(f.properties.osm_id),
         name: [f.properties.name, f.properties.city, f.properties.state, f.properties.country].filter(Boolean).join(", "),
         lat: f.geometry.coordinates[1],
@@ -700,7 +718,7 @@ export default function BookPage() {
             pickupCoord={[pickupLat, pickupLng]}
             dropCoord={dropLat && dropLng ? [dropLat, dropLng] : null}
             previewMode={true}
-            onDistance={setKm}
+            onDistance={() => {}}
           />
         ) : (
           <div className="w-full h-full flex flex-col items-center justify-center p-12 relative overflow-hidden bg-zinc-50">

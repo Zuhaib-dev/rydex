@@ -26,10 +26,15 @@ interface VehicleReview {
   };
 }
 
+interface KycReview {
+  _id: string;
+  name: string;
+}
+
 interface DashboardData {
   pendingPartnerReviews: PartnerReview[];
   pendingVehicleReviews: VehicleReview[];
-  pendingVideoKYC: any[];
+  pendingVideoKYC: KycReview[];
 }
 
 const EmptyState = () => (
@@ -86,7 +91,7 @@ const ContentList = ({
     );
   };
 
-  const handleSelectAll = (items: any[]) => {
+  const handleSelectAll = (items: Array<{ _id: string }>) => {
     if (selectedIds.length === items.length) {
       setSelectedIds([]);
     } else {
