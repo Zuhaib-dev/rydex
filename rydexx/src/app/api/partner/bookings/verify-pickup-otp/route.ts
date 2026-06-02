@@ -2,12 +2,17 @@ import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { emitBookingUpdated } from "@/lib/bookingEvents";
+import { auth } from "@/lib/auth";
 
 export async function POST(req: Request) {
 
   await connectDB();
 
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
     const { bookingId, otp } = await req.json();
 
@@ -17,6 +22,17 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { message: "Booking not found" },
         { status: 404 }
+      );
+    }
+
+    if (String(booking.driver._id ?? booking.driver) !== String(session.user.id)) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    if (booking.status !== "arrived") {
+      return NextResponse.json(
+        { message: "Booking must be arrived before pickup OTP verification" },
+        { status: 409 },
       );
     }
 

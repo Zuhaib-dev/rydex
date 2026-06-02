@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/lib/db";
 import Booking from "@/models/booking.model";
-import { sendMail } from "@/lib/sendMail";
-import { getOtpEmailTemplate } from "@/lib/emailTemplate";
 import { emitBookingUpdated } from "@/lib/bookingEvents";
+import { auth } from "@/lib/auth";
 
 
 export async function POST(req: Request) {
@@ -11,6 +10,10 @@ export async function POST(req: Request) {
   await connectDB();
 
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
 
     const { bookingId } = await req.json();
 
@@ -22,6 +25,17 @@ export async function POST(req: Request) {
       return NextResponse.json(
         { message: "Booking not found" },
         { status: 404 }
+      );
+    }
+
+    if (String(booking.driver) !== String(session.user.id)) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
+    }
+
+    if (booking.status !== "started") {
+      return NextResponse.json(
+        { message: "Booking must be started before sending drop OTP" },
+        { status: 409 },
       );
     }
 
