@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useState, useCallback } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -296,10 +296,10 @@ export default function BookPage() {
 
     setContinuing(true);
     try {
-      let resolvedPickupLat = pickupLat;
-      let resolvedPickupLng = pickupLng;
-      let resolvedDropLat = dropLat;
-      let resolvedDropLng = dropLng;
+      const resolvedPickupLat = pickupLat;
+      const resolvedPickupLng = pickupLng;
+      const resolvedDropLat = dropLat;
+      const resolvedDropLng = dropLng;
 
       // Geocode fallbacks if pins not resolved
       if (resolvedPickupLat == null || resolvedPickupLng == null) {
@@ -343,7 +343,7 @@ export default function BookPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900 grid grid-cols-1 lg:grid-cols-12 h-screen overflow-hidden relative">
+    <div className="min-h-dvh bg-zinc-50 text-zinc-900 grid grid-cols-1 lg:grid-cols-12 lg:h-dvh lg:overflow-hidden relative">
       
       {/* ── ALERTS TOAST POPUP ── */}
       <AnimatePresence>
@@ -361,7 +361,7 @@ export default function BookPage() {
       </AnimatePresence>
 
       {/* ── LEFT PANEL: PREMIUM BOOKING FORM PANEL ── */}
-      <div className="col-span-12 lg:col-span-5 bg-white border-r border-zinc-200 z-10 flex flex-col h-full overflow-y-auto shadow-2xl relative">
+      <div className="col-span-12 lg:col-span-5 bg-white border-r border-zinc-200 z-10 flex min-h-dvh flex-col overflow-y-auto shadow-2xl relative lg:h-full lg:min-h-0">
         
         {/* Top Header */}
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between gap-4">
@@ -635,7 +635,7 @@ export default function BookPage() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden space-y-3"
                 >
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-2xl px-4 py-3">
                       <Calendar size={14} className="text-zinc-400" />
                       <input

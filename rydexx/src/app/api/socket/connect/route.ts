@@ -26,7 +26,7 @@ export async function POST(req:NextRequest) {
             return NextResponse.json({message:"user not found"},{status:400})
         }
         return NextResponse.json({success:true,user},{status:200})
-    } catch (error) {
+    } catch {
         return NextResponse.json({success:false},{status:500})
     }
 }
