@@ -447,24 +447,25 @@ function CheckoutContent() {
 
           {/* ══ RIGHT — STATUS PANEL ══ */}
           <motion.div
+            layout
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.14, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ delay: 0.14, duration: 0.5, ease: [0.22, 1, 0.36, 1], layout: { type: "spring", stiffness: 300, damping: 30 } }}
             className="bg-white rounded-3xl border border-zinc-200 overflow-hidden shadow-[0_4px_24px_rgba(0,0,0,0.07)] flex flex-col"
           >
-            <div className="h-1 bg-zinc-900" />
+            <motion.div layout className="h-1 bg-zinc-900" />
 
             <div className="flex-1 p-8 sm:p-10 flex flex-col">
               <AnimatePresence mode="wait">
 
                 {/* ── IDLE ── */}
                 {status === "idle" && (
-                  <motion.div key="idle"
+                  <motion.div key="idle" layout
                     initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }}
                     transition={{ duration: 0.3 }}
                     className="flex flex-col flex-1 justify-between"
                   >
-                    <div>
+                    <motion.div layout>
                       <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Ready to go?</p>
                       <h3 className="text-2xl font-black text-zinc-900 mb-6">Confirm Your Ride</h3>
                       <div className="bg-zinc-50 border border-zinc-100 rounded-2xl p-5 space-y-3">
@@ -479,7 +480,7 @@ function CheckoutContent() {
                           </div>
                         ))}
                       </div>
-                    </div>
+                    </motion.div>
                     <motion.button
                       whileTap={{ scale: 0.97 }}
                       whileHover={{ scale: 1.02 }}
@@ -498,7 +499,7 @@ function CheckoutContent() {
 
                 {/* ── REQUESTED ── */}
                 {status === "requested" && (
-                  <motion.div key="requested"
+                  <motion.div key="requested" layout
                     initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.35 }}
                     className="flex flex-col flex-1 items-center justify-center gap-6 text-center"
@@ -550,7 +551,7 @@ function CheckoutContent() {
 
                 {/* ── AWAITING PAYMENT ── */}
                 {status === "awaiting_payment" && (
-                  <motion.div key="awaiting_payment"
+                  <motion.div key="awaiting_payment" layout
                     initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.35 }}
                     className="flex flex-col flex-1 items-center justify-center gap-5 text-center"
@@ -577,7 +578,7 @@ function CheckoutContent() {
                 )}
                 {/* ── PAYMENT ── */}
                 {status === "payment" && (
-                  <motion.div key="payment"
+                  <motion.div key="payment" layout
                     initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.3 }}
                     className="flex flex-col flex-1 gap-6"
@@ -644,7 +645,7 @@ function CheckoutContent() {
 
                 {/* ── CONFIRMED ── */}
                 {status === "confirmed" && (
-                  <motion.div key="confirmed"
+                  <motion.div key="confirmed" layout
                     initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                     transition={{ duration: 0.4 }}
                     className="flex flex-col flex-1 items-center justify-center gap-6 text-center"

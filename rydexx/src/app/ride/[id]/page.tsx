@@ -1107,7 +1107,15 @@ function PanelContent({
   onTriggerSos,
 }: any) {
   return (
-    <div className="flex flex-col pt-5 pb-6 gap-3">
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={{
+        visible: { transition: { staggerChildren: 0.1 } },
+        hidden: {},
+      }}
+      className="flex flex-col pt-5 pb-6 gap-3"
+    >
       {/* SEARCHING (requested) */}
       {status === "requested" && (
         <div className="mx-5 lg:mx-6">
@@ -1445,7 +1453,7 @@ function PanelContent({
           </button>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
