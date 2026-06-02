@@ -5,6 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useRef, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import {
   Menu,
   X,
