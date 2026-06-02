@@ -3,8 +3,10 @@ import axios from "axios";
 import { CircleDashed, Lock, Mail, User, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { signIn, useSession } from "next-auth/react";
+import { useScrollLock } from "@/hooks/useScrollLock";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useRouter } from "next/navigation";
 type propType = {
   open: boolean;
@@ -27,6 +29,19 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
   const [resendTimer, setResendTimer] = useState(0);
   const [resendLoading, setResendLoading] = useState(false);
   const { data } = useSession();
+
+  const modalRef = useRef<HTMLDivElement>(null);
+  useScrollLock(open);
+  useFocusTrap(modalRef, open);
+
+  // Global Escape Listener
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && open) onClose();
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [open, onClose]);
   // console.log(data);
 
   useEffect(() => {
@@ -150,9 +165,16 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
               exit={{ opacity: 0, scale: 0.95, y: 40 }}
               className="fixed inset-0 z-100 flex items-center justify-center px-4"
             >
-              <div className="relative w-full max-w-md rounded-3xl bg-white border border-black/10 shadow-[0_100px_rgba(0,0,0,0.35 )] p-6 sm:p-8 text-black">
-                <div
-                  className="absolute right-4 top-4 text-gray-500 hover:text-black transition"
+              <div
+                ref={modalRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="auth-modal-title"
+                className="relative w-full max-w-md rounded-3xl bg-white border border-black/10 shadow-[0_100px_rgba(0,0,0,0.35 )] p-6 sm:p-8 text-black"
+              >
+                <button
+                  aria-label="Close modal"
+                  className="absolute right-4 top-4 text-gray-500 hover:text-black transition focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
                   onClick={onClose}
                 >
                   <X size={20} />
