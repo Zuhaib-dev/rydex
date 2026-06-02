@@ -42,6 +42,7 @@ interface ActiveRide {
   fare?: number;
   paymentStatus?: string;
   driver: string;
+  user?: string;
   sosTriggered?: boolean;
   sosTriggeredAt?: string;
 }
