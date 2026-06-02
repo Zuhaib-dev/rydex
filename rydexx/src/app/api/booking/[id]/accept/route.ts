@@ -38,9 +38,12 @@ export async function POST(
 
   await booking.save();
 
-  // Release Redis driver lock on successful accept
-  const redis = getRedisClient();
-  await redis.del(`lock:driver:${assignedDriverId}`);
+  try {
+    const redis = getRedisClient();
+    await redis.del(`lock:driver:${assignedDriverId}`);
+  } catch (err) {
+    console.warn("Failed to delete redis lock on accept:", err);
+  }
 
   const populated = await Booking.findById(id).populate("driver vehicle");
 

@@ -235,6 +235,65 @@ export default function RidePage() {
     }
   };
 
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (typeof window === "undefined") return resolve(false);
+      if ((window as any).Razorpay) return resolve(true);
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePaymentConfirm = async () => {
+    if (!id) return;
+    setLoading(true);
+    try {
+      const razorpayLoaded = await loadRazorpayScript();
+      if (!razorpayLoaded) {
+        alert("Razorpay SDK failed to load");
+        return;
+      }
+      const orderRes = await fetch("/api/payment/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bookingId: id }),
+      });
+      const orderData = await orderRes.json();
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
+        amount: orderData.amount,
+        currency: "INR",
+        name: "RYDEX",
+        description: "Ride Payment",
+        order_id: orderData.orderId,
+        handler: async function (response: any) {
+          const verify = await fetch("/api/payment/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingId: id, ...response }),
+          });
+          const verifyData = await verify.json();
+          if (verifyData.success) {
+            showToast("Payment successful!");
+            fetchBooking();
+          } else {
+            alert("Payment verification failed");
+          }
+        },
+      };
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.open();
+    } catch (err) {
+      console.error(err);
+      alert("Payment failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchBooking();
   }, [id]);
@@ -1069,7 +1128,7 @@ function PanelContent({
               Complete payment to confirm your ride
             </p>
             <button
-              onClick={onRetryPayment}
+              onClick={handlePaymentConfirm}
               className="w-full bg-white text-purple-900 py-3 rounded-xl text-sm font-bold hover:bg-purple-50 transition-colors"
             >
               Pay Now
