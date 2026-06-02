@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
+import SmoothAdminMarker from "@/components/map/SmoothAdminMarker";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -881,18 +882,12 @@ export default function AdminLiveMap() {
                 const isSelected = selectedDriverId === driver._id;
 
                 return (
-                  <Marker key={driver._id} longitude={lng} latitude={lat} anchor="center">
-                    <div
-                      className={`relative flex h-10 w-10 items-center justify-center rounded-full border-2 bg-black text-white shadow-lg transition-transform hover:scale-110 cursor-pointer ${
-                        isSosRide
-                          ? "border-red-500 shadow-red-500/60"
-                          : isSelected
-                          ? "border-amber-400 ring-4 ring-amber-400/25"
-                          : isOnRide
-                          ? "border-blue-500 shadow-blue-500/50"
-                          : "border-gray-500"
-                      }`}
-                      onClick={() => {
+                  <SmoothAdminMarker 
+                    key={driver._id} 
+                    longitude={lng} 
+                    latitude={lat} 
+                    isActiveRide={isOnRide || isSosRide}
+                    onClick={() => {
                         if (dispatchTargetRideId) {
                           if (isOnRide) {
                             toast.error("This driver is already on a ride.");
@@ -905,7 +900,18 @@ export default function AdminLiveMap() {
                             mapRef.current.flyTo({ center: [lng, lat], zoom: 16, pitch: 45, duration: 1200 });
                           }
                         }
-                      }}
+                    }}
+                  >
+                    <div
+                      className={`relative flex h-10 w-10 items-center justify-center rounded-full border-2 bg-black text-white shadow-lg transition-transform hover:scale-110 cursor-pointer ${
+                        isSosRide
+                          ? "border-red-500 shadow-red-500/60"
+                          : isSelected
+                          ? "border-amber-400 ring-4 ring-amber-400/25"
+                          : isOnRide
+                          ? "border-blue-500 shadow-blue-500/50"
+                          : "border-gray-500"
+                      }`}
                     >
                       {isSosRide && (
                         <span className="absolute -inset-1.5 animate-ping rounded-full bg-red-500 opacity-40" />
@@ -915,12 +921,12 @@ export default function AdminLiveMap() {
                       )}
                       {getVehicleIcon(driver.vehicleType)}
                       {isSosRide && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none">
+                        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none" style={{ transform: 'rotate(0deg)' }}>
                           SOS
                         </span>
                       )}
                     </div>
-                  </Marker>
+                  </SmoothAdminMarker>
                 );
               })}
             </>
