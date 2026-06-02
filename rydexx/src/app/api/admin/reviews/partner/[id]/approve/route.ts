@@ -34,20 +34,21 @@ export async function GET(
     }
     const partnerDocs = await PartnerDocs.findOne({ owner: partner._id });
     const partnerBank = await PartnerBank.findOne({ owner: partner._id });
-    if (!partnerDocs || !partnerBank) {
-      return NextResponse.json(
-        { message: "Partner Docs or Bank Not Found" },
-        { status: 400 },
-      );
-    }
+    
     partner.partnerStatus = "pending";
     partner.videoKycStatus='pending'
     partner.partnerOnboardingSteps = 4;
     await partner.save();
-    partnerDocs?.set({ status: "approved" });
-    partnerBank?.set({ status: "verified" });
-    await partnerDocs?.save();
-    await partnerBank?.save();
+    
+    if (partnerDocs) {
+      partnerDocs.status = "approved";
+      await partnerDocs.save();
+    }
+    
+    if (partnerBank) {
+      partnerBank.status = "verified";
+      await partnerBank.save();
+    }
     
     // Log the admin action
     const { logAdminAction } = await import("@/lib/auditLogger");

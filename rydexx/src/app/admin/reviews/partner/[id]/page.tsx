@@ -80,9 +80,10 @@ function Page() {
     try {
       await axios.get(`/api/admin/reviews/partner/${id}/approve`);
       await fetchPartner();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error approving partner:", error);
-      alert("Failed to approve partner. Please try again.");
+      const msg = error.response?.data?.message || "Failed to approve partner. Please try again.";
+      alert(msg);
     } finally {
       setSubmitting(false);
     }
