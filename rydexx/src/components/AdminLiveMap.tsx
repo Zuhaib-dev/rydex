@@ -799,25 +799,38 @@ export default function AdminLiveMap() {
         >
           {mapLoaded && (
             <>
-              {/* Heatmap Layer */}
+              {/* Glowing Dynamic Surge Heatmap Layer */}
               <Source id="heatmap-data" type="geojson" data={heatmapGeoJSON}>
                 <Layer
                   id="search-heatmap"
                   type="heatmap"
                   paint={{
+                    // Increase weight for more intense glow
                     "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 0, 0, 1, 1],
-                    "heatmap-intensity": 1,
+                    // Increase intensity as you zoom in
+                    "heatmap-intensity": [
+                      "interpolate", ["linear"], ["zoom"],
+                      0, 1,
+                      15, 3
+                    ],
+                    // Deep Red to Bright Yellow glowing gradient
                     "heatmap-color": [
                       "interpolate", ["linear"], ["heatmap-density"],
-                      0, "rgba(33,102,172,0)",
-                      0.2, "rgb(103,169,207)",
-                      0.4, "rgb(209,229,240)",
-                      0.6, "rgb(253,219,199)",
-                      0.8, "rgb(239,138,98)",
-                      1, "rgb(178,24,43)",
+                      0, "rgba(255, 0, 0, 0)",
+                      0.2, "rgba(239, 68, 68, 0.3)", // Red 500
+                      0.4, "rgba(249, 115, 22, 0.6)", // Orange 500
+                      0.6, "rgba(245, 158, 11, 0.8)", // Amber 500
+                      0.8, "rgba(250, 204, 21, 0.9)", // Yellow 400
+                      1, "rgba(254, 240, 138, 1)", // Yellow 200 (Core Heat)
                     ],
-                    "heatmap-radius": 30,
-                    "heatmap-opacity": 0.5,
+                    // Adjust radius dynamically by zoom level
+                    "heatmap-radius": [
+                      "interpolate", ["linear"], ["zoom"],
+                      0, 4,
+                      9, 25,
+                      15, 60
+                    ],
+                    "heatmap-opacity": 0.9,
                   }}
                 />
               </Source>
