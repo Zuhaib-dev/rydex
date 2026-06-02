@@ -148,7 +148,7 @@ const PAYMENT_BADGE: Record<PaymentStatus, { label: string; cls: string }> = {
 };
 
 const TERMINAL = ["completed", "cancelled", "rejected", "expired"];
-const PEEK_H = 148;
+const PEEK_H = 220;
 
 /* ══════════════════════════════════════════════════════════════════════ */
 export default function DriverRidePage() {
@@ -290,6 +290,15 @@ export default function DriverRidePage() {
       socket.off("driver-location", handleDriverLocation);
     };
   }, [booking?._id, booking?.status]);
+
+  useEffect(() => {
+    if (realtimeToast) {
+      const timer = setTimeout(() => {
+        setRealtimeToast(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [realtimeToast]);
 
   /* ── OTP HANDLERS ── */
   const sendPickupOtp = async () => {
