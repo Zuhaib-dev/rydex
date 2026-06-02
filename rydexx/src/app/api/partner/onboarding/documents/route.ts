@@ -17,9 +17,9 @@ export async function POST(req: NextRequest) {
       return Response.json({ message: "User not found" });
     }
     const formdata = await req.formData();
-    const aadhar = (formdata.get("aadhar") as Blob) || null;
-    const drivingLicense = (formdata.get("drivingLicense") as Blob) || null;
-    const rc = (formdata.get("rc") as Blob) || null;
+    const aadhar = (formdata.get("aadhar") as any) || null;
+    const drivingLicense = (formdata.get("drivingLicense") as any) || null;
+    const rc = (formdata.get("rc") as any) || null;
     
     if (!aadhar || !drivingLicense || !rc) {
       return Response.json(
@@ -28,15 +28,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-    const ALLOWED_MIME_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
+    const ALLOWED_IMAGE_TYPES = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/heic",
+      "image/heif",
+      "image/bmp",
+      "image/tiff"
+    ];
+    const ALLOWED_PDF_TYPES = ["application/pdf"];
 
-    const validateFile = (file: Blob, name: string) => {
-      if (file.size > MAX_FILE_SIZE) {
-        return `${name} size must be less than 5MB`;
-      }
-      if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-        return `${name} must be a valid image (JPEG, PNG, WEBP) or PDF document`;
+    const validateFile = (file: any, name: string) => {
+      const type = file.type || "";
+      const size = file.size || 0;
+
+      if (ALLOWED_PDF_TYPES.includes(type)) {
+        const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB
+        if (size > MAX_PDF_SIZE) {
+          return `${name} (PDF) size must be less than 10MB`;
+        }
+      } else if (ALLOWED_IMAGE_TYPES.includes(type)) {
+        const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
+        if (size > MAX_IMAGE_SIZE) {
+          return `${name} (Image) size must be less than 3MB`;
+        }
+      } else {
+        return `${name} must be a valid image (JPEG, PNG, WEBP, GIF, BMP, TIFF, HEIC) or PDF document`;
       }
       return null;
     };
@@ -53,7 +73,7 @@ export async function POST(req: NextRequest) {
       status: "pending",
     };
     if (aadhar) {
-      const url = await uploadOnImageKit(aadhar);
+      const url = await uploadOnImageKit(aadhar, aadhar.name);
       if (!url) {
         return Response.json(
           { message: "aadhar Upload Failed" },
@@ -63,7 +83,7 @@ export async function POST(req: NextRequest) {
       updatePayload.aadharUrl = url;
     }
     if (drivingLicense) {
-      const url = await uploadOnImageKit(drivingLicense);
+      const url = await uploadOnImageKit(drivingLicense, drivingLicense.name);
       if (!url) {
         return Response.json(
           { message: "drivingLicense Upload Failed" },
@@ -73,7 +93,7 @@ export async function POST(req: NextRequest) {
       updatePayload.licenseUrl = url;
     }
     if (rc) {
-      const url = await uploadOnImageKit(rc);
+      const url = await uploadOnImageKit(rc, rc.name);
       if (!url) {
         return Response.json({ message: "rc Upload Failed" }, { status: 500 });
       }

@@ -40,7 +40,7 @@ const DocumentCard = ({
         ref={inputRef}
         onChange={onChange}
         className="hidden"
-        accept="image/*,.pdf"
+        accept="image/*,application/pdf"
       />
       <button
         onClick={() => inputRef.current?.click()}
@@ -111,17 +111,38 @@ export default function DocumentsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-    const ALLOWED = ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"];
+    const ALLOWED_IMAGES = [
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/heic",
+      "image/heif",
+      "image/bmp",
+      "image/tiff"
+    ];
+    const ALLOWED_PDF = ["application/pdf"];
 
-    if (file.size > MAX_SIZE) {
-      alert("File size exceeds the 5MB limit. Please choose a smaller file.");
-      if (e.target) e.target.value = "";
-      return;
-    }
+    const fileType = file.type || "";
+    const fileSize = file.size || 0;
 
-    if (!ALLOWED.includes(file.type)) {
-      alert("Invalid file type. Only JPG, PNG, WEBP, and PDF files are allowed.");
+    if (ALLOWED_PDF.includes(fileType)) {
+      const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB
+      if (fileSize > MAX_PDF_SIZE) {
+        alert("PDF file size exceeds the 10MB limit. Please choose a smaller file.");
+        if (e.target) e.target.value = "";
+        return;
+      }
+    } else if (ALLOWED_IMAGES.includes(fileType)) {
+      const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
+      if (fileSize > MAX_IMAGE_SIZE) {
+        alert("Image file size exceeds the 3MB limit. Please choose a smaller file.");
+        if (e.target) e.target.value = "";
+        return;
+      }
+    } else {
+      alert("Invalid file type. Only standard images (JPEG, PNG, WEBP, GIF, BMP, TIFF, HEIC) and PDF files are allowed.");
       if (e.target) e.target.value = "";
       return;
     }

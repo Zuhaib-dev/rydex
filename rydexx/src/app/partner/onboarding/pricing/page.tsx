@@ -46,17 +46,27 @@ export default function PricingPage() {
      const file = e.target.files?.[0];
      if (!file) return;
  
-     const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-     const ALLOWED = ["image/jpeg", "image/png", "image/webp"];
+     const MAX_SIZE = 3 * 1024 * 1024; // 3MB
+     const ALLOWED = [
+       "image/jpeg",
+       "image/jpg",
+       "image/png",
+       "image/webp",
+       "image/gif",
+       "image/heic",
+       "image/heif",
+       "image/bmp",
+       "image/tiff"
+     ];
  
      if (file.size > MAX_SIZE) {
-       alert("File size exceeds the 5MB limit. Please choose a smaller image.");
+       alert("File size exceeds the 3MB limit. Please choose a smaller image.");
        if (e.target) e.target.value = "";
        return;
      }
  
      if (!ALLOWED.includes(file.type)) {
-       alert("Invalid file type. Only JPG, PNG, and WEBP image files are allowed.");
+       alert("Invalid file type. Only standard image files (JPG, PNG, WEBP, GIF, BMP, TIFF, HEIC) are allowed.");
        if (e.target) e.target.value = "";
        return;
      }

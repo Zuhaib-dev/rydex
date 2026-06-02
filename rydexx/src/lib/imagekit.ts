@@ -6,7 +6,7 @@ const imagekit = new ImageKit({
   urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT || "",
 });
 
-const uploadOnImageKit = async (file: Blob): Promise<string | null> => {
+const uploadOnImageKit = async (file: Blob, originalName?: string): Promise<string | null> => {
   if (!file) {
     return null;
   }
@@ -15,7 +15,11 @@ const uploadOnImageKit = async (file: Blob): Promise<string | null> => {
     const buffer = Buffer.from(arrayBuffer);
 
     // ImageKit requires a fileName, so we generate a random string or use a default
-    const fileName = `upload_${Date.now()}`;
+    let fileName = `upload_${Date.now()}`;
+    if (originalName) {
+      const sanitized = originalName.replace(/[^a-zA-Z0-9.-]/g, "_");
+      fileName = `${Date.now()}_${sanitized}`;
+    }
 
     return new Promise((resolve, reject) => {
       imagekit.upload(

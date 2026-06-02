@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const baseFare = Number(formData.get("baseFare"));
     const perKmRate = Number(formData.get("perKmRate"));
     const waitingCharge = Number(formData.get("waitingCharge"));
-    const imageFile = formData.get("vehicleImage") as Blob | null;
+    const imageFile = formData.get("vehicleImage") as any;
 
     if (!baseFare || !perKmRate || !waitingCharge) {
       return Response.json(
@@ -50,23 +50,33 @@ export async function POST(req: NextRequest) {
     vehicle.waitingCharge = waitingCharge;
 
     if (imageFile && imageFile.size > 0) {
-      const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-      const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+      const MAX_IMAGE_SIZE = 3 * 1024 * 1024; // 3MB
+      const ALLOWED_IMAGE_TYPES = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/webp",
+        "image/gif",
+        "image/heic",
+        "image/heif",
+        "image/bmp",
+        "image/tiff"
+      ];
 
       if (imageFile.size > MAX_IMAGE_SIZE) {
         return Response.json(
-          { message: "Vehicle photo size must be less than 5MB" },
+          { message: "Vehicle photo size must be less than 3MB" },
           { status: 400 },
         );
       }
       if (!ALLOWED_IMAGE_TYPES.includes(imageFile.type)) {
         return Response.json(
-          { message: "Vehicle photo must be a valid image (JPEG, PNG, WEBP)" },
+          { message: "Vehicle photo must be a valid image (JPEG, PNG, WEBP, GIF, BMP, TIFF, HEIC)" },
           { status: 400 },
         );
       }
 
-      const imageUrl = await uploadOnImageKit(imageFile);
+      const imageUrl = await uploadOnImageKit(imageFile, imageFile.name);
       if (!imageUrl) {
         return Response.json(
           { message: "Image upload failed" },
