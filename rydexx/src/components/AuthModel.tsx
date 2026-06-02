@@ -291,6 +291,7 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                           <input
                             onChange={(e) => setPassword(e.target.value)}
                             value={password}
+                            onKeyDown={(e) => e.key === "Enter" && handleSingUp()}
                             className="w-full outline-none bg-transparent text-sm "
                             type="password"
                             placeholder="Password"
