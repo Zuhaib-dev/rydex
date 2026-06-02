@@ -318,6 +318,9 @@ export default function Nav() {
                   <AnimatePresence>
                     {profileOpen && profileUser && (
                       <motion.div
+                        id="profile-menu"
+                        role="dialog"
+                        aria-label="User Profile Menu"
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
@@ -493,6 +496,9 @@ export default function Nav() {
               className="fixed inset-0 bg-black z-40 md:hidden"
             />
             <motion.div
+              id="profile-menu-mobile"
+              role="dialog"
+              aria-label="User Profile Menu"
               initial={{ y: 400 }}
               animate={{ y: 0 }}
               exit={{ y: 400 }}
@@ -520,7 +526,6 @@ function UserAvatar({ image, name }: { image?: string | null; name: string }) {
         height={44}
         className="w-full h-full object-cover"
         referrerPolicy="no-referrer"
-        unoptimized
       />
     );
   }
@@ -558,7 +563,6 @@ function ProfileContent({
                 height={64}
                 className="h-full w-full object-cover"
                 referrerPolicy="no-referrer"
-                unoptimized
               />
             </div>
           ) : (
