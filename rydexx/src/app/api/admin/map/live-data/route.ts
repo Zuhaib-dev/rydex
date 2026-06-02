@@ -46,8 +46,8 @@ export async function GET() {
 
     // 2. Fetch active rides
     const activeRides = await Booking.find({
-      status: { $in: ["arriving", "started"] }
-    }).select("pickupLocation dropLocation driver status user sosTriggered sosTriggeredAt").lean();
+      status: { $in: ["requested", "arriving", "started"] }
+    }).select("pickupLocation dropLocation driver status user vehicleType sosTriggered sosTriggeredAt").lean();
 
     // 3. Fetch active surge zones (with Redis cache fallback, 2-minute TTL)
     const redis = getRedisClient();
