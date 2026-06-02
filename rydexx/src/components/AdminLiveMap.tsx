@@ -17,6 +17,7 @@ import {
   ChevronLeft, ChevronRight, CheckCircle2, Lock, RefreshCw
 } from "lucide-react";
 import axios from "axios";
+import toast from "react-hot-toast";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -118,6 +119,8 @@ export default function AdminLiveMap() {
   const [filterStatus, setFilterStatus] = useState<"all" | "available" | "active" | "sos">("all");
   const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/dark-v11");
   const [resolvingSosId, setResolvingSosId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<"assets" | "pending">("assets");
+  const [dispatchTargetRideId, setDispatchTargetRideId] = useState<string | null>(null);
 
   const { data: liveDataRes, mutate: mutateLive } = useSWR(
     "/api/admin/map/live-data",
@@ -141,7 +144,8 @@ export default function AdminLiveMap() {
   });
 
   const drivers: Driver[] = liveDataRes?.data?.drivers || [];
-  const activeRides: ActiveRide[] = liveDataRes?.data?.activeRides || [];
+  const activeRides: ActiveRide[] = liveDataRes?.data?.activeRides?.filter((r: ActiveRide) => r.status !== "requested") || [];
+  const pendingRides: ActiveRide[] = liveDataRes?.data?.activeRides?.filter((r: ActiveRide) => r.status === "requested") || [];
   const surgeZones: SurgeZone[] = liveDataRes?.data?.surgeZones || [];
   const searchLogs: SearchLogPoint[] = heatmapDataRes?.data || [];
 
@@ -299,6 +303,33 @@ export default function AdminLiveMap() {
       alert("Failed to resolve SOS emergency.");
     } finally {
       setResolvingSosId(null);
+    }
+  };
+
+  const handleForceDispatch = async (partnerId: string, partnerName: string) => {
+    if (!dispatchTargetRideId) return;
+    
+    if (!confirm(`Force dispatch this ride to ${partnerName}?`)) {
+      setDispatchTargetRideId(null);
+      return;
+    }
+
+    const toastId = toast.loading("Dispatching ride...");
+    try {
+      const res = await axios.post("/api/admin/bookings/force-dispatch", {
+        bookingId: dispatchTargetRideId,
+        partnerId
+      });
+      if (res.data.success) {
+        toast.success(res.data.message || "Dispatched successfully", { id: toastId });
+        setDispatchTargetRideId(null);
+        void mutateLive();
+      } else {
+        throw new Error(res.data.error || "Failed");
+      }
+    } catch (err: any) {
+      toast.error(err.response?.data?.error || err.message || "Failed to dispatch", { id: toastId });
+      setDispatchTargetRideId(null);
     }
   };
 
