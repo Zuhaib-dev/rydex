@@ -487,9 +487,11 @@ export default function AdminLiveMap() {
           <div>
             <h3 className="font-black text-sm uppercase tracking-wider text-gray-900 flex items-center gap-1.5">
               <Compass size={16} />
-              Assets Console
+              Control Console
             </h3>
-            <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">{filteredDrivers.length} units listed</p>
+            <p className="text-[10px] text-gray-400 font-bold uppercase mt-0.5">
+              {activeTab === "assets" ? `${filteredDrivers.length} units listed` : `${pendingRides.length} pending rides`}
+            </p>
           </div>
           <button 
             onClick={() => setLeftPanelOpen(false)}
@@ -499,97 +501,188 @@ export default function AdminLiveMap() {
           </button>
         </div>
 
-        {/* Search Input */}
-        <div className="px-5 py-3.5 border-b border-gray-50">
-          <div className="relative">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search driver email, name..."
-              className="w-full h-10 pl-9 pr-3 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
-            />
-            <Search size={14} className="absolute left-3 top-3 text-gray-400" />
-          </div>
+        {/* Console Tabs */}
+        <div className="flex border-b border-gray-50">
+          <button
+            onClick={() => setActiveTab("assets")}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${
+              activeTab === "assets" ? "text-black border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            Assets
+          </button>
+          <button
+            onClick={() => setActiveTab("pending")}
+            className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${
+              activeTab === "pending" ? "text-black border-b-2 border-black" : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            Pending ({pendingRides.length})
+          </button>
         </div>
 
-        {/* Quick Filter Tabs */}
-        <div className="px-4 py-2 border-b border-gray-50 flex gap-1 overflow-x-auto scrollbar-hide shrink-0">
-          {(["all", "available", "active", "sos"] as const).map((statusVal) => (
-            <button
-              key={statusVal}
-              onClick={() => setFilterStatus(statusVal)}
-              className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                filterStatus === statusVal
-                  ? "bg-black text-white"
-                  : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
-              }`}
-            >
-              {statusVal}
-            </button>
-          ))}
-        </div>
-
-        {/* Scrollable Asset Cards List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {filteredDrivers.map((driver) => {
-            const isOnJob = activeRideDriverIds.has(String(driver._id));
-            const isSos = sosDriverIds.has(String(driver._id));
-            const isSelected = selectedDriverId === driver._id;
-
-            return (
-              <div
-                key={driver._id}
-                onClick={() => selectAndZoomToDriver(driver._id)}
-                className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                  isSelected 
-                    ? "bg-black border-black text-white shadow-lg shadow-black/5" 
-                    : isSos
-                    ? "bg-red-50/50 border-red-100 hover:border-red-200"
-                    : "bg-white border-gray-100/70 hover:border-gray-200"
-                }`}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold shrink-0 ${
-                    isSelected
-                      ? "bg-white/10 text-white"
-                      : isSos
-                      ? "bg-red-100 text-red-600 border border-red-200"
-                      : isOnJob
-                      ? "bg-blue-50 text-blue-600 border border-blue-100"
-                      : "bg-gray-50 text-gray-500 border border-gray-200"
-                  }`}>
-                    {getVehicleIcon(driver.vehicleType)}
-                  </div>
-                  <div className="min-w-0">
-                    <p className={`text-xs font-bold truncate ${isSelected ? "text-white" : "text-gray-900"}`}>
-                      {driver.name}
-                    </p>
-                    <p className={`text-[10px] truncate ${isSelected ? "text-white/60" : "text-gray-400"}`}>
-                      {driver.email}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className={`h-2 w-2 rounded-full ${
-                    isSos
-                      ? "bg-red-500 animate-pulse"
-                      : isOnJob
-                      ? "bg-blue-500 animate-pulse"
-                      : "bg-green-500"
-                  }`} />
-                </div>
+        {activeTab === "assets" ? (
+          <>
+            {/* Search Input */}
+            <div className="px-5 py-3.5 border-b border-gray-50">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search driver email, name..."
+                  className="w-full h-10 pl-9 pr-3 bg-gray-50 border border-gray-100 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-black/5 focus:bg-white transition-all"
+                />
+                <Search size={14} className="absolute left-3 top-3 text-gray-400" />
               </div>
-            );
-          })}
-
-          {filteredDrivers.length === 0 && (
-            <div className="p-8 text-center text-xs text-gray-400 font-semibold">
-              No matching assets online
             </div>
-          )}
-        </div>
+
+            {/* Quick Filter Tabs */}
+            <div className="px-4 py-2 border-b border-gray-50 flex gap-1 overflow-x-auto scrollbar-hide shrink-0">
+              {(["all", "available", "active", "sos"] as const).map((statusVal) => (
+                <button
+                  key={statusVal}
+                  onClick={() => setFilterStatus(statusVal)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                    filterStatus === statusVal
+                      ? "bg-black text-white"
+                      : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
+                  }`}
+                >
+                  {statusVal}
+                </button>
+              ))}
+            </div>
+
+            {/* Scrollable Asset Cards List */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-2">
+              {filteredDrivers.map((driver) => {
+                const isOnJob = activeRideDriverIds.has(String(driver._id));
+                const isSos = sosDriverIds.has(String(driver._id));
+                const isSelected = selectedDriverId === driver._id;
+
+                return (
+                  <div
+                    key={driver._id}
+                    onClick={() => selectAndZoomToDriver(driver._id)}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                      isSelected 
+                        ? "bg-black border-black text-white shadow-lg shadow-black/5" 
+                        : isSos
+                        ? "bg-red-50/50 border-red-100 hover:border-red-200"
+                        : "bg-white border-gray-100/70 hover:border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className={`w-9 h-9 rounded-lg flex items-center justify-center font-bold shrink-0 ${
+                        isSelected
+                          ? "bg-white/10 text-white"
+                          : isSos
+                          ? "bg-red-100 text-red-600 border border-red-200"
+                          : isOnJob
+                          ? "bg-blue-50 text-blue-600 border border-blue-100"
+                          : "bg-gray-50 text-gray-500 border border-gray-200"
+                      }`}>
+                        {getVehicleIcon(driver.vehicleType)}
+                      </div>
+                      <div className="min-w-0">
+                        <p className={`text-xs font-bold truncate ${isSelected ? "text-white" : "text-gray-900"}`}>
+                          {driver.name}
+                        </p>
+                        <p className={`text-[10px] truncate ${isSelected ? "text-white/60" : "text-gray-400"}`}>
+                          {driver.email}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`h-2 w-2 rounded-full ${
+                        isSos
+                          ? "bg-red-500 animate-pulse"
+                          : isOnJob
+                          ? "bg-blue-500 animate-pulse"
+                          : "bg-green-500"
+                      }`} />
+                    </div>
+                  </div>
+                );
+              })}
+
+              {filteredDrivers.length === 0 && (
+                <div className="p-8 text-center text-xs text-gray-400 font-semibold">
+                  No matching assets online
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            {dispatchTargetRideId && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl mb-2">
+                <p className="text-xs text-amber-800 font-bold mb-1 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  DISPATCH MODE ACTIVE
+                </p>
+                <p className="text-[10px] text-amber-700">
+                  Select an idle driver on the map to force dispatch this ride.
+                </p>
+                <button
+                  onClick={() => setDispatchTargetRideId(null)}
+                  className="mt-2 text-[10px] font-bold text-red-600 uppercase hover:underline"
+                >
+                  Cancel Mode
+                </button>
+              </div>
+            )}
+            
+            {pendingRides.map(ride => (
+              <div 
+                key={ride._id}
+                className={`p-3 border rounded-xl cursor-pointer transition-all ${
+                  dispatchTargetRideId === ride._id 
+                    ? "border-amber-400 bg-amber-50/50 shadow-md" 
+                    : "border-gray-100 hover:border-amber-200"
+                }`}
+                onClick={() => {
+                  setDispatchTargetRideId(ride._id);
+                  if (mapRef.current) {
+                    mapRef.current.flyTo({
+                      center: ride.pickupLocation.coordinates,
+                      zoom: 15,
+                      pitch: 45
+                    });
+                  }
+                }}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <span className="bg-amber-100 text-amber-800 px-2 py-1 rounded-md text-[9px] font-black uppercase">
+                    Pending
+                  </span>
+                  <span className="text-[10px] font-bold text-gray-500 text-right max-w-[120px] truncate">
+                    User: {ride.user}
+                  </span>
+                </div>
+                <div className="text-xs font-semibold text-gray-900 line-clamp-2 mb-1">
+                  Pick: {ride.pickupAddress || "Location coordinate"}
+                </div>
+                <div className="text-[10px] text-gray-500 line-clamp-1 mb-2">
+                  Drop: {ride.dropAddress || "Location coordinate"}
+                </div>
+                {!dispatchTargetRideId && (
+                  <button className="w-full py-1.5 bg-black text-white rounded-lg text-[10px] font-bold uppercase tracking-wider">
+                    Force Dispatch
+                  </button>
+                )}
+              </div>
+            ))}
+            
+            {pendingRides.length === 0 && (
+              <div className="p-8 text-center text-xs text-gray-400 font-semibold">
+                No pending rides
+              </div>
+            )}
+          </div>
+        )}
       </aside>
 
       {/* ── EXPAND SIDEBAR BUTTON ── */}
@@ -799,9 +892,17 @@ export default function AdminLiveMap() {
                           : "border-gray-500"
                       }`}
                       onClick={() => {
-                        setSelectedDriverId(driver._id);
-                        if (mapRef.current) {
-                          mapRef.current.flyTo({ center: [lng, lat], zoom: 16, pitch: 45, duration: 1200 });
+                        if (dispatchTargetRideId) {
+                          if (isOnRide) {
+                            toast.error("This driver is already on a ride.");
+                            return;
+                          }
+                          handleForceDispatch(driver._id, driver.name);
+                        } else {
+                          setSelectedDriverId(driver._id);
+                          if (mapRef.current) {
+                            mapRef.current.flyTo({ center: [lng, lat], zoom: 16, pitch: 45, duration: 1200 });
+                          }
                         }
                       }}
                     >
