@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index",
-    "start": "node --max-old-space-size=1024 --optimize-for-size index.js"
+    "start": "node --max-old-space-size=1024 --optimize-for-size index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
@@ -21,5 +23,11 @@
     "mongoose": "^9.4.1",
     "nodemon": "^3.1.14",
     "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "ioredis-mock": "^8.13.1",
+    "mongodb-memory-server": "^11.2.0",
+    "socket.io-client": "^4.8.3",
+    "vitest": "^4.1.8"
   }
 }

@@ -529,6 +529,10 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(port, () => {
-  console.log("server started at", port);
-});
+if (process.env.NODE_ENV !== "test") {
+  server.listen(port, () => {
+    console.log("server started at", port);
+  });
+}
+
+export { app, server, io, redisPub, redisSub };
