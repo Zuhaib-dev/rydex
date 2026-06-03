@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Image from "next/image";
+import toast from "react-hot-toast";
 
 export default function PricingPage() {
   const router = useRouter();
@@ -90,17 +91,26 @@ export default function PricingPage() {
   const handleSave = async () => {
     if (!validate()) return;
     setLoading(true);
-    try {
-      const fd = new FormData();
-      fd.append("baseFare", baseFare);
-      fd.append("perKmRate", perKmRate);
-      fd.append("waitingCharge", waitingCharge);
-      if (imageFile) fd.append("vehicleImage", imageFile);
+    
+    const fd = new FormData();
+    fd.append("baseFare", baseFare);
+    fd.append("perKmRate", perKmRate);
+    fd.append("waitingCharge", waitingCharge);
+    if (imageFile) fd.append("vehicleImage", imageFile);
 
-      await axios.post("/api/partner/onboarding/pricing", fd);
-      window.location.href = "/";
+    try {
+      await toast.promise(
+        axios.post("/api/partner/onboarding/pricing", fd),
+        {
+          loading: "Saving pricing details...",
+          success: "Pricing saved successfully!",
+          error: (err) => err.response?.data?.message || "Failed to save pricing",
+        }
+      );
+      router.push("/");
+      router.refresh();
     } catch (err: any) {
-      alert(err.response?.data?.message || "Failed to save pricing. Please try again.");
+      console.error("Pricing error:", err);
     } finally {
       setLoading(false);
     }

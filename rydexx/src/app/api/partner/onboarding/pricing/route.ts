@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const baseFare = Number(formData.get("baseFare"));
     const perKmRate = Number(formData.get("perKmRate"));
     const waitingCharge = Number(formData.get("waitingCharge"));
-    const imageFile = formData.get("vehicleImage") as any;
+    const imageFile = (formData.get("vehicleImage") as File) || null;
 
     if (!baseFare || !perKmRate || !waitingCharge) {
       return Response.json(
