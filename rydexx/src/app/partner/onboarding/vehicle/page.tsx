@@ -36,18 +36,47 @@ export default function VehiclePage() {
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [vehicleModel, setVehicleModel] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const canContinue =
     selected && vehicleNumber.trim() && vehicleModel.trim() && !loading;
 
   const handleContinue = async () => {
     if (!canContinue) return;
+
+    const errs: Record<string, string> = {};
+    const VEHICLE_REGEX = /^[A-Za-z]{2}[\s-]?[0-9]{2}[\s-]?[A-Za-z]{0,2}[\s-]?[0-9]{4}$/;
+    const VEHICLE_MODEL_REGEX = /^[a-zA-Z0-9\-_()\/+.]+(?:\s+[a-zA-Z0-9\-_()\/+.]+)*$/;
+
+    if (!selected) {
+      errs.vehicleType = "Please select a vehicle type";
+    }
+
+    const trimmedNumber = vehicleNumber.trim();
+    if (!trimmedNumber) {
+      errs.vehicleNumber = "Vehicle number is required";
+    } else if (!VEHICLE_REGEX.test(trimmedNumber)) {
+      errs.vehicleNumber = "Invalid format (e.g. MH12 AB 1234)";
+    }
+
+    const trimmedModel = vehicleModel.trim();
+    if (!trimmedModel) {
+      errs.vehicleModel = "Vehicle model is required";
+    } else if (trimmedModel.length < 2 || trimmedModel.length > 50) {
+      errs.vehicleModel = "Must be between 2 and 50 characters";
+    } else if (!VEHICLE_MODEL_REGEX.test(trimmedModel)) {
+      errs.vehicleModel = "Contains invalid characters";
+    }
+
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     setLoading(true);
     try {
       const response = await axios.post("/api/partner/onboarding/vehicle", {
         vehicleType: selected,
-        vehicleModel,
-        vehicleNumber,
+        vehicleModel: trimmedModel,
+        vehicleNumber: trimmedNumber,
       });
       console.log("Vehicle Save Success:", response.data);
       router.push("/partner/onboarding/documents");
@@ -137,7 +166,16 @@ export default function VehiclePage() {
                       ease: [0.22, 1, 0.36, 1] as const,
                     }}
                     whileTap={{ scale: 0.96 }}
-                    onClick={() => setSelected(v.id)}
+                    onClick={() => {
+                      setSelected(v.id);
+                      if (errors.vehicleType) {
+                        setErrors(prev => {
+                          const next = { ...prev };
+                          delete next.vehicleType;
+                          return next;
+                        });
+                      }
+                    }}
                     className={`relative flex flex-col items-center gap-3 rounded-[22px] border p-4 transition-all duration-300 cursor-pointer overflow-hidden ${
                       isActive
                         ? "border-zinc-900 bg-zinc-900 shadow-[0_8px_30px_rgb(0,0,0,0.12)]"
@@ -208,6 +246,11 @@ export default function VehiclePage() {
                 );
               })}
             </div>
+            {errors.vehicleType && (
+              <p className="text-[11px] text-red-500 mt-2 font-medium">
+                {errors.vehicleType}
+              </p>
+            )}
           </motion.div>
 
           {/* Vehicle Number */}
@@ -218,10 +261,26 @@ export default function VehiclePage() {
             <input
               type="text"
               value={vehicleNumber}
-              onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
+              onChange={(e) => {
+                setVehicleNumber(e.target.value.toUpperCase());
+                if (errors.vehicleNumber) {
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.vehicleNumber;
+                    return next;
+                  });
+                }
+              }}
               placeholder="e.g. MH12 AB 1234"
-              className="w-full border-b-2 border-zinc-200 focus:border-zinc-900 outline-none py-3 text-lg font-bold text-zinc-900 placeholder:text-zinc-300 placeholder:font-medium transition-colors bg-transparent tracking-[0.15em] uppercase"
+              className={`w-full border-b-2 outline-none py-3 text-lg font-bold placeholder:text-zinc-300 placeholder:font-medium transition-colors bg-transparent tracking-[0.15em] uppercase ${
+                errors.vehicleNumber ? "border-red-400 text-red-600 focus:border-red-500" : "border-zinc-200 focus:border-zinc-900 text-zinc-900"
+              }`}
             />
+            {errors.vehicleNumber && (
+              <p className="text-[11px] text-red-500 mt-1 font-medium">
+                {errors.vehicleNumber}
+              </p>
+            )}
           </motion.div>
 
           {/* Vehicle Model */}
@@ -232,10 +291,26 @@ export default function VehiclePage() {
             <input
               type="text"
               value={vehicleModel}
-              onChange={(e) => setVehicleModel(e.target.value)}
+              onChange={(e) => {
+                setVehicleModel(e.target.value);
+                if (errors.vehicleModel) {
+                  setErrors((prev) => {
+                    const next = { ...prev };
+                    delete next.vehicleModel;
+                    return next;
+                  });
+                }
+              }}
               placeholder="e.g. Tata Ace Gold"
-              className="w-full border-b-2 border-zinc-200 focus:border-zinc-900 outline-none py-3 text-base font-semibold text-zinc-900 placeholder:text-zinc-300 placeholder:font-medium transition-colors bg-transparent"
+              className={`w-full border-b-2 outline-none py-3 text-base font-semibold placeholder:text-zinc-300 placeholder:font-medium transition-colors bg-transparent ${
+                errors.vehicleModel ? "border-red-400 text-red-600 focus:border-red-500" : "border-zinc-200 focus:border-zinc-900 text-zinc-900"
+              }`}
             />
+            {errors.vehicleModel && (
+              <p className="text-[11px] text-red-500 mt-1 font-medium">
+                {errors.vehicleModel}
+              </p>
+            )}
           </motion.div>
         </div>
 
