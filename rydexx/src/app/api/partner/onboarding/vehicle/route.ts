@@ -7,6 +7,9 @@ import { NextRequest } from "next/server";
 const VEHICLE_REGEX =
   /^[A-Za-z]{2}[\s-]?[0-9]{2}[\s-]?[A-Za-z]{0,2}[\s-]?[0-9]{4}$/;
 
+const VEHICLE_MODEL_REGEX =
+  /^[a-zA-Z0-9\-_()\/+.]+(?:\s+[a-zA-Z0-9\-_()\/+.]+)*$/;
+
 export async function POST(req: Request) {
   try {
     await connectDb();
@@ -22,6 +25,26 @@ export async function POST(req: Request) {
     if (!vehicleModel || !vehicleNumber || !vehicleType) {
       return Response.json(
         { message: "All fields are required" },
+        { status: 400 },
+      );
+    }
+    const allowedTypes = ["bike", "car", "truck", "loading", "auto"];
+    if (!allowedTypes.includes(vehicleType)) {
+      return Response.json(
+        { message: "Invalid vehicle type selected" },
+        { status: 400 },
+      );
+    }
+    const modelName = vehicleModel.trim();
+    if (modelName.length < 2 || modelName.length > 50) {
+      return Response.json(
+        { message: "Vehicle model must be between 2 and 50 characters" },
+        { status: 400 },
+      );
+    }
+    if (!VEHICLE_MODEL_REGEX.test(modelName)) {
+      return Response.json(
+        { message: "Vehicle model contains invalid characters" },
         { status: 400 },
       );
     }
@@ -42,7 +65,7 @@ export async function POST(req: Request) {
     const vehicle = await Vehicle.findOne({ owner: session.user.id });
     if (vehicle) {
       vehicle.type = vehicleType;
-      vehicle.vehicleModel = vehicleModel;
+      vehicle.vehicleModel = modelName;
       vehicle.vehicleNumber = number;
       vehicle.status = "pending";
       await vehicle.save();
@@ -50,7 +73,7 @@ export async function POST(req: Request) {
       await Vehicle.create({
         owner: session.user.id,
         type: vehicleType,
-        vehicleModel: vehicleModel,
+        vehicleModel: modelName,
         vehicleNumber: number,
         status: "pending",
         baseFare: 0,
