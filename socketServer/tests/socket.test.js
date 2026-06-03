@@ -4,22 +4,37 @@ import mongoose from "mongoose";
 import { io as Client } from "socket.io-client";
 import RedisMock from "ioredis-mock";
 
-// Mock ioredis with in-memory Redis client
 vi.mock("ioredis", () => {
   return {
-    default: RedisMock,
+    default: class MockRedis extends RedisMock {
+      constructor(...args) {
+        super(...args);
+        this.config = vi.fn().mockResolvedValue("OK");
+      }
+    }
   };
 });
 
-// Mock axios so that background API calls to Next.js (like cascade) don't trigger real HTTP requests
-vi.mock("axios", () => {
+// Mock axios so that background API calls to Next.js (like cascade) are mocked, while local HTTP calls go through
+vi.mock("axios", async (importOriginal) => {
+  const actualAxios = await importOriginal();
   return {
     default: {
-      post: vi.fn().mockResolvedValue({ data: { success: true } }),
-      get: vi.fn().mockResolvedValue({ data: {} }),
+      ...actualAxios,
+      post: vi.fn().mockImplementation((url, data, config) => {
+        if (url.includes("/api/booking/") && url.includes("/cascade")) {
+          return Promise.resolve({ data: { success: true } });
+        }
+        return actualAxios.post(url, data, config);
+      }),
+      get: vi.fn().mockImplementation((url, config) => {
+        return actualAxios.get(url, config);
+      }),
     },
   };
 });
+
+import axios from "axios";
 
 let mongoServer;
 let server;
@@ -116,5 +131,105 @@ describe("WebSocket Realtime Integration Tests", () => {
         reject(err);
       }
     });
+  });
+
+  it("should relay chat messages within the booking room", () => {
+    return new Promise(async (resolve, reject) => {
+      let clientSocket1, clientSocket2;
+      try {
+        const bookingId = new mongoose.Types.ObjectId().toString();
+
+        clientSocket1 = Client(`http://localhost:${testPort}`);
+        clientSocket1.on("connect", () => {
+          clientSocket2 = Client(`http://localhost:${testPort}`);
+          clientSocket2.on("connect", () => {
+            clientSocket1.emit("join-booking", bookingId);
+            clientSocket2.emit("join-booking", bookingId);
+
+            setTimeout(() => {
+              clientSocket2.on("chat-message", (msg) => {
+                try {
+                  expect(msg.text).toBe("Hello Driver!");
+                  expect(msg.sender).toBe("user");
+                  
+                  let disconnectedCount = 0;
+                  const onDisconnect = () => {
+                    disconnectedCount++;
+                    if (disconnectedCount === 2) {
+                      setTimeout(resolve, 100);
+                    }
+                  };
+                  clientSocket1.on("disconnect", onDisconnect);
+                  clientSocket2.on("disconnect", onDisconnect);
+
+                  clientSocket1.disconnect();
+                  clientSocket2.disconnect();
+                } catch (err) {
+                  clientSocket1.disconnect();
+                  clientSocket2.disconnect();
+                  reject(err);
+                }
+              });
+
+              clientSocket1.emit("chat-message", {
+                rideId: bookingId,
+                text: "Hello Driver!",
+                sender: "user",
+              });
+            }, 100);
+          });
+        });
+      } catch (err) {
+        if (clientSocket1) clientSocket1.disconnect();
+        if (clientSocket2) clientSocket2.disconnect();
+        reject(err);
+      }
+    });
+  });
+
+  it("should trigger cascade timer if driver ignores booking", async () => {
+    vi.useFakeTimers();
+    try {
+      const bookingId = new mongoose.Types.ObjectId().toString();
+      const driverId = new mongoose.Types.ObjectId().toString();
+
+      await User.create({
+        _id: driverId,
+        name: "Test Driver",
+        email: "driver@example.com",
+        role: "partner",
+      });
+
+      const response = await axios.post(`http://localhost:${testPort}/emit`, {
+        userId: driverId,
+        event: "new-booking",
+        data: {
+          _id: bookingId,
+          driver: driverId,
+        },
+      });
+
+      expect(response.data.success).toBe(true);
+
+      // Fast-forward 20 seconds
+      vi.advanceTimersByTime(20000);
+
+      // Yield to let the async callback execute the fetch call
+      await new Promise(resolve => process.nextTick(resolve));
+      await new Promise(resolve => process.nextTick(resolve));
+
+      const mockPost = axios.post;
+      const calls = vi.mocked(mockPost).mock.calls;
+      
+      const cascadeCall = calls.find(call => 
+        call[0].includes(`/api/booking/${bookingId}/cascade`)
+      );
+      
+      expect(cascadeCall).toBeDefined();
+      expect(cascadeCall[1].driverId).toBe(driverId);
+
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
