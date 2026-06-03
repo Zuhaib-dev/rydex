@@ -10,6 +10,8 @@ vi.mock("ioredis", () => {
       constructor(...args) {
         super(...args);
         this.config = vi.fn().mockResolvedValue("OK");
+        this.geoadd = vi.fn().mockResolvedValue(1);
+        this.zrem = vi.fn().mockResolvedValue(1);
       }
     }
   };
@@ -231,5 +233,57 @@ describe("WebSocket Realtime Integration Tests", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("should throttle location updates exceeding the rate limit", () => {
+    return new Promise(async (resolve, reject) => {
+      let tempClientSocket;
+      try {
+        const testDriver = await User.create({
+          name: "Throttled Driver",
+          email: "throttled@rydex.com",
+          role: "partner",
+          isOnline: false,
+          partnerStatus: "approved",
+        });
+
+        const spy = vi.spyOn(User, "findByIdAndUpdate");
+
+        tempClientSocket = Client(`http://localhost:${testPort}`);
+        tempClientSocket.on("connect", () => {
+          tempClientSocket.emit("identity", testDriver._id.toString());
+
+          setTimeout(() => {
+            // Send 12 rapid updates
+            for (let i = 0; i < 12; i++) {
+              tempClientSocket.emit("update-location", { latitude: 10 + i, longitude: 20 + i });
+            }
+
+            // Wait for socket server to process all events
+            setTimeout(() => {
+              try {
+                // Should only update 10 times, the last 2 should be throttled
+                expect(spy).toHaveBeenCalledTimes(10);
+                
+                tempClientSocket.on("disconnect", () => {
+                  setTimeout(() => {
+                    spy.mockRestore();
+                    resolve();
+                  }, 100);
+                });
+                tempClientSocket.disconnect();
+              } catch (err) {
+                tempClientSocket.disconnect();
+                spy.mockRestore();
+                reject(err);
+              }
+            }, 400);
+          }, 100);
+        });
+      } catch (err) {
+        if (tempClientSocket) tempClientSocket.disconnect();
+        reject(err);
+      }
+    });
   });
 });
