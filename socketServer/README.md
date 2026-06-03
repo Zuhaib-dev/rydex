@@ -284,3 +284,49 @@ NEXT_BASE_URL=https://your-nextjs-app.netlify.app
 ```
 
 > No TypeScript here — kept intentionally simple as a lean Node.js service. The only responsibility is connection management, event routing, and timer orchestration.
+
+---
+
+## Testing
+
+The WebSocket server features integration tests built with **Vitest**. The test suite tests the actual real-time connection lifecycle, event dispatches, and database updates without requiring running external databases or Redis clusters.
+
+### Test Configuration
+* **Test Runner:** Vitest ([vitest.config.js](file:///Users/fs/Documents/rydex/socketServer/vitest.config.js)) configured for a native Node.js environment.
+* **Database Testing:** Connects to a local in-memory database server spun up by `mongodb-memory-server` in the test setup.
+* **Redis Mocking:** Automatically mocks Redis connections with `ioredis-mock` to avoid requiring a running Redis instance in the testing environment.
+* **Axios Mocking:** Mocks Axios calls so that Next.js cascade callbacks (`/api/booking/{id}/cascade`) are intercepted and mocked.
+* **Dynamic Port Binding:** In the test environment (`process.env.NODE_ENV === "test"`), the server bypasses the production port (`8000`) and binds to a random free port dynamically (`server.listen(0)`), allowing you to run tests even if your local development server is running.
+
+### Executing Tests
+```bash
+# Run socket server test suite once
+npm run test
+
+# Run tests in interactive watch mode
+npm run test:watch
+```
+
+### Adding New WebSocket Tests
+To add new tests, edit or add files in the `tests/` directory (e.g., `tests/socket.test.js`). 
+
+To avoid ESM import hoisting conflicts with environmental variables:
+1. Set up your `MongoMemoryServer` and `process.env` properties inside `beforeAll`.
+2. Dynamically import the server variables (`server`, `io`) and mongoose models inside the `beforeAll` block:
+```javascript
+let server, io, User;
+
+beforeAll(async () => {
+  const mongoServer = await MongoMemoryServer.create();
+  process.env.MONGODB_URL = mongoServer.getUri();
+  process.env.NODE_ENV = "test";
+
+  // Dynamically import server to guarantee env variables are read correctly
+  const index = await import("../index.js");
+  server = index.server;
+  io = index.io;
+  
+  const user = await import("../models/user.models.js");
+  User = user.default;
+});
+```

@@ -37,6 +37,7 @@ Bikes · Cars · SUVs · Vans · Trucks · Auto-rickshaws
 - [Real-time Event Pipeline](#real-time-event-pipeline)
 - [API Reference](#api-reference)
 - [Environment Variables](#environment-variables)
+- [Testing](#testing)
 - [Getting Started](#getting-started)
 - [Deployment](#deployment)
 - [Author](#author)
@@ -578,6 +579,33 @@ MONGODB_URL=mongodb+srv://<user>:<pass>@cluster.mongodb.net/rydex
 NEXT_BASE_URL=http://localhost:3000
 CLIENT_URL=http://localhost:3000
 ```
+
+---
+
+## Testing
+
+Rydex includes a comprehensive testing suite for both the Next.js app (`rydexx`) and the WebSocket engine (`socketServer`) to verify APIs, authentication, file uploads, and real-time events.
+
+### Testing Architecture
+* **In-Memory MongoDB:** Both directories use `mongodb-memory-server` to spin up isolated MongoDB instances in RAM for database integration tests.
+* **In-Memory Redis:** The socket server mocks Redis clustering capabilities using `ioredis-mock`.
+* **API Route Mocking:** NextAuth sessions and ImageKit file uploads are dynamically mocked for API validation.
+
+### Running the Tests
+
+**1. Next.js App / REST APIs (`rydexx`):**
+```bash
+cd rydexx
+npm run test
+```
+
+**2. WebSocket Server (`socketServer`):**
+```bash
+cd socketServer
+npm run test
+```
+
+For detailed testing guides and structures, refer to [Frontend Testing Docs](./rydexx/README.md#testing) and [Socket Server Testing Docs](./socketServer/README.md#testing).
 
 ---
 

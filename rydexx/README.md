@@ -348,3 +348,55 @@ npm start
 ```
 
 > **Note:** `npm run dev` uses Turbopack by default (Next.js 16). The `turbopack: {}` config in `next.config.ts` suppresses the webpack compatibility warning.
+
+---
+
+## Testing
+
+The frontend and API routes are tested using **Vitest** for unit and integration testing. We also have a configured **Playwright** template ready for End-to-End browser simulation tests (e.g., login, registration, and file uploads).
+
+### Test Configuration
+* **Test Runner:** Vitest ([vitest.config.ts](file:///Users/fs/Documents/rydex/rydexx/vitest.config.ts)) configured with `jsdom` and TypeScript path resolution.
+* **Database Testing:** API integration tests connect to a local in-memory database server spun up by `mongodb-memory-server` in the test setup.
+* **Mocks:**
+  * **NextAuth:** Simulated using `vi.mock("@/lib/auth")` (casted to `any` to resolve NextAuth middleware signature conflicts).
+  * **ImageKit:** Server-side file upload helper (`uploadOnImageKit`) is mocked to return static mock URLs.
+
+### Executing Tests
+```bash
+# Run Vitest test suite once
+npm run test
+
+# Run Vitest in interactive watch mode
+npm run test:watch
+
+# Run TypeScript compilation check
+npx tsc --noEmit
+```
+
+### Adding New API Tests
+To add a test for an API route:
+1. Create a `*.test.ts` file in the same folder as the route handler (e.g., `route.test.ts`).
+2. Add `// @vitest-environment node` at the very top of the file to force Vitest to run in the Node environment (highly recommended for server-side API endpoints, avoiding JSDOM global class conflicts like `File`/`Blob` prototypes).
+3. Set `process.env.MONGODB_URL` before dynamically importing your router handler to prevent ESM hoisting issues with environmental configuration.
+   
+Example template:
+```typescript
+// @vitest-environment node
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+import { MongoMemoryServer } from "mongodb-memory-server";
+import mongoose from "mongoose";
+
+let mongoServer: MongoMemoryServer;
+let GET: any;
+
+beforeAll(async () => {
+  mongoServer = await MongoMemoryServer.create();
+  process.env.MONGODB_URL = mongoServer.getUri();
+  await mongoose.connect(process.env.MONGODB_URL);
+
+  // Dynamically import handler to respect environmental variables
+  const route = await import("./route");
+  GET = route.GET;
+});
+```
