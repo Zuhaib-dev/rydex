@@ -14,6 +14,7 @@ export default function PricingPage() {
   const [baseFare, setBaseFare] = useState("");
   const [perKmRate, setPerKmRate] = useState("");
   const [waitingCharge, setWaitingCharge] = useState("");
+  const [vehicleType, setVehicleType] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -33,6 +34,7 @@ export default function PricingPage() {
           setPerKmRate(p.perKmRate ? p.perKmRate.toString() : "");
           setWaitingCharge(p.waitingCharge ? p.waitingCharge.toString() : "");
           if (p.imageUrl) setImagePreview(p.imageUrl);
+          setVehicleType(p.type || null);
         }
       } catch {
         // No prior data — that's fine
@@ -81,9 +83,21 @@ export default function PricingPage() {
     const bf = Number(baseFare);
     const pkm = Number(perKmRate);
     const wc = Number(waitingCharge);
-    if (!baseFare || isNaN(bf) || bf <= 0) errs.baseFare = "Enter a valid base fare";
-    if (!perKmRate || isNaN(pkm) || pkm <= 0) errs.perKmRate = "Enter a valid price per KM";
-    if (!waitingCharge || isNaN(wc) || wc < 0) errs.waitingCharge = "Enter a valid waiting charge";
+
+    const isTruck = vehicleType === "truck";
+    const maxBase = isTruck ? 200 : 100;
+    const maxPerKm = isTruck ? 200 : 100;
+
+    if (!baseFare || isNaN(bf) || bf < 1 || bf > maxBase) {
+      errs.baseFare = `Base fare must be between 1 and ${maxBase}`;
+    }
+    if (!perKmRate || isNaN(pkm) || pkm < 5 || pkm > maxPerKm) {
+      errs.perKmRate = `Price per KM must be between 5 and ${maxPerKm}`;
+    }
+    if (!waitingCharge || isNaN(wc) || wc < 1 || wc > 10) {
+      errs.waitingCharge = "Waiting charge must be between 1 and 10";
+    }
+
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };

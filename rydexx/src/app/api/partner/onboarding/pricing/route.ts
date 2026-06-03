@@ -28,14 +28,25 @@ export async function POST(req: NextRequest) {
     }
 
     const formData = await req.formData();
-    const baseFare = Number(formData.get("baseFare"));
-    const perKmRate = Number(formData.get("perKmRate"));
-    const waitingCharge = Number(formData.get("waitingCharge"));
+    const baseFareStr = formData.get("baseFare")?.toString().trim();
+    const perKmRateStr = formData.get("perKmRate")?.toString().trim();
+    const waitingChargeStr = formData.get("waitingCharge")?.toString().trim();
     const imageFile = (formData.get("vehicleImage") as File) || null;
 
-    if (!baseFare || !perKmRate || !waitingCharge) {
+    if (!baseFareStr || !perKmRateStr || !waitingChargeStr) {
       return Response.json(
         { message: "All pricing fields are required" },
+        { status: 400 },
+      );
+    }
+
+    const baseFare = Number(baseFareStr);
+    const perKmRate = Number(perKmRateStr);
+    const waitingCharge = Number(waitingChargeStr);
+
+    if (isNaN(baseFare) || isNaN(perKmRate) || isNaN(waitingCharge)) {
+      return Response.json(
+        { message: "Pricing fields must be valid numbers" },
         { status: 400 },
       );
     }
@@ -43,6 +54,31 @@ export async function POST(req: NextRequest) {
     const vehicle = await Vehicle.findOne({ owner: user._id });
     if (!vehicle) {
       return Response.json({ message: "Vehicle not found" }, { status: 404 });
+    }
+
+    const isTruck = vehicle.type === "truck";
+    const maxBase = isTruck ? 200 : 100;
+    const maxPerKm = isTruck ? 200 : 100;
+
+    if (baseFare < 1 || baseFare > maxBase) {
+      return Response.json(
+        { message: `Base fare must be between 1 and ${maxBase}` },
+        { status: 400 },
+      );
+    }
+
+    if (perKmRate < 5 || perKmRate > maxPerKm) {
+      return Response.json(
+        { message: `Price per KM must be between 5 and ${maxPerKm}` },
+        { status: 400 },
+      );
+    }
+
+    if (waitingCharge < 1 || waitingCharge > 10) {
+      return Response.json(
+        { message: "Waiting charge must be between 1 and 10" },
+        { status: 400 },
+      );
     }
 
     vehicle.baseFare = baseFare;

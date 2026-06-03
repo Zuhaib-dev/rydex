@@ -141,7 +141,7 @@ describe("POST /api/partner/onboarding/pricing", () => {
 
     // 3. Create multipart formData request
     const formData = new FormData();
-    formData.append("baseFare", "120");
+    formData.append("baseFare", "80");
     formData.append("perKmRate", "18");
     formData.append("waitingCharge", "3");
     
@@ -161,7 +161,7 @@ describe("POST /api/partner/onboarding/pricing", () => {
 
     // 4. Verify DB changes
     const updatedVehicle = await Vehicle.findOne({ owner: partner._id });
-    expect(updatedVehicle?.baseFare).toBe(120);
+    expect(updatedVehicle?.baseFare).toBe(80);
     expect(updatedVehicle?.perKmRate).toBe(18);
     expect(updatedVehicle?.imageUrl).toBe("https://ik.imagekit.io/mock-rydex/test-upload.jpg");
     expect(updatedVehicle?.status).toBe("pending");
@@ -187,7 +187,7 @@ describe("POST /api/partner/onboarding/pricing", () => {
     });
 
     const formData = new FormData();
-    formData.append("baseFare", "120");
+    formData.append("baseFare", "80");
     // perKmRate and waitingCharge are missing
 
     const req = new NextRequest("http://localhost/api/partner/onboarding/pricing", {
@@ -199,5 +199,177 @@ describe("POST /api/partner/onboarding/pricing", () => {
     expect(response.status).toBe(400);
     const body = await response.json();
     expect(body.message).toBe("All pricing fields are required");
+  });
+
+  it("should fail if baseFare is out of range for non-truck", async () => {
+    const partner = await User.create({
+      name: "Driver Joe",
+      email: "driver@example.com",
+      role: "partner",
+      partnerOnboardingSteps: 5,
+    });
+
+    await Vehicle.create({
+      owner: partner._id,
+      vehicleModel: "Model X",
+      vehicleNumber: "AB-1234",
+      type: "car",
+      baseFare: 0,
+      perKmRate: 0,
+      waitingCharge: 0,
+      status: "pending",
+    });
+
+    vi.mocked(auth as any).mockResolvedValue({
+      user: {
+        email: "driver@example.com",
+        id: partner._id.toString(),
+      },
+      expires: "tomorrow",
+    });
+
+    const formData = new FormData();
+    formData.append("baseFare", "120"); // Above 100 for non-truck
+    formData.append("perKmRate", "18");
+    formData.append("waitingCharge", "3");
+
+    const req = new NextRequest("http://localhost/api/partner/onboarding/pricing", {
+      method: "POST",
+      body: formData,
+    });
+
+    const response = await POST(req);
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.message).toBe("Base fare must be between 1 and 100");
+  });
+
+  it("should succeed if baseFare is 150 for a truck", async () => {
+    const partner = await User.create({
+      name: "Driver Joe",
+      email: "driver@example.com",
+      role: "partner",
+      partnerOnboardingSteps: 5,
+    });
+
+    await Vehicle.create({
+      owner: partner._id,
+      vehicleModel: "Model Truck",
+      vehicleNumber: "AB-5678",
+      type: "truck",
+      baseFare: 0,
+      perKmRate: 0,
+      waitingCharge: 0,
+      status: "pending",
+    });
+
+    vi.mocked(auth as any).mockResolvedValue({
+      user: {
+        email: "driver@example.com",
+        id: partner._id.toString(),
+      },
+      expires: "tomorrow",
+    });
+
+    const formData = new FormData();
+    formData.append("baseFare", "150"); // Valid for truck (max 200)
+    formData.append("perKmRate", "18");
+    formData.append("waitingCharge", "3");
+
+    const req = new NextRequest("http://localhost/api/partner/onboarding/pricing", {
+      method: "POST",
+      body: formData,
+    });
+
+    const response = await POST(req);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.message).toBe("Pricing saved successfully");
+  });
+
+  it("should fail if perKmRate is out of range", async () => {
+    const partner = await User.create({
+      name: "Driver Joe",
+      email: "driver@example.com",
+      role: "partner",
+      partnerOnboardingSteps: 5,
+    });
+
+    await Vehicle.create({
+      owner: partner._id,
+      vehicleModel: "Model X",
+      vehicleNumber: "AB-1234",
+      type: "car",
+      baseFare: 0,
+      perKmRate: 0,
+      waitingCharge: 0,
+      status: "pending",
+    });
+
+    vi.mocked(auth as any).mockResolvedValue({
+      user: {
+        email: "driver@example.com",
+        id: partner._id.toString(),
+      },
+      expires: "tomorrow",
+    });
+
+    const formData = new FormData();
+    formData.append("baseFare", "80");
+    formData.append("perKmRate", "4"); // Below 5
+    formData.append("waitingCharge", "3");
+
+    const req = new NextRequest("http://localhost/api/partner/onboarding/pricing", {
+      method: "POST",
+      body: formData,
+    });
+
+    const response = await POST(req);
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.message).toBe("Price per KM must be between 5 and 100");
+  });
+
+  it("should fail if waitingCharge is out of range", async () => {
+    const partner = await User.create({
+      name: "Driver Joe",
+      email: "driver@example.com",
+      role: "partner",
+      partnerOnboardingSteps: 5,
+    });
+
+    await Vehicle.create({
+      owner: partner._id,
+      vehicleModel: "Model X",
+      vehicleNumber: "AB-1234",
+      type: "car",
+      baseFare: 0,
+      perKmRate: 0,
+      waitingCharge: 0,
+      status: "pending",
+    });
+
+    vi.mocked(auth as any).mockResolvedValue({
+      user: {
+        email: "driver@example.com",
+        id: partner._id.toString(),
+      },
+      expires: "tomorrow",
+    });
+
+    const formData = new FormData();
+    formData.append("baseFare", "80");
+    formData.append("perKmRate", "18");
+    formData.append("waitingCharge", "11"); // Above 10
+
+    const req = new NextRequest("http://localhost/api/partner/onboarding/pricing", {
+      method: "POST",
+      body: formData,
+    });
+
+    const response = await POST(req);
+    expect(response.status).toBe(400);
+    const body = await response.json();
+    expect(body.message).toBe("Waiting charge must be between 1 and 10");
   });
 });
