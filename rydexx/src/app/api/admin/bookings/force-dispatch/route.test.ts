@@ -68,6 +68,7 @@ describe("POST /api/admin/bookings/force-dispatch", () => {
       role: "partner",
       partnerStatus: "approved",
       isOnline: true,
+      mobileNumber: "9876543210",
       location: { type: "Point", coordinates: [74.0, 34.0] },
     });
 
