@@ -3,7 +3,6 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vites
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import Vehicle from "@/models/vehicle.model";
-import { createLockedBookingQuote } from "./createBookingQuote";
 import { fetchDrivingRoute } from "@/lib/mapboxRouting";
 
 // Mock Mapbox Routing
@@ -19,12 +18,17 @@ vi.mock("@/lib/redis", () => ({
 }));
 
 let mongoServer: MongoMemoryServer;
+let createLockedBookingQuote: any;
 
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
   process.env.MONGODB_URL = uri;
   await mongoose.connect(uri);
+
+  // Import after setting process.env.MONGODB_URL
+  const mod = await import("./createBookingQuote");
+  createLockedBookingQuote = mod.createLockedBookingQuote;
 });
 
 afterAll(async () => {
