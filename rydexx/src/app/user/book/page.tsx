@@ -416,12 +416,13 @@ export default function BookPage() {
         {/* Top Header */}
         <div className="p-6 border-b border-zinc-100 flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <button
+            <motion.button
+              whileTap={{ scale: 0.92 }}
               onClick={() => router.back()}
               className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 transition"
             >
               <ArrowLeft size={16} />
-            </button>
+            </motion.button>
             <div>
               <h1 className="text-lg font-black tracking-tight text-zinc-900">Book a Ride</h1>
               <p className="text-3xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">Secure pricing on request</p>
@@ -558,14 +559,15 @@ export default function BookPage() {
                     placeholder="Enter pickup address"
                     className="flex-1 bg-transparent text-xs font-bold text-zinc-900 outline-none placeholder:text-zinc-400"
                   />
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.90 }}
                     onClick={useCurrentLocation}
                     disabled={locating}
                     className="w-8 h-8 rounded-xl bg-zinc-200 hover:bg-zinc-300 transition flex items-center justify-center shrink-0"
                     title="Locate coordinates"
                   >
                     <LocateFixed size={13} className={`text-zinc-700 ${locating ? "animate-spin" : ""}`} />
-                  </button>
+                  </motion.button>
                 </div>
 
                 <AnimatePresence>
@@ -577,14 +579,15 @@ export default function BookPage() {
                       className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-2xl shadow-2xl max-h-48 overflow-y-auto z-50 p-1"
                     >
                       {pickupResults.map(p => (
-                        <button
+                        <motion.button
                           key={p.id}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => selectSuggestion(p, "pickup")}
                           className="w-full text-left text-xs font-semibold p-2.5 hover:bg-zinc-50 rounded-xl flex items-start gap-2 text-zinc-800 transition"
                         >
                           <MapPin size={12} className="text-zinc-400 shrink-0 mt-0.5" />
                           <span className="truncate">{p.name}</span>
-                        </button>
+                        </motion.button>
                       ))}
                     </motion.div>
                   )}
@@ -616,14 +619,15 @@ export default function BookPage() {
                       className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-2xl shadow-2xl max-h-48 overflow-y-auto z-50 p-1"
                     >
                       {dropResults.map(p => (
-                        <button
+                        <motion.button
                           key={p.id}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => selectSuggestion(p, "drop")}
                           className="w-full text-left text-xs font-semibold p-2.5 hover:bg-zinc-50 rounded-xl flex items-start gap-2 text-zinc-800 transition"
                         >
                           <Navigation size={12} className="text-zinc-400 shrink-0 mt-0.5" />
                           <span className="truncate">{p.name}</span>
-                        </button>
+                        </motion.button>
                       ))}
                     </motion.div>
                   )}
@@ -640,9 +644,10 @@ export default function BookPage() {
               ].map((item) => {
                 const targetType = activeInput || item.defaultType;
                 return (
-                  <button
+                  <motion.button
                     key={item.name}
                     type="button"
+                    whileTap={{ scale: 0.93 }}
                     onClick={() => selectShortcut(item.address, item.lat, item.lng, item.defaultType)}
                     className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all border ${
                       activeInput === "pickup"
@@ -653,7 +658,7 @@ export default function BookPage() {
                     }`}
                   >
                     {item.name} {activeInput ? `→ ${activeInput}` : ""}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -670,18 +675,20 @@ export default function BookPage() {
             </div>
 
             <div className="flex bg-zinc-100 p-1 rounded-2xl mb-4">
-              <button
+              <motion.button
+                whileTap={{ scale: 0.97 }}
                 onClick={() => setScheduleMode("now")}
                 className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${scheduleMode === "now" ? "bg-white shadow-xs font-black text-black" : "text-gray-400"}`}
               >
                 Book Now (Instant)
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
                 onClick={() => setScheduleMode("later")}
                 className={`flex-1 py-2 text-xs font-bold rounded-xl transition ${scheduleMode === "later" ? "bg-white shadow-xs font-black text-black" : "text-gray-400"}`}
               >
                 Schedule Ride
-              </button>
+              </motion.button>
             </div>
 
             <AnimatePresence>
