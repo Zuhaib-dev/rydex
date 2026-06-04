@@ -360,9 +360,12 @@ export default function Nav() {
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               onClick={() => setMenuOpen((p) => !p)}
-              className="md:hidden text-white focus-visible:ring-2 focus-visible:ring-white rounded p-1"
+              className="md:hidden text-white focus-visible:ring-2 focus-visible:ring-white rounded p-1 relative"
             >
               {menuOpen ? <X size={26} /> : <Menu size={26} />}
+              {pendingCount > 0 && !menuOpen && (
+                <span className="absolute top-1 right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#0B0B0B]" />
+              )}
             </button>
           </div>
         </div>
