@@ -21,8 +21,12 @@ export async function POST(
 
   // Release Redis driver lock if there was a driver assigned
   if (booking.driver) {
-    const redis = getRedisClient();
-    await redis.del(`lock:driver:${String(booking.driver)}`);
+    try {
+      const redis = getRedisClient();
+      await redis.del(`lock:driver:${String(booking.driver)}`);
+    } catch (err) {
+      console.warn("Failed to delete redis lock on cancel:", err);
+    }
   }
 
   await booking.save();
