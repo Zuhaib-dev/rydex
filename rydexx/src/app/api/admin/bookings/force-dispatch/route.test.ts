@@ -6,16 +6,16 @@ import Booking from "@/models/booking.model";
 import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
 import { auth } from "@/lib/auth";
-import { dispatchBookingToPartner } from "@/lib/matching/dispatch";
+import { emitBookingUpdated } from "@/lib/bookingEvents";
 
 // Mock Auth
 vi.mock("@/lib/auth", () => ({
   auth: vi.fn(),
 }));
 
-// Mock dispatchBookingToPartner
-vi.mock("@/lib/matching/dispatch", () => ({
-  dispatchBookingToPartner: vi.fn().mockResolvedValue({}),
+// Mock emitBookingUpdated
+vi.mock("@/lib/bookingEvents", () => ({
+  emitBookingUpdated: vi.fn().mockResolvedValue({}),
 }));
 
 // Mock Redis to fail
@@ -52,7 +52,7 @@ beforeEach(async () => {
 });
 
 describe("POST /api/admin/bookings/force-dispatch", () => {
-  it("should force-dispatch a booking successfully even if Redis is down", async () => {
+  it("should force-dispatch a booking directly to awaiting_payment successfully even if Redis is down", async () => {
     // 1. Mock admin session
     vi.mocked(auth as any).mockResolvedValue({
       user: {
@@ -123,9 +123,10 @@ describe("POST /api/admin/bookings/force-dispatch", () => {
     const updatedBooking = await Booking.findById(booking._id);
     expect(String(updatedBooking?.driver)).toBe(partner._id.toString());
     expect(String(updatedBooking?.vehicle)).toBe(vehicle._id.toString());
-    expect(updatedBooking?.status).toBe("requested");
+    expect(updatedBooking?.status).toBe("awaiting_payment");
+    expect(updatedBooking?.paymentDeadline).toBeDefined();
 
-    // Verify dispatchBookingToPartner was called
-    expect(dispatchBookingToPartner).toHaveBeenCalled();
+    // Verify emitBookingUpdated was called
+    expect(emitBookingUpdated).toHaveBeenCalled();
   });
 });

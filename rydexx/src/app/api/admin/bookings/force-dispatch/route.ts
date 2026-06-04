@@ -67,12 +67,13 @@ export async function POST(req: Request) {
       etaMinutes = estimatePickupEtaMinutes(distanceMeters, vehicle.type);
     }
 
-    // Update booking
+    // Update booking directly to awaiting_payment status
     booking.driver = new mongoose.Types.ObjectId(partnerId);
     booking.vehicle = vehicle._id;
     booking.driverMobileNumber = partner.mobileNumber;
     booking.driverAssignedAt = new Date();
-    booking.status = "requested";
+    booking.status = "awaiting_payment";
+    booking.paymentDeadline = new Date(Date.now() + 5 * 60 * 1000); // 5-minute payment deadline
     booking.matchRadiusMeters = 50000; // Large radius for forced
     
     // Add to attempted
@@ -83,20 +84,21 @@ export async function POST(req: Request) {
 
     await booking.save();
 
-    const matchedPartner = {
-      partnerId: String(partner._id),
-      name: partner.name,
-      vehicleId: String(vehicle._id),
-      vehicleType: vehicle.type,
-      mobileNumber: partner.mobileNumber,
-      coords: partner.location?.coordinates || [0, 0],
-      distanceMeters,
-      roadDistanceMeters: distanceMeters,
-      etaMinutes
-    };
+    // Release Redis lock for the newly assigned partner as well
+    try {
+      const redis = getRedisClient();
+      await redis.del(`lock:driver:${partnerId}`);
+    } catch (err) {
+      console.warn("Failed to release new driver lock on force dispatch:", err);
+    }
 
-    await dispatchBookingToPartner(booking, matchedPartner, booking.matchRadiusMeters || 50000, {
-      previousDriverId: (oldDriverId && oldDriverId !== partnerId) ? oldDriverId : undefined
+    // Populate driver and vehicle fields for complete payload
+    const populated = await Booking.findById(booking._id).populate("driver vehicle");
+
+    const { emitBookingUpdated } = await import("@/lib/bookingEvents");
+    await emitBookingUpdated(populated ?? booking, {
+      bookingId: String(booking._id),
+      status: "awaiting_payment",
     });
 
     return NextResponse.json({
