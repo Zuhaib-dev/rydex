@@ -7,6 +7,7 @@ import ReduxProvider from "@/redux/ReduxProvider";
 import InitUser from "@/InitUser";
 import InstallPWA from "@/components/InstallPWA";
 import GlobalDynamicIsland from "@/components/ride/GlobalDynamicIsland";
+import PartnerForceDispatchOverlay from "@/components/partner/PartnerForceDispatchOverlay";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -200,6 +201,7 @@ export default function RootLayout({
           <Provider>
             <InitUser />
             <GlobalDynamicIsland />
+            <PartnerForceDispatchOverlay />
             {children}
             <InstallPWA />
           </Provider>
