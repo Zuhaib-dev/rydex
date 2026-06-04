@@ -19,6 +19,7 @@ export type BookingClientPayload = {
   driverMobileNumber?: string;
   sosTriggered?: boolean;
   sosTriggeredAt?: string | Date | null;
+  isForceDispatched?: boolean;
   matchRadiusMeters?: number;
   matchRadiusKm?: number;
   dispatchEtaMinutes?: number;
@@ -70,6 +71,7 @@ export function serializeBookingForClient(booking: Record<string, unknown>): Boo
     driverMobileNumber: booking.driverMobileNumber as string | undefined,
     sosTriggered: booking.sosTriggered as boolean | undefined,
     sosTriggeredAt: booking.sosTriggeredAt as string | Date | null | undefined,
+    isForceDispatched: booking.isForceDispatched as boolean | undefined,
     driver: driver
       ? {
           _id: toPlainId(driver._id ?? driver),

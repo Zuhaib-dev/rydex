@@ -36,8 +36,8 @@ export default function PartnerForceDispatchOverlay() {
       // If we are already on the active ride tracking page, do nothing
       if (pathname.startsWith("/partner/active-ride")) return;
 
-      // Force dispatch transitions booking directly to "awaiting_payment"
-      if (data.status === "awaiting_payment" && data.bookingId) {
+      // Force dispatch transitions booking directly to "awaiting_payment" and has isForceDispatched flag
+      if (data.status === "awaiting_payment" && data.bookingId && data.isForceDispatched === true) {
         setActiveDispatch({
           bookingId: data.bookingId,
           pickupAddress: data.pickupAddress,

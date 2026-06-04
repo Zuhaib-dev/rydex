@@ -99,6 +99,7 @@ export async function POST(req: Request) {
     await emitBookingUpdated(populated ?? booking, {
       bookingId: String(booking._id),
       status: "awaiting_payment",
+      isForceDispatched: true,
     });
 
     return NextResponse.json({
