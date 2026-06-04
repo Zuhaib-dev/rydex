@@ -83,10 +83,10 @@ describe("cascadeBooking - Redis Down Resiliency", () => {
       partnerId: otherDriverId.toString(),
       vehicleId: vehicleId.toString(),
       mobileNumber: "9876543210",
-      coords: [74.01, 34.01],
       distanceMeters: 800,
       roadDistanceMeters: 1000,
       etaMinutes: 4,
+      vehicleType: "car",
     });
 
     // Call cascadeBooking (which simulates driver rejecting the ride)
