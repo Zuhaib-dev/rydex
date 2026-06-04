@@ -428,12 +428,13 @@ function SearchContent() {
       <div className="hidden lg:flex lg:col-span-4 bg-white border-r border-zinc-200 z-10 flex-col h-full overflow-y-auto shadow-2xl relative">
         {/* Top Header */}
         <div className="p-6 border-b border-zinc-100 flex items-center gap-4">
-          <button
+          <motion.button
+            whileTap={{ scale: 0.92 }}
             onClick={() => router.back()}
             className="w-10 h-10 rounded-full border border-zinc-200 flex items-center justify-center hover:bg-zinc-50 transition"
           >
             <ArrowLeft size={16} />
-          </button>
+          </motion.button>
           <div>
             <h1 className="text-lg font-black tracking-tight text-zinc-900">Rydex Discovery</h1>
             <p className="text-3xs font-bold text-gray-400 uppercase tracking-widest mt-0.5">Secure Fares & Drivers</p>
@@ -453,13 +454,14 @@ function SearchContent() {
                 placeholder="Enter pickup address..."
                 className="w-full text-xs font-bold bg-zinc-50 border border-zinc-200 rounded-xl px-3 py-3 pr-8 focus:ring-black focus:border-black"
               />
-              <button
+              <motion.button
+                whileTap={{ scale: 0.88 }}
                 onClick={useCurrentLocation}
                 className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-black transition"
                 title="Use current location"
               >
                 <Compass size={14} />
-              </button>
+              </motion.button>
             </div>
           </div>
 
@@ -488,14 +490,15 @@ function SearchContent() {
                   <div className="p-3 text-center text-xs text-zinc-400">Loading suggestions...</div>
                 )}
                 {suggestions.map((item, idx) => (
-                  <button
+                  <motion.button
                     key={idx}
+                    whileTap={{ scale: 0.98 }}
                     onClick={() => selectSuggestion(item)}
                     className="w-full text-left text-xs font-semibold p-2.5 hover:bg-zinc-50 rounded-xl flex items-start gap-2 text-zinc-800 transition"
                   >
                     <MapPin size={13} className="text-zinc-400 shrink-0 mt-0.5" />
                     <span className="truncate">{item.name}</span>
-                  </button>
+                  </motion.button>
                 ))}
               </motion.div>
             )}
@@ -510,9 +513,10 @@ function SearchContent() {
             ].map((item) => {
               const targetType = activeInput || item.defaultType;
               return (
-                <button
+                <motion.button
                   key={item.name}
                   type="button"
+                  whileTap={{ scale: 0.93 }}
                   onClick={() => selectShortcut(item.address, item.lat, item.lng, item.defaultType)}
                   className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all border ${
                     activeInput === "pickup"
@@ -523,7 +527,7 @@ function SearchContent() {
                   }`}
                 >
                   {item.name} {activeInput ? `→ ${activeInput}` : ""}
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -534,8 +538,9 @@ function SearchContent() {
           <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-3">Vehicle Categories</label>
           <div className="grid grid-cols-5 gap-2 bg-zinc-100 p-1 rounded-2xl">
             {(["bike", "auto", "car", "loading", "truck"] as const).map((type) => (
-              <button
+              <motion.button
                 key={type}
+                whileTap={{ scale: 0.94 }}
                 onClick={() => setSelectedType(type)}
                 className={`py-2 rounded-xl flex flex-col items-center gap-1 transition ${
                   selectedType === type ? "bg-white shadow-xs text-black font-black" : "text-gray-400 hover:text-black"
@@ -547,7 +552,7 @@ function SearchContent() {
                 {type === "loading" && <Truck size={14} />}
                 {type === "truck" && <Truck size={14} />}
                 <span className="text-[9px] capitalize">{type}</span>
-              </button>
+              </motion.button>
             ))}
           </div>
         </div>
@@ -615,26 +620,29 @@ function SearchContent() {
               Payment Method
             </span>
             <div className="flex bg-zinc-200/60 p-0.5 rounded-lg text-3xs">
-              <button
+              <motion.button
+                whileTap={!cashOnlyZone ? { scale: 0.95 } : undefined}
                 onClick={() => !cashOnlyZone && setPaymentMethod("upi")}
                 disabled={!!cashOnlyZone}
                 className={`px-2 py-1 rounded transition ${paymentMethod === "upi" ? "bg-white shadow-xs font-black" : "text-gray-500"} ${cashOnlyZone ? "opacity-40 cursor-not-allowed" : ""}`}
               >
                 UPI
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileTap={!cashOnlyZone ? { scale: 0.95 } : undefined}
                 onClick={() => !cashOnlyZone && setPaymentMethod("card")}
                 disabled={!!cashOnlyZone}
                 className={`px-2 py-1 rounded transition ${paymentMethod === "card" ? "bg-white shadow-xs font-black" : "text-gray-500"} ${cashOnlyZone ? "opacity-40 cursor-not-allowed" : ""}`}
               >
                 Card
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.95 }}
                 onClick={() => setPaymentMethod("cash")}
                 className={`px-2 py-1 rounded transition ${paymentMethod === "cash" ? "bg-white shadow-xs font-black" : "text-gray-500"}`}
               >
                 Cash
-              </button>
+              </motion.button>
             </div>
           </div>
 
@@ -649,7 +657,8 @@ function SearchContent() {
                 className="w-full text-xs font-bold bg-white border border-zinc-200 rounded-xl px-3 py-2 focus:ring-black focus:border-black uppercase"
               />
             </div>
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={() => {
                 if (couponCode.toUpperCase() === "RYDEX50") {
                   setDiscountApplied(true);
@@ -661,7 +670,7 @@ function SearchContent() {
               className="px-4 bg-zinc-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
             >
               Apply
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
@@ -741,15 +750,16 @@ function SearchContent() {
             {/* Selector list for Mobile */}
             <div className="grid grid-cols-5 gap-1 bg-zinc-100 p-1 rounded-xl">
               {(["bike", "auto", "car", "loading", "truck"] as const).map(type => (
-                <button
+                <motion.button
                   key={type}
+                  whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedType(type)}
                   className={`py-1.5 rounded-lg flex flex-col items-center gap-1 transition ${
                     selectedType === type ? "bg-white shadow-xs text-black font-black" : "text-gray-400"
                   }`}
                 >
                   <span className="text-[10px] capitalize">{type}</span>
-                </button>
+                </motion.button>
               ))}
             </div>
 
@@ -771,13 +781,14 @@ function SearchContent() {
                   </div>
                   <span className="text-base font-black text-zinc-900 font-mono">₹{Math.round((vehicles[0].baseFare || 0) + (tripKm || 0) * (vehicles[0].perKmRate || 0))}</span>
                 </div>
-                <button
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
                   onClick={handleBooking}
                   disabled={lockingFare}
                   className="w-full py-4 bg-zinc-950 hover:bg-black text-white font-black rounded-2xl text-xs transition"
                 >
                   {lockingFare ? "Locking fare..." : "Book Ride"}
-                </button>
+                </motion.button>
               </div>
             ) : (
               <div className="p-4 border border-dashed rounded-2xl text-center text-xs text-zinc-400">No vehicles available nearby.</div>
