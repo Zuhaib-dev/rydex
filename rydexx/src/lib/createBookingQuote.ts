@@ -28,6 +28,14 @@ type CreateQuoteInput = {
   scheduledAt?: Date | string;
 };
 
+const DISTANCE_LIMITS: Record<string, { minKm: number; maxKm: number; label: string }> = {
+  bike: { minKm: 0.1, maxKm: 100, label: "Motorcycle" },
+  auto: { minKm: 0.1, maxKm: 60, label: "Auto Rickshaw" },
+  car: { minKm: 0.5, maxKm: 200, label: "Cab" },
+  loading: { minKm: 1.0, maxKm: 500, label: "Loading Vehicle" },
+  truck: { minKm: 5.0, maxKm: 3000, label: "Commercial Truck" },
+};
+
 export async function createLockedBookingQuote(input: CreateQuoteInput) {
   await connectDb();
 
@@ -50,6 +58,23 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
   const tripDistanceKm = route
     ? Math.round(route.distanceKm * 100) / 100
     : tripDistanceKmFromCoords(pickupCoordinates, dropCoordinates);
+
+  const limits = DISTANCE_LIMITS[vehicle.type] || { minKm: 0.1, maxKm: 200, label: "Vehicle" };
+
+  if (tripDistanceKm < limits.minKm) {
+    const minMeters = limits.minKm * 1000;
+    return {
+      success: false as const,
+      message: `The trip distance is too short for a ${limits.label}. Minimum allowed is ${minMeters} meters.`,
+    };
+  }
+
+  if (tripDistanceKm > limits.maxKm) {
+    return {
+      success: false as const,
+      message: `The trip distance is too long for a ${limits.label}. Maximum allowed is ${limits.maxKm} km.`,
+    };
+  }
 
   const durationMinutes = route?.durationMinutes ?? Math.max(
     3,
