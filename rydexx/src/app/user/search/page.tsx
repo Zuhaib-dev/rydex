@@ -218,18 +218,40 @@ function SearchContent() {
 
   // Autocomplete Geocoding lookup
   const handleQueryChange = async (query: string, inputType: "pickup" | "drop") => {
-    if (inputType === "pickup") setPickup(query);
-    else setDrop(query);
+    if (inputType === "pickup") {
+      setPickup(query);
+      setPickupLat(0);
+      setPickupLng(0);
+    } else {
+      setDrop(query);
+      setDropLat(0);
+      setDropLng(0);
+    }
 
-    if (!query || query.length < 3 || !MAPBOX_TOKEN) {
+    if (!query || query.trim().length < 1 || !MAPBOX_TOKEN) {
       setSuggestions([]);
       return;
     }
 
+    const isKashmirLocation = (name: string): boolean => {
+      const n = name.toLowerCase();
+      return (
+        n.includes("kashmir") ||
+        n.includes("srinagar") ||
+        n.includes("budgam") ||
+        n.includes("chadoora") ||
+        n.includes("humhama") ||
+        n.includes("chanapora") ||
+        n.includes("dal lake") ||
+        n.includes("j&k") ||
+        n.includes("jammu")
+      );
+    };
+
     try {
       setSuggestLoading(true);
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${MAPBOX_TOKEN}&limit=5`
+        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query.trim())}.json?access_token=${MAPBOX_TOKEN}&limit=12&proximity=74.7973,34.0837`
       );
       const data = await res.json();
       if (data.features) {
@@ -237,7 +259,16 @@ function SearchContent() {
           const [lng, lat] = f.center;
           return { name: f.place_name, lat, lng };
         });
-        setSuggestions(list);
+
+        const sorted = list.sort((a, b) => {
+          const aK = isKashmirLocation(a.name);
+          const bK = isKashmirLocation(b.name);
+          if (aK && !bK) return -1;
+          if (!aK && bK) return 1;
+          return 0;
+        }).slice(0, 5);
+
+        setSuggestions(sorted);
       }
     } catch (err) {
       console.warn("Geocoding failed:", err);
@@ -262,8 +293,9 @@ function SearchContent() {
     setActiveInput(null);
   };
 
-  const selectShortcut = (address: string, lat: number, lng: number, inputType: "pickup" | "drop") => {
-    if (inputType === "pickup") {
+  const selectShortcut = (address: string, lat: number, lng: number, defaultType: "pickup" | "drop") => {
+    const targetType = activeInput || defaultType;
+    if (targetType === "pickup") {
       setPickup(address);
       setPickupLat(lat);
       setPickupLng(lng);
@@ -273,7 +305,7 @@ function SearchContent() {
       setDropLat(lat);
       setDropLng(lng);
     }
-    triggerToast(`Set ${inputType} to ${address}`);
+    triggerToast(`Set ${targetType} shortcut: ${address.split(",")[0]}`);
   };
 
   // Current location geolocator
@@ -470,25 +502,30 @@ function SearchContent() {
           </AnimatePresence>
 
           {/* Saved places shortcuts */}
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => selectShortcut("Chadoora, Budgam, J&K", 33.9189, 74.7979, "pickup")}
-              className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
-            >
-              Chadoora (Budgam)
-            </button>
-            <button
-              onClick={() => selectShortcut("Chanapora, Srinagar, J&K", 34.0298, 74.8052, "drop")}
-              className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
-            >
-              Chanapora (Srinagar)
-            </button>
-            <button
-              onClick={() => selectShortcut("Dal Lake, Srinagar, J&K", 34.0772, 74.8727, "drop")}
-              className="px-3 py-1.5 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 text-3xs font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
-            >
-              Dal Lake (Srinagar)
-            </button>
+          <div className="flex flex-wrap gap-1.5">
+            {[
+              { name: "Chadoora (Budgam)", address: "Chadoora, Budgam, J&K", lat: 33.9189, lng: 74.7979, defaultType: "pickup" as const },
+              { name: "Chanapora (Srinagar)", address: "Chanapora, Srinagar, J&K", lat: 34.0298, lng: 74.8052, defaultType: "drop" as const },
+              { name: "Dal Lake (Srinagar)", address: "Dal Lake, Srinagar, J&K", lat: 34.0772, lng: 74.8727, defaultType: "drop" as const },
+            ].map((item) => {
+              const targetType = activeInput || item.defaultType;
+              return (
+                <button
+                  key={item.name}
+                  type="button"
+                  onClick={() => selectShortcut(item.address, item.lat, item.lng, item.defaultType)}
+                  className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all border ${
+                    activeInput === "pickup"
+                      ? "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700"
+                      : activeInput === "drop"
+                      ? "bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                      : "bg-zinc-100 hover:bg-zinc-200 border-zinc-200/60 text-zinc-600"
+                  }`}
+                >
+                  {item.name} {activeInput ? `→ ${activeInput}` : ""}
+                </button>
+              );
+            })}
           </div>
         </div>
 

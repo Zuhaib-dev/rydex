@@ -136,32 +136,43 @@ export default function BookPage() {
   const handleQueryChange = (query: string, inputType: "pickup" | "drop") => {
     if (inputType === "pickup") {
       setPickup(query);
-      if (query.length === 0) {
-        setPickupLat(null);
-        setPickupLng(null);
-      }
+      setPickupLat(null);
+      setPickupLng(null);
     } else {
       setDrop(query);
-      if (query.length === 0) {
-        setDropLat(null);
-        setDropLng(null);
-      }
+      setDropLat(null);
+      setDropLng(null);
     }
     searchAddress(query, inputType === "pickup" ? setPickupResults : setDropResults);
   };
 
   // Autocomplete Geocoding searches (Mapbox primary, Photon fallback)
   const searchAddress = async (q: string, setResults: (r: Place[]) => void) => {
-    if (!q || q.trim().length < 3) {
+    if (!q || q.trim().length < 1) {
       setResults([]);
       return;
     }
 
-    // Try Mapbox Primary Geocoding
+    const isKashmirLocation = (name: string): boolean => {
+      const n = name.toLowerCase();
+      return (
+        n.includes("kashmir") ||
+        n.includes("srinagar") ||
+        n.includes("budgam") ||
+        n.includes("chadoora") ||
+        n.includes("humhama") ||
+        n.includes("chanapora") ||
+        n.includes("dal lake") ||
+        n.includes("j&k") ||
+        n.includes("jammu")
+      );
+    };
+
+    // Try Mapbox Primary Geocoding with proximity to Srinagar (74.7973, 34.0837)
     if (MAPBOX_TOKEN) {
       try {
         const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q.trim())}.json?access_token=${MAPBOX_TOKEN}&limit=5`
+          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q.trim())}.json?access_token=${MAPBOX_TOKEN}&limit=12&proximity=74.7973,34.0837`
         );
         const data = await res.json();
         if (data.features) {
@@ -174,7 +185,17 @@ export default function BookPage() {
               lng,
             };
           });
-          setResults(results);
+
+          // Sort so Kashmir results are at the top
+          const sorted = results.sort((a, b) => {
+            const aK = isKashmirLocation(a.name);
+            const bK = isKashmirLocation(b.name);
+            if (aK && !bK) return -1;
+            if (!aK && bK) return 1;
+            return 0;
+          }).slice(0, 5);
+
+          setResults(sorted);
           return;
         }
       } catch (err) {
@@ -182,9 +203,9 @@ export default function BookPage() {
       }
     }
 
-    // Photon Fallback
+    // Photon Fallback with lat/lon biasing to Srinagar
     try {
-      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q.trim())}&limit=5&lang=en`);
+      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q.trim())}&limit=12&lang=en&lat=34.0837&lon=74.7973`);
       const data = await res.json();
       const results: Place[] = ((data?.features ?? []) as PhotonFeature[]).map((f) => ({
         id: String(f.properties.osm_id),
@@ -192,7 +213,16 @@ export default function BookPage() {
         lat: f.geometry.coordinates[1],
         lng: f.geometry.coordinates[0],
       }));
-      setResults(results);
+
+      const sorted = results.sort((a, b) => {
+        const aK = isKashmirLocation(a.name);
+        const bK = isKashmirLocation(b.name);
+        if (aK && !bK) return -1;
+        if (!aK && bK) return 1;
+        return 0;
+      }).slice(0, 5);
+
+      setResults(sorted);
     } catch {
       setResults([]);
     }
@@ -214,8 +244,9 @@ export default function BookPage() {
   };
 
   // Pre-configured Kashmir Location Shortcuts (Chadoora, Chanapora, Dal Lake)
-  const selectShortcut = (address: string, lat: number, lng: number, type: "pickup" | "drop") => {
-    if (type === "pickup") {
+  const selectShortcut = (address: string, lat: number, lng: number, defaultType: "pickup" | "drop") => {
+    const targetType = activeInput || defaultType;
+    if (targetType === "pickup") {
       setPickup(address);
       setPickupLat(lat);
       setPickupLng(lng);
@@ -224,7 +255,7 @@ export default function BookPage() {
       setDropLat(lat);
       setDropLng(lng);
     }
-    triggerToast(`Set ${type} shortcut: ${address.split(",")[0]}`);
+    triggerToast(`Set ${targetType} shortcut: ${address.split(",")[0]}`);
   };
 
   // Geolocator coordinates lookup
@@ -602,24 +633,29 @@ export default function BookPage() {
 
             {/* Kashmir Quick Pins shortcuts */}
             <div className="flex flex-wrap gap-1.5 mt-2">
-              <button
-                onClick={() => selectShortcut("Chadoora, Budgam, J&K", 33.9189, 74.7979, "pickup")}
-                className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200/60 text-[9px] font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
-              >
-                Chadoora (Budgam)
-              </button>
-              <button
-                onClick={() => selectShortcut("Chanapora, Srinagar, J&K", 34.0298, 74.8052, "drop")}
-                className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200/60 text-[9px] font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
-              >
-                Chanapora (Srinagar)
-              </button>
-              <button
-                onClick={() => selectShortcut("Dal Lake, Srinagar, J&K", 34.0772, 74.8727, "drop")}
-                className="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 border border-zinc-200/60 text-[9px] font-black uppercase tracking-wider rounded-lg text-zinc-600 transition"
-              >
-                Dal Lake (Srinagar)
-              </button>
+              {[
+                { name: "Chadoora (Budgam)", address: "Chadoora, Budgam, J&K", lat: 33.9189, lng: 74.7979, defaultType: "pickup" as const },
+                { name: "Chanapora (Srinagar)", address: "Chanapora, Srinagar, J&K", lat: 34.0298, lng: 74.8052, defaultType: "drop" as const },
+                { name: "Dal Lake (Srinagar)", address: "Dal Lake, Srinagar, J&K", lat: 34.0772, lng: 74.8727, defaultType: "drop" as const },
+              ].map((item) => {
+                const targetType = activeInput || item.defaultType;
+                return (
+                  <button
+                    key={item.name}
+                    type="button"
+                    onClick={() => selectShortcut(item.address, item.lat, item.lng, item.defaultType)}
+                    className={`px-2.5 py-1 text-[9px] font-black uppercase tracking-wider rounded-lg transition-all border ${
+                      activeInput === "pickup"
+                        ? "bg-emerald-50 hover:bg-emerald-100 border-emerald-200 text-emerald-700"
+                        : activeInput === "drop"
+                        ? "bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-700"
+                        : "bg-zinc-100 hover:bg-zinc-200 border-zinc-200/60 text-zinc-600"
+                    }`}
+                  >
+                    {item.name} {activeInput ? `→ ${activeInput}` : ""}
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
 

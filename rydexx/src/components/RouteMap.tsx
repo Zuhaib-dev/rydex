@@ -40,6 +40,23 @@ function FitBounds({ p1, p2 }: { p1: [number, number]; p2: [number, number] }) {
   return null;
 }
 
+/* ─── RECENTER MAP ────────────────────────────────────────────────── */
+function RecenterMap({ p1 }: { p1: [number, number] | null }) {
+  const { current: map } = useMap();
+  useEffect(() => {
+    if (map && p1) {
+      map.flyTo({
+        center: [p1[1], p1[0]],
+        zoom: 14,
+        pitch: 65,
+        essential: true,
+        duration: 1500,
+      });
+    }
+  }, [p1, map]);
+  return null;
+}
+
 /* ─── ZOOM CONTROLS ───────────────────────────────────────────────── */
 function ZoomControlsWrapper() {
   const { current: map } = useMap();
@@ -141,18 +158,26 @@ export default function RouteMap({
     setReady(false);
     setRoute(null);
     (async () => {
-      let a: [number, number] | null = pickupCoord ?? null;
-      let b: [number, number] | null = dropCoord ?? null;
+      const a = pickupCoord ?? null;
+      const b = dropCoord ?? null;
 
-      if (!a) a = await geocode(pickup);
-      if (!b) b = await geocode(drop);
-      if (!a || !b) return;
+      if (!a) {
+        setP1(null);
+        setP2(null);
+        return;
+      }
       setP1(a);
+
+      if (!b) {
+        setP2(null);
+        setReady(true);
+        return;
+      }
       setP2(b);
       await loadRoute(a, b);
       setReady(true);
 
-      if (!pickupCoord) {
+      if (a) {
         try {
           await fetch("/api/metrics/search-log", {
             method: "POST",
@@ -164,7 +189,7 @@ export default function RouteMap({
         }
       }
     })();
-  }, [pickup, drop, pickupCoord?.[0], pickupCoord?.[1], dropCoord?.[0], dropCoord?.[1]]);
+  }, [pickupCoord?.[0], pickupCoord?.[1], dropCoord?.[0], dropCoord?.[1]]);
 
   const onDragPickup = previewMode
     ? undefined
@@ -232,6 +257,7 @@ export default function RouteMap({
           }}
         />
 
+        {p1 && !p2 && <RecenterMap p1={p1} />}
         {p1 && p2 && <FitBounds p1={p1} p2={p2} />}
 
         {p1 && (
