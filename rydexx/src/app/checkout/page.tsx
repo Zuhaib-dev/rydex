@@ -443,7 +443,7 @@ function CheckoutContent() {
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Total Fare</p>
                   <p className="text-zinc-400 text-xs font-medium">
-                    Locked · {tripDistanceKm} km · ~{durationMinutes} min
+                    Locked · {tripDistanceKm} km · ~{Math.round(durationMinutes)} min
                   </p>
                 </div>
                 <motion.div
