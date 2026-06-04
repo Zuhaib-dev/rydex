@@ -44,12 +44,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Partner has no active approved vehicle" }, { status: 400 });
     }
 
-    const oldDriverId = String(booking.driver);
-    const redis = getRedisClient();
+    const oldDriverId = booking.driver ? String(booking.driver) : undefined;
 
     // Release any old driver locks
     if (oldDriverId) {
-      await redis.del(`lock:driver:${oldDriverId}`);
+      try {
+        const redis = getRedisClient();
+        await redis.del(`lock:driver:${oldDriverId}`);
+      } catch (err) {
+        console.warn("Failed to release old driver lock on force dispatch:", err);
+      }
     }
 
     // Attempt to calculate realistic distance and ETA if partner has live location
@@ -91,8 +95,8 @@ export async function POST(req: Request) {
       etaMinutes
     };
 
-    await dispatchBookingToPartner(booking, matchedPartner, booking.matchRadiusMeters, {
-      previousDriverId: oldDriverId !== partnerId ? oldDriverId : undefined
+    await dispatchBookingToPartner(booking, matchedPartner, booking.matchRadiusMeters || 50000, {
+      previousDriverId: (oldDriverId && oldDriverId !== partnerId) ? oldDriverId : undefined
     });
 
     return NextResponse.json({
