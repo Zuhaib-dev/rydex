@@ -128,6 +128,22 @@ export default function BookPage() {
     }
   }, [vehicle, passengerCount]);
 
+  useEffect(() => {
+    if (scheduleMode === "later" && !scheduleDate && !scheduleTime) {
+      const now = new Date();
+      const future = new Date(now.getTime() + 30 * 60 * 1000);
+      
+      const yyyy = future.getFullYear();
+      const mm = String(future.getMonth() + 1).padStart(2, '0');
+      const dd = String(future.getDate()).padStart(2, '0');
+      setScheduleDate(`${yyyy}-${mm}-${dd}`);
+      
+      const hh = String(future.getHours()).padStart(2, '0');
+      const min = String(future.getMinutes()).padStart(2, '0');
+      setScheduleTime(`${hh}:${min}`);
+    }
+  }, [scheduleMode, scheduleDate, scheduleTime]);
+
   const triggerToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
@@ -705,6 +721,7 @@ export default function BookPage() {
                       <input
                         type="date"
                         value={scheduleDate}
+                        min={new Date().toISOString().split("T")[0]}
                         onChange={e => setScheduleDate(e.target.value)}
                         className="bg-transparent text-xs font-bold text-zinc-900 outline-none w-full"
                       />
@@ -719,6 +736,30 @@ export default function BookPage() {
                       />
                     </div>
                   </div>
+
+                  {(() => {
+                    if (!scheduleDate || !scheduleTime) return null;
+                    const d = new Date(`${scheduleDate}T${scheduleTime}`);
+                    if (isNaN(d.getTime())) return null;
+                    return (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-emerald-50 border border-emerald-100 p-3 py-2.5 rounded-2xl text-[10px] text-emerald-800 font-bold flex items-center gap-2"
+                      >
+                        <Clock size={12} className="text-emerald-600 animate-pulse shrink-0" />
+                        <span className="truncate">
+                          Scheduled pickup: {d.toLocaleString("en-US", {
+                            weekday: 'short',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </motion.div>
+                    );
+                  })()}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -748,7 +789,7 @@ export default function BookPage() {
             disabled={continuing}
             className="w-full h-14 bg-zinc-950 hover:bg-black text-white font-black rounded-2xl text-xs tracking-wider uppercase transition flex items-center justify-center gap-2 shadow-lg"
           >
-            {continuing ? "Pre-routing..." : "Search Rates & Drivers"}
+            {continuing ? "Pre-routing..." : scheduleMode === "later" ? "Schedule Ride & Search Fares" : "Search Rates & Drivers"}
             <ArrowRight size={14} />
           </motion.button>
         </div>
