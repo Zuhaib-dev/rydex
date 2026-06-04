@@ -291,7 +291,7 @@ export async function findClosestEligiblePartner(
       try {
         const redis = getRedisClient();
         const lockKey = `lock:driver:${pid}`;
-        const acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
+        const acquired = await redis.set(lockKey, "locked", "EX", 45, "NX");
         if (acquired !== "OK") {
           console.log(`[Redlock] Driver ${pid} is locked by another dispatch. Skipping...`);
           continue;

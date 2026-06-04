@@ -252,16 +252,16 @@ app.post("/emit", requireSocketSecret, async (req, res) => {
         activeTimers.delete(bookingId);
       }
 
-      console.log(`Starting 20s matchmaker countdown for booking ${bookingId}, targeting driver ${driverId}`);
+      console.log(`Starting 40s matchmaker countdown for booking ${bookingId}, targeting driver ${driverId}`);
 
       // ── Primary: Redis key expiration (crash-resilient across server restarts) ──
-      // Store driverId in a companion key with 25s TTL (slight buffer after the 20s timer)
+      // Store driverId in a companion key with 45s TTL (slight buffer after the 40s timer)
       let redisTimerSet = false;
       try {
-        await redisPub.set(`dispatch:timer:${bookingId}`, "1", "EX", 20);
-        await redisPub.set(`dispatch:driver:${bookingId}`, driverId, "EX", 25);
+        await redisPub.set(`dispatch:timer:${bookingId}`, "1", "EX", 40);
+        await redisPub.set(`dispatch:driver:${bookingId}`, driverId, "EX", 45);
         redisTimerSet = true;
-        console.log(`[RedisDispatch] Set dispatch:timer:${bookingId} (20s TTL)`);
+        console.log(`[RedisDispatch] Set dispatch:timer:${bookingId} (40s TTL)`);
       } catch (err) {
         console.warn(`[RedisDispatch] Redis timer unavailable, using in-memory fallback:`, err.message);
       }
@@ -294,7 +294,7 @@ app.post("/emit", requireSocketSecret, async (req, res) => {
         } finally {
           activeTimers.delete(bookingId);
         }
-      }, 20000);
+      }, 40000);
 
       activeTimers.set(bookingId, timer);
 

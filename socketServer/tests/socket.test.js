@@ -213,8 +213,8 @@ describe("WebSocket Realtime Integration Tests", () => {
 
       expect(response.data.success).toBe(true);
 
-      // Fast-forward 20 seconds
-      vi.advanceTimersByTime(20000);
+      // Fast-forward 40 seconds
+      vi.advanceTimersByTime(40000);
 
       // Yield to let the async callback execute the fetch call
       await new Promise(resolve => process.nextTick(resolve));

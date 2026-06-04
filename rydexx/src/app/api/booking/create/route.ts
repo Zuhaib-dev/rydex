@@ -80,7 +80,7 @@ export async function POST(req: Request) {
     try {
       const redis = getRedisClient();
       const lockKey = `lock:driver:${matchedDriverId}`;
-      acquired = await redis.set(lockKey, "locked", "EX", 25, "NX");
+      acquired = await redis.set(lockKey, "locked", "EX", 45, "NX");
 
       if (
         driver &&

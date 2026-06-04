@@ -7,7 +7,7 @@
 export const MATCH_RADIUS_TIERS_METERS = [5000, 7000, 10000, 15000] as const;
 
 /** Partner must accept within this window before cascade */
-export const MATCH_ACCEPT_TIMEOUT_MS = 20_000;
+export const MATCH_ACCEPT_TIMEOUT_MS = 40_000;
 
 /** Partner location older than this is excluded from matching */
 export const MATCH_LOCATION_MAX_AGE_MS = 10 * 60 * 1000;
