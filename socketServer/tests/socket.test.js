@@ -286,4 +286,86 @@ describe("WebSocket Realtime Integration Tests", () => {
       }
     });
   });
+
+  it("should disconnect client immediately if blocked User connects", () => {
+    return new Promise(async (resolve, reject) => {
+      let blockedClientSocket;
+      try {
+        const testUser = await User.create({
+          name: "Blocked User",
+          email: "blocked@rydex.com",
+          role: "user",
+          isPartnerBlocked: true,
+        });
+
+        blockedClientSocket = Client(`http://localhost:${testPort}`);
+        blockedClientSocket.on("connect", () => {
+          blockedClientSocket.emit("identity", testUser._id.toString());
+        });
+
+        blockedClientSocket.on("blocked", (data) => {
+          expect(data.message).toContain("suspended");
+        });
+
+        blockedClientSocket.on("disconnect", () => {
+          resolve();
+        });
+
+        setTimeout(() => {
+          blockedClientSocket.disconnect();
+          reject(new Error("Socket did not disconnect automatically"));
+        }, 1500);
+      } catch (err) {
+        if (blockedClientSocket) blockedClientSocket.disconnect();
+        reject(err);
+      }
+    });
+  });
+
+  it("should disconnect active socket connection when blocked event is posted to /emit", () => {
+    return new Promise(async (resolve, reject) => {
+      let activeClientSocket;
+      try {
+        const testUser = await User.create({
+          name: "Soon Blocked",
+          email: "soonblocked@rydex.com",
+          role: "user",
+        });
+
+        activeClientSocket = Client(`http://localhost:${testPort}`);
+        activeClientSocket.on("connect", () => {
+          activeClientSocket.emit("identity", testUser._id.toString());
+        });
+
+        setTimeout(async () => {
+          // Verify user was linked to a socket
+          const dbUser = await User.findById(testUser._id);
+          expect(dbUser.socketId).toBe(activeClientSocket.id);
+
+          activeClientSocket.on("blocked", (data) => {
+            expect(data.message).toContain("suspended");
+          });
+
+          activeClientSocket.on("disconnect", () => {
+            resolve();
+          });
+
+          // Post a blocked event to /emit
+          await axios.post(`http://localhost:${testPort}/emit`, {
+            userId: testUser._id.toString(),
+            event: "blocked",
+            data: { message: "Your account is suspended." }
+          });
+        }, 300);
+
+        setTimeout(() => {
+          activeClientSocket.disconnect();
+          reject(new Error("Active socket was not disconnected by /emit blocked event"));
+        }, 2000);
+      } catch (err) {
+        if (activeClientSocket) activeClientSocket.disconnect();
+        reject(err);
+      }
+    });
+  });
 });
