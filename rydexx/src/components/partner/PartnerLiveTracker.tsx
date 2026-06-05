@@ -23,6 +23,14 @@ export default function PartnerLiveTracker() {
     const identify = () => {
       socket.emit("identity", userId);
       socket.emit("partner-availability", { available: true });
+      if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+        console.log("Dev Mode: Proactively emitting mock location (Chanapora, Srinagar)");
+        socket.emit("update-location", {
+          userId,
+          latitude: 34.0298,
+          longitude: 74.8052,
+        });
+      }
     };
 
     identify();
