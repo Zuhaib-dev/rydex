@@ -227,6 +227,9 @@ export function quoteToSnapshot(quote: {
   tripDistanceKm: number;
   durationMinutes: number;
   fare: number;
+  originalFare?: number;
+  promoCode?: string;
+  discount?: number;
   vehicleType: string;
   vehicleId: unknown;
   driverId?: unknown;
@@ -245,6 +248,9 @@ export function quoteToSnapshot(quote: {
     tripDistanceKm: quote.tripDistanceKm,
     durationMinutes: quote.durationMinutes,
     fare: quote.fare,
+    originalFare: quote.originalFare,
+    promoCode: quote.promoCode,
+    discount: quote.discount,
     vehicleType: quote.vehicleType,
     vehicleId: String(quote.vehicleId),
     driverId: quote.driverId ? String(quote.driverId) : undefined,
