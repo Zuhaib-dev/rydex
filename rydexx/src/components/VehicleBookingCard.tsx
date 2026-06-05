@@ -195,9 +195,20 @@ export default function VehicleBookingCard({
               className="flex items-baseline gap-0.5"
             >
               <IndianRupee size={16} className="text-zinc-900 mb-0.5" strokeWidth={2.5} />
-              <span className="text-zinc-900 text-3xl font-black tracking-tight leading-none">
-                {estimated}
-              </span>
+              {discountAmount > 0 ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-zinc-400 text-lg font-bold line-through">
+                    {estimated}
+                  </span>
+                  <span className="text-zinc-900 text-3xl font-black tracking-tight leading-none">
+                    {discountedEstimated}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-zinc-900 text-3xl font-black tracking-tight leading-none">
+                  {estimated}
+                </span>
+              )}
             </motion.div>
           </div>
 
