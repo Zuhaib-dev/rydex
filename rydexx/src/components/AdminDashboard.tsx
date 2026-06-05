@@ -55,7 +55,7 @@ import Nav from "@/components/Nav";
 import PartnerDashboard from "@/components/PartnerDashboard";
 import PublicHome from "@/components/PublicHome";
 
-type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications" | "analytics" | "coupons";
+type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications" | "analytics" | "coupons" | "vehicles";
 type QueueSubTab = "partner" | "kyc" | "vehicle";
 
 function AdminDashboardContent() {
@@ -163,6 +163,7 @@ function AdminDashboardContent() {
     { id: "map" as const, label: "Control Tower Map", icon: MapPin },
     { id: "queues" as const, label: "Operations Queue", icon: Clock, badge: totalPendingQueueCount },
     { id: "users" as const, label: "User Directory", icon: Users },
+    { id: "vehicles" as const, label: "Vehicle Directory", icon: Truck },
     { id: "coupons" as const, label: "Promo Codes", icon: Ticket },
     { id: "notifications" as const, label: "Broadcast", icon: Bell },
     { id: "security" as const, label: "Security Logs", icon: Lock },
