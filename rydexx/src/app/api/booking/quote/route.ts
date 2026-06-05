@@ -13,6 +13,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  await connectDb();
+  const user = await User.findById(session.user.id).select("isPartnerBlocked");
+  if (user?.isPartnerBlocked) {
+    return NextResponse.json(
+      { message: "Your account is suspended. You cannot request booking quotes." },
+      { status: 403 }
+    );
+  }
+
   // Rate Limiting: Max 5 quotes per 1 minute (60 seconds) per user
   const limitKey = `quote:${session.user.id}`;
   const limited = await isRateLimited(limitKey, 5, 60);
