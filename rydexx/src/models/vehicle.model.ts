@@ -4,13 +4,18 @@ type VehicleType = "bike" | "car" | "truck" | "loading" | "auto";
 export interface IVehicle {
   owner: mongoose.Types.ObjectId;
   type: VehicleType;
+  brand?: string;
   vehicleModel: string;
   vehicleNumber: string;
+  color?: string;
+  manufacturingYear?: number;
+  fuelType?: "petrol" | "diesel" | "cng" | "electric" | "hybrid";
+  seatingCapacity?: number;
   imageUrl?: string;
   baseFare?: number;
   perKmRate: number;
   waitingCharge: number;
-  status: "approved" | "pending" | "rejected";
+  status: "approved" | "pending" | "rejected" | "suspended";
   rejectionReason: string;
   isActive: boolean;
   createdAt: Date;
@@ -30,6 +35,9 @@ const vehicleSchema = new mongoose.Schema<IVehicle>(
       enum: ["bike", "car", "truck", "loading", "auto"],
       required: true,
     },
+    brand: {
+      type: String,
+    },
     vehicleModel: {
       type: String,
       required: true,
@@ -38,6 +46,19 @@ const vehicleSchema = new mongoose.Schema<IVehicle>(
       type: String,
       required: true,
       unique: true,
+    },
+    color: {
+      type: String,
+    },
+    manufacturingYear: {
+      type: Number,
+    },
+    fuelType: {
+      type: String,
+      enum: ["petrol", "diesel", "cng", "electric", "hybrid"],
+    },
+    seatingCapacity: {
+      type: Number,
     },
     imageUrl: {
       type: String,
@@ -56,7 +77,7 @@ const vehicleSchema = new mongoose.Schema<IVehicle>(
     },
     status: {
       type: String,
-      enum: ["approved", "pending", "rejected"],
+      enum: ["approved", "pending", "rejected", "suspended"],
       default: "pending",
     },
     rejectionReason: {
