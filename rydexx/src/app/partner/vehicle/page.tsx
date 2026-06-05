@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
@@ -18,19 +18,41 @@ import {
   XCircle,
   Clock,
   Loader2,
-  HelpCircle,
+  Plus,
+  Trash2,
+  Upload,
+  CheckCircle,
+  FileText,
+  Calendar,
 } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+
+interface VehicleDocument {
+  _id: string;
+  documentType: "rc" | "insurance" | "pollution" | "permit" | "fitness";
+  fileUrl: string;
+  expiryDate?: string;
+  verificationStatus: "pending" | "approved" | "rejected";
+  rejectionReason?: string;
+}
 
 interface VehicleData {
+  _id: string;
   type: "bike" | "auto" | "car" | "loading" | "truck";
+  brand: string;
   vehicleModel: string;
   vehicleNumber: string;
+  color: string;
+  manufacturingYear: number;
+  fuelType: "petrol" | "diesel" | "cng" | "electric" | "hybrid";
+  seatingCapacity?: number;
   imageUrl?: string;
   baseFare: number;
   perKmRate: number;
   waitingCharge: number;
-  status: "approved" | "pending" | "rejected";
+  status: "approved" | "pending" | "rejected" | "suspended";
   rejectionReason?: string;
+  documents?: VehicleDocument[];
 }
 
 const VEHICLE_TYPE_CONFIG = {
@@ -47,239 +69,733 @@ const STATUS_CONFIG = {
     text: "text-emerald-700",
     icon: ShieldCheck,
     label: "Approved & Active",
-    description: "Your vehicle is verified and ready for bookings.",
   },
   pending: {
     bg: "bg-amber-50 border-amber-100",
     text: "text-amber-700",
     icon: Clock,
-    label: "Pending Verification",
-    description: "Admin is currently reviewing your documents.",
+    label: "Pending Review",
   },
   rejected: {
     bg: "bg-rose-50 border-rose-100",
     text: "text-rose-700",
     icon: XCircle,
-    label: "Rejected / Suspended",
-    description: "Verification failed. Review the reason below.",
+    label: "Rejected",
+  },
+  suspended: {
+    bg: "bg-red-50 border-red-100",
+    text: "text-red-700",
+    icon: AlertCircle,
+    label: "Suspended",
   },
 };
 
-export default function PartnerVehiclePage() {
+const DOC_TYPES = [
+  { id: "rc", label: "RC Book", desc: "Registration Certificate" },
+  { id: "insurance", label: "Insurance Certificate", desc: "Third-party or Comprehensive" },
+  { id: "pollution", label: "Pollution (PUC)", desc: "Emission certificate (if applicable)" },
+  { id: "permit", label: "Road Permit", desc: "Commercial permit (if applicable)" },
+  { id: "fitness", label: "Fitness Certificate", desc: "Commercial fitness proof" },
+];
+
+export default function MyGaragePage() {
   const router = useRouter();
-  const [vehicle, setVehicle] = useState<VehicleData | null>(null);
+  const [vehicles, setVehicles] = useState<VehicleData[]>([]);
+  const [activeVehicleId, setActiveVehicleId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+
+  // Add vehicle modal
+  const [addModalOpen, setAddModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [newType, setNewType] = useState<"bike" | "auto" | "car" | "loading" | "truck">("car");
+  const [newBrand, setNewBrand] = useState("");
+  const [newModel, setNewModel] = useState("");
+  const [newNumber, setNewNumber] = useState("");
+  const [newColor, setNewColor] = useState("");
+  const [newYear, setNewYear] = useState(new Date().getFullYear());
+  const [newFuel, setNewFuel] = useState<"petrol" | "diesel" | "cng" | "electric" | "hybrid">("petrol");
+  const [newSeats, setNewSeats] = useState(4);
+  const [newImage, setNewImage] = useState<File | null>(null);
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Document modal
+  const [docModalOpen, setDocModalOpen] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<VehicleData | null>(null);
+  const [selectedDocType, setSelectedDocType] = useState("rc");
+  const [docFile, setDocFile] = useState<File | null>(null);
+  const [docExpiry, setDocExpiry] = useState("");
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const docInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchGarage = async () => {
+    try {
+      const { data } = await axios.get("/api/vehicles");
+      setVehicles(data.vehicles || []);
+      setActiveVehicleId(data.activeVehicleId || null);
+    } catch (err) {
+      console.error("Error loading garage details:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchVehicle = async () => {
-      try {
-        const { data } = await axios.get("/api/partner/onboarding/vehicle");
-        if (data?.vehicle) {
-          setVehicle(data.vehicle);
-        } else {
-          setError("No registered vehicle details found.");
-        }
-      } catch (err: any) {
-        console.error("Error loading vehicle profile:", err);
-        if (err.response?.status === 404) {
-          setError("You haven't registered a vehicle yet.");
-        } else {
-          setError("Failed to load vehicle details. Please try again.");
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchVehicle();
+    fetchGarage();
   }, []);
 
-  const TypeIcon = vehicle ? (VEHICLE_TYPE_CONFIG[vehicle.type]?.icon || Car) : Car;
-  const statusDetails = vehicle ? STATUS_CONFIG[vehicle.status] : null;
-  const StatusIcon = statusDetails ? statusDetails.icon : Clock;
+  const handleActivate = async (id: string) => {
+    try {
+      const { data } = await axios.post(`/api/vehicles/${id}/active`);
+      setActiveVehicleId(data.activeVehicleId);
+      alert("Vehicle activated successfully.");
+      fetchGarage();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to activate vehicle.");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to remove this vehicle from your garage?")) return;
+    try {
+      await axios.delete(`/api/vehicles/${id}`);
+      fetchGarage();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to remove vehicle.");
+    }
+  };
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setNewImage(file);
+    
+    // Preview
+    const reader = new FileReader();
+    reader.onload = () => {
+      setNewImageUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAddVehicleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBrand || !newModel || !newNumber || !newColor || !newYear) {
+      alert("Please fill all required fields.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      let uploadedUrl = "";
+      if (newImage) {
+        const formData = new FormData();
+        formData.append("file", newImage);
+        const { data } = await axios.post("/api/upload", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        uploadedUrl = data.url;
+      }
+
+      await axios.post("/api/vehicles", {
+        type: newType,
+        brand: newBrand,
+        vehicleModel: newModel,
+        vehicleNumber: newNumber,
+        color: newColor,
+        manufacturingYear: newYear,
+        fuelType: newFuel,
+        seatingCapacity: newSeats,
+        imageUrl: uploadedUrl,
+      });
+
+      setAddModalOpen(false);
+      resetAddForm();
+      fetchGarage();
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to add vehicle.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetAddForm = () => {
+    setNewBrand("");
+    setNewModel("");
+    setNewNumber("");
+    setNewColor("");
+    setNewYear(new Date().getFullYear());
+    setNewFuel("petrol");
+    setNewSeats(4);
+    setNewImage(null);
+    setNewImageUrl("");
+  };
+
+  const handleDocSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!docFile || !selectedVehicle) return;
+
+    setUploadingDoc(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", docFile);
+      formData.append("documentType", selectedDocType);
+      if (docExpiry) formData.append("expiryDate", docExpiry);
+
+      await axios.post(`/api/vehicles/${selectedVehicle._id}/documents`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setDocModalOpen(false);
+      setDocFile(null);
+      setDocExpiry("");
+      fetchGarage();
+      alert("Document uploaded successfully.");
+    } catch (err: any) {
+      alert(err.response?.data?.message || "Failed to upload document.");
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7]">
-      {/* Sticky Header */}
-      <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-zinc-200 z-50">
-        <div className="max-w-5xl mx-auto px-4 py-5 flex items-center gap-4">
-          <button
-            onClick={() => router.back()}
-            className="w-10 h-10 rounded-xl border border-zinc-200 bg-white flex items-center justify-center hover:bg-zinc-50 transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft size={18} />
-          </button>
-          <div>
-            <h1 className="text-xl font-black text-zinc-900 uppercase tracking-tight">Vehicle Profile</h1>
-            <p className="text-xs text-zinc-500 mt-0.5">Manage and view your registered vehicle credentials</p>
+    <div className="min-h-screen bg-[#F5F5F7] pb-24">
+      {/* Header */}
+      <header className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-zinc-200 z-30">
+        <div className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.push("/")}
+              className="w-10 h-10 rounded-xl border border-zinc-200 bg-white flex items-center justify-center hover:bg-zinc-50 transition-colors"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <div>
+              <h1 className="text-xl font-black text-zinc-900 uppercase tracking-tight">My Garage</h1>
+              <p className="text-xs text-zinc-500 mt-0.5">Manage multiple vehicles and switch compliance status</p>
+            </div>
           </div>
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="flex items-center gap-2 bg-black text-white px-4 py-2.5 rounded-xl text-xs font-black uppercase hover:scale-[1.02] active:scale-[0.98] transition-all shadow-md"
+          >
+            <Plus size={16} />
+            <span>Add Vehicle</span>
+          </button>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-5xl mx-auto px-4 py-8">
+      {/* Main Garage */}
+      <main className="max-w-6xl mx-auto px-4 py-8">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-3">
             <Loader2 className="animate-spin text-zinc-500" size={32} />
-            <p className="text-zinc-500 text-sm font-semibold">Loading vehicle details...</p>
+            <p className="text-zinc-500 text-sm font-semibold animate-pulse">Loading garage configuration...</p>
           </div>
-        ) : error || !vehicle ? (
-          <div className="bg-white border border-zinc-200 rounded-3xl p-12 text-center max-w-xl mx-auto shadow-sm">
-            <Car size={40} className="mx-auto text-zinc-300 mb-4" />
-            <h3 className="text-lg font-bold text-zinc-900">No Vehicle Found</h3>
+        ) : vehicles.length === 0 ? (
+          <div className="bg-white border border-zinc-200 rounded-3xl p-16 text-center max-w-xl mx-auto shadow-sm">
+            <Car size={48} className="mx-auto text-zinc-300 mb-4" />
+            <h3 className="text-lg font-bold text-zinc-900">Your Garage is Empty</h3>
             <p className="text-zinc-500 text-sm mt-1 mb-6 leading-relaxed">
-              {error || "It looks like your vehicle registration process is incomplete."}
+              Register vehicles to start accepting logistics or cab bookings on Rydex.
             </p>
             <button
-              onClick={() => router.push("/partner/onboarding/vehicle")}
+              onClick={() => setAddModalOpen(true)}
               className="px-6 py-3 bg-zinc-950 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-zinc-800 transition-colors"
             >
-              Start Onboarding
+              Add Your First Vehicle
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Left Column: Vehicle Card */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Main Specifications Card */}
-              <div className="bg-white border border-zinc-200 rounded-3xl overflow-hidden shadow-xs">
-                {/* Vehicle Photo Container */}
-                <div className="aspect-video w-full bg-zinc-100 relative border-b border-zinc-200 overflow-hidden flex items-center justify-center">
-                  {vehicle.imageUrl ? (
-                    <Image
-                      src={getOptimizedImageUrl(vehicle.imageUrl, 600)}
-                      alt={vehicle.vehicleModel}
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="text-center p-6 flex flex-col items-center gap-2">
-                      <div className="w-16 h-16 rounded-full bg-zinc-50 border border-zinc-200 flex items-center justify-center text-zinc-400">
-                        <TypeIcon size={28} />
-                      </div>
-                      <span className="text-zinc-400 text-xs font-semibold">No Vehicle Photo Uploaded</span>
-                    </div>
-                  )}
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {vehicles.map((vehicle) => {
+              const TypeIcon = VEHICLE_TYPE_CONFIG[vehicle.type]?.icon || Car;
+              const statusDetails = STATUS_CONFIG[vehicle.status];
+              const StatusIcon = statusDetails ? statusDetails.icon : Clock;
+              const isActive = String(activeVehicleId) === String(vehicle._id);
 
-                {/* Details Section */}
-                <div className="p-6 md:p-8 space-y-6">
+              return (
+                <div
+                  key={vehicle._id}
+                  className={`bg-white border rounded-[32px] overflow-hidden shadow-sm transition-all flex flex-col justify-between ${
+                    isActive ? "border-zinc-900 ring-2 ring-zinc-950/5" : "border-zinc-200"
+                  }`}
+                >
                   <div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Vehicle Model</span>
-                    <h2 className="text-2xl font-black text-zinc-900 mt-1 uppercase">{vehicle.vehicleModel}</h2>
-                  </div>
+                    {/* Visual Photo Header */}
+                    <div className="aspect-[2.1/1] w-full bg-zinc-50 relative border-b border-zinc-100 flex items-center justify-center overflow-hidden">
+                      {vehicle.imageUrl ? (
+                        <Image
+                          src={getOptimizedImageUrl(vehicle.imageUrl, 500)}
+                          alt={vehicle.vehicleModel}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      ) : (
+                        <div className="text-center p-6 flex flex-col items-center gap-1 text-zinc-300">
+                          <TypeIcon size={40} />
+                          <span className="text-[10px] uppercase font-bold">No Photo</span>
+                        </div>
+                      )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Plate Number */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">Plate Number</span>
-                      <div className="inline-flex items-center bg-zinc-50 border border-zinc-200 px-3 py-1.5 rounded-xl font-mono font-black text-zinc-900 uppercase tracking-widest text-sm shadow-sm select-all">
-                        {vehicle.vehicleNumber.replace(/(\D+)(\d+)/, "$1-$2")}
-                      </div>
+                      {/* Active Status Badge */}
+                      {isActive && (
+                        <div className="absolute top-4 left-4 px-3 py-1 bg-black text-white rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg">
+                          Active Vehicle
+                        </div>
+                      )}
+
+                      {/* Verification Badge */}
+                      {statusDetails && (
+                        <div
+                          className={`absolute top-4 right-4 border px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm bg-white ${statusDetails.text} ${statusDetails.bg}`}
+                        >
+                          <StatusIcon size={10} />
+                          {statusDetails.label}
+                        </div>
+                      )}
                     </div>
 
-                    {/* Vehicle Category */}
-                    <div className="space-y-1">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block">Vehicle Category</span>
-                      <div className="flex items-center gap-2 text-zinc-900">
-                        <div className="w-8 h-8 rounded-lg bg-zinc-900 text-white flex items-center justify-center shrink-0">
-                          <TypeIcon size={16} />
+                    {/* Specs info */}
+                    <div className="p-6 space-y-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                            {vehicle.brand}
+                          </p>
+                          <h3 className="text-xl font-black text-zinc-950 uppercase">{vehicle.vehicleModel}</h3>
+                        </div>
+                        <div className="font-mono font-black text-zinc-800 border border-zinc-200 px-2 py-1 rounded-lg text-xs bg-zinc-50 tracking-wider">
+                          {vehicle.vehicleNumber}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3 text-center bg-zinc-50/50 p-3 rounded-2xl border border-zinc-100 text-[11px] font-semibold text-zinc-500">
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Color</p>
+                          <p className="text-zinc-800 font-bold capitalize mt-0.5">{vehicle.color}</p>
                         </div>
                         <div>
-                          <p className="text-sm font-bold capitalize leading-none">{VEHICLE_TYPE_CONFIG[vehicle.type]?.label || vehicle.type}</p>
-                          <p className="text-[10px] text-zinc-500 mt-0.5">{VEHICLE_TYPE_CONFIG[vehicle.type]?.desc || ""}</p>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Year</p>
+                          <p className="text-zinc-800 font-bold mt-0.5">{vehicle.manufacturingYear}</p>
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-400">Fuel Type</p>
+                          <p className="text-zinc-800 font-bold uppercase mt-0.5">{vehicle.fuelType}</p>
+                        </div>
+                      </div>
+
+                      {/* Rejection/Suspension Reason Alerts */}
+                      {["rejected", "suspended"].includes(vehicle.status) && vehicle.rejectionReason && (
+                        <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-[11px] text-red-700 flex items-start gap-2">
+                          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                          <p className="font-semibold">{vehicle.rejectionReason}</p>
+                        </div>
+                      )}
+
+                      {/* Documents Grid */}
+                      <div className="space-y-2">
+                        <h4 className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Documents</h4>
+                        <div className="grid grid-cols-2 gap-2">
+                          {DOC_TYPES.map((type) => {
+                            const doc = vehicle.documents?.find((d) => d.documentType === type.id);
+                            return (
+                              <div
+                                key={type.id}
+                                className={`p-2.5 rounded-xl border text-left text-xs flex items-center justify-between ${
+                                  doc?.verificationStatus === "approved"
+                                    ? "bg-green-50/50 border-green-100 text-green-700"
+                                    : doc?.verificationStatus === "pending"
+                                      ? "bg-amber-50/50 border-amber-100 text-amber-700"
+                                      : doc?.verificationStatus === "rejected"
+                                        ? "bg-red-50/50 border-red-100 text-red-700"
+                                        : "bg-zinc-50 border-zinc-100 text-zinc-400"
+                                }`}
+                              >
+                                <div>
+                                  <p className="font-bold">{type.label}</p>
+                                  <p className="text-[9px] opacity-70 mt-0.5">
+                                    {doc?.expiryDate
+                                      ? `Expires: ${new Date(doc.expiryDate).toLocaleDateString()}`
+                                      : doc
+                                        ? "Uploaded"
+                                        : "Missing"}
+                                  </p>
+                                </div>
+                                {doc?.verificationStatus === "approved" ? (
+                                  <CheckCircle size={12} className="text-green-600" />
+                                ) : doc?.verificationStatus === "pending" ? (
+                                  <Clock size={12} className="text-amber-600" />
+                                ) : (
+                                  <AlertCircle size={12} className="opacity-50" />
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Right Column: Pricing & Verification status */}
-            <div className="space-y-8">
-              {/* Verification Status Card */}
-              {statusDetails && (
-                <div className={`border rounded-3xl p-6 shadow-xs ${statusDetails.bg}`}>
-                  <div className="flex items-start gap-4">
-                    <div className={`w-10 h-10 rounded-xl bg-white border border-black/5 flex items-center justify-center shrink-0 ${statusDetails.text}`}>
-                      <StatusIcon size={20} />
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className={`text-sm font-black uppercase tracking-wider ${statusDetails.text}`}>
-                        {statusDetails.label}
-                      </h3>
-                      <p className="text-zinc-500 text-xs leading-relaxed">
-                        {statusDetails.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Rejection Alert Box */}
-                  {vehicle.status === "rejected" && vehicle.rejectionReason && (
-                    <div className="mt-4 p-4 rounded-2xl bg-white/60 border border-rose-200/50 space-y-1.5">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-rose-600 flex items-center gap-1">
-                        <AlertCircle size={12} />
-                        Rejection Reason
-                      </span>
-                      <p className="text-zinc-700 text-xs leading-relaxed font-medium">
-                        {vehicle.rejectionReason}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Pricing Cards */}
-              <div className="bg-white border border-zinc-200 rounded-3xl p-6 space-y-6 shadow-xs">
-                <div className="flex items-center justify-between pb-4 border-b border-zinc-100">
-                  <h3 className="text-sm font-black uppercase tracking-wider text-zinc-950">Fare Parameters</h3>
-                  <HelpCircle size={15} className="text-zinc-300" />
-                </div>
-
-                <div className="space-y-4">
-                  {/* Base Fare */}
-                  <div className="flex items-center justify-between py-1.5">
-                    <span className="text-zinc-500 text-xs font-semibold">Base Fare</span>
-                    <span className="text-zinc-950 font-black text-sm flex items-center gap-0.5">
-                      <IndianRupee size={12} />
-                      {vehicle.baseFare}
-                    </span>
-                  </div>
-
-                  {/* Price Per KM */}
-                  <div className="flex items-center justify-between py-1.5">
-                    <span className="text-zinc-500 text-xs font-semibold">Distance Rate</span>
-                    <span className="text-zinc-950 font-black text-sm flex items-center gap-0.5">
-                      <IndianRupee size={12} />
-                      {vehicle.perKmRate}
-                      <span className="text-zinc-400 text-[10px] font-bold">/ km</span>
-                    </span>
-                  </div>
-
-                  {/* Waiting Charge */}
-                  <div className="flex items-center justify-between py-1.5">
-                    <span className="text-zinc-500 text-xs font-semibold">Waiting Charge</span>
-                    <span className="text-zinc-950 font-black text-sm flex items-center gap-0.5">
-                      <IndianRupee size={12} />
-                      {vehicle.waitingCharge}
-                      <span className="text-zinc-400 text-[10px] font-bold">/ min</span>
-                    </span>
+                  {/* Actions footer */}
+                  <div className="p-6 bg-zinc-50/50 border-t border-zinc-100 flex items-center gap-3">
+                    {vehicle.status === "approved" && (
+                      <button
+                        onClick={() => handleActivate(vehicle._id)}
+                        disabled={isActive}
+                        className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${
+                          isActive
+                            ? "bg-zinc-100 text-zinc-400 cursor-default"
+                            : "bg-zinc-950 text-white hover:bg-zinc-800 active:scale-95"
+                        }`}
+                      >
+                        {isActive ? "Active" : "Set Active"}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSelectedVehicle(vehicle);
+                        setDocModalOpen(true);
+                      }}
+                      className="px-4 py-3 bg-white border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-black uppercase tracking-widest rounded-xl flex items-center gap-1"
+                    >
+                      <Upload size={14} />
+                      Docs
+                    </button>
+                    <button
+                      onClick={() => handleDelete(vehicle._id)}
+                      className="p-3 bg-white border border-red-100 hover:bg-red-50 text-red-500 rounded-xl transition-colors"
+                      title="Remove Vehicle"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
-
-                {/* Info Text */}
-                <p className="text-[10px] text-zinc-400 leading-relaxed pt-2 border-t border-zinc-50">
-                  Fare parameters are determined by vehicle type and are subject to admin review. To request modifications, contact the partner helpdesk.
-                </p>
-              </div>
-            </div>
+              );
+            })}
           </div>
         )}
       </main>
+
+      {/* Add Vehicle Modal */}
+      <AnimatePresence>
+        {addModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setAddModalOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              className="relative w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl border border-zinc-100 max-h-[85vh] overflow-y-auto"
+            >
+              <h3 className="text-lg font-black text-zinc-950 uppercase tracking-tight mb-4">Add Vehicle</h3>
+              <form onSubmit={handleAddVehicleSubmit} className="space-y-4">
+                {/* Type Selection */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-2">
+                    Vehicle Type
+                  </label>
+                  <div className="grid grid-cols-5 gap-2">
+                    {(Object.keys(VEHICLE_TYPE_CONFIG) as Array<keyof typeof VEHICLE_TYPE_CONFIG>).map((typeId) => {
+                      const Icon = VEHICLE_TYPE_CONFIG[typeId].icon;
+                      return (
+                        <button
+                          key={typeId}
+                          type="button"
+                          onClick={() => setNewType(typeId)}
+                          className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 transition-all ${
+                            newType === typeId ? "bg-black text-white border-black" : "bg-white border-zinc-200"
+                          }`}
+                        >
+                          <Icon size={18} />
+                          <span className="text-[9px] font-bold capitalize">{typeId}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Brand / Make
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newBrand}
+                      onChange={(e) => setNewBrand(e.target.value)}
+                      placeholder="e.g. Maruti Suzuki"
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Model Name
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newModel}
+                      onChange={(e) => setNewModel(e.target.value)}
+                      placeholder="e.g. Swift Dzire"
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Registration Plate Number
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newNumber}
+                      onChange={(e) => setNewNumber(e.target.value)}
+                      placeholder="e.g. MH12AB1234"
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm uppercase"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Color
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={newColor}
+                      onChange={(e) => setNewColor(e.target.value)}
+                      placeholder="e.g. White"
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Mfg Year
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={newYear}
+                      onChange={(e) => setNewYear(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Fuel Type
+                    </label>
+                    <select
+                      value={newFuel}
+                      onChange={(e: any) => setNewFuel(e.target.value)}
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                    >
+                      <option value="petrol">Petrol</option>
+                      <option value="diesel">Diesel</option>
+                      <option value="cng">CNG</option>
+                      <option value="electric">Electric</option>
+                      <option value="hybrid">Hybrid</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Seats
+                    </label>
+                    <input
+                      type="number"
+                      value={newSeats}
+                      onChange={(e) => setNewSeats(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                    />
+                  </div>
+                </div>
+
+                {/* Photo Upload */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                    Vehicle Photo
+                  </label>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handlePhotoUpload}
+                    className="hidden"
+                    accept="image/*"
+                  />
+                  {newImageUrl ? (
+                    <div className="relative aspect-video w-full border border-zinc-200 rounded-xl overflow-hidden group">
+                      <Image src={newImageUrl} alt="Preview" fill className="object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="absolute inset-0 bg-black/40 text-white text-xs font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                      >
+                        Change Photo
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full aspect-video border border-dashed border-zinc-300 rounded-xl hover:bg-zinc-50 transition-colors flex flex-col items-center justify-center text-zinc-400 gap-1"
+                    >
+                      <Upload size={24} />
+                      <span className="text-xs font-semibold">Upload Photo</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 py-3.5 bg-black hover:bg-zinc-800 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5"
+                  >
+                    {submitting && <Loader2 size={16} className="animate-spin" />}
+                    Save Vehicle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAddModalOpen(false)}
+                    className="px-6 py-3.5 border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Upload Documents Modal */}
+      <AnimatePresence>
+        {docModalOpen && selectedVehicle && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDocModalOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 12 }}
+              className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-zinc-100"
+            >
+              <h3 className="text-lg font-black text-zinc-950 uppercase tracking-tight mb-2">Upload Compliance Document</h3>
+              <p className="text-xs text-zinc-400 mb-6">
+                Upload credentials for <strong className="text-zinc-800">{selectedVehicle.brand} {selectedVehicle.vehicleModel}</strong>.
+              </p>
+
+              <form onSubmit={handleDocSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                    Document Type
+                  </label>
+                  <select
+                    value={selectedDocType}
+                    onChange={(e) => setSelectedDocType(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                  >
+                    {DOC_TYPES.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.label} ({type.desc})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                    Expiration Date
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={docExpiry}
+                      onChange={(e) => setDocExpiry(e.target.value)}
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                    File Attachment
+                  </label>
+                  <input
+                    type="file"
+                    ref={docInputRef}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) setDocFile(file);
+                    }}
+                    className="hidden"
+                    accept="image/*,application/pdf"
+                  />
+                  {docFile ? (
+                    <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-2 text-zinc-700">
+                        <FileText size={16} />
+                        <span className="font-bold truncate max-w-[200px]">{docFile.name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => docInputRef.current?.click()}
+                        className="text-zinc-500 hover:text-black font-black uppercase text-[10px]"
+                      >
+                        Change
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => docInputRef.current?.click()}
+                      className="w-full py-6 border border-dashed border-zinc-300 rounded-xl hover:bg-zinc-50 transition-colors flex flex-col items-center justify-center text-zinc-400 gap-1"
+                    >
+                      <Upload size={20} />
+                      <span className="text-xs font-semibold">Select PDF or Image</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="pt-2 flex gap-3">
+                  <button
+                    type="submit"
+                    disabled={uploadingDoc || !docFile}
+                    className="flex-1 py-3.5 bg-black hover:bg-zinc-800 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5"
+                  >
+                    {uploadingDoc && <Loader2 size={16} className="animate-spin" />}
+                    Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDocModalOpen(false)}
+                    className="px-6 py-3.5 border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
