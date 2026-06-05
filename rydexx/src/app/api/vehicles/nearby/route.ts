@@ -9,6 +9,7 @@ import {
   radiusKm,
 } from "@/lib/matching/config";
 import Vehicle from "@/models/vehicle.model";
+import User from "@/models/user.model";
 import type { LngLat } from "@/lib/matching/geo";
 import { estimateRoadDistanceMeters } from "@/lib/matching/geo";
 
@@ -74,12 +75,17 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const vehicles = await Vehicle.find({
+    const partner = await User.findById(nearest.partnerId).select("activeVehicleId").lean();
+    const query: any = {
       owner: nearest.partnerId,
       status: "approved",
       isActive: true,
       type: resolvedType,
-    })
+    };
+    if (partner?.activeVehicleId) {
+      query._id = partner.activeVehicleId;
+    }
+    const vehicles = await Vehicle.find(query)
       .populate(
         "owner",
         "name ratingAverage ratingCount praiseTags mobileNumber image location",
