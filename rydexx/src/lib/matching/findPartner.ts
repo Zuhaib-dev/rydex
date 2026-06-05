@@ -222,7 +222,7 @@ export async function findClosestEligiblePartner(
       },
     ],
   })
-    .select("_id mobileNumber name location ratingAverage ratingCount updatedAt isPremiumPartner")
+    .select("_id mobileNumber name location ratingAverage ratingCount updatedAt isPremiumPartner activeVehicleId")
     .lean();
 
   if (!partners.length) return null;
@@ -257,7 +257,12 @@ export async function findClosestEligiblePartner(
   const partnerIds = sortedPartners.map((p) => p._id as mongoose.Types.ObjectId);
   const busyIds = await getBusyPartnerIds(partnerIds);
 
+  const activeVehicleIds = sortedPartners
+    .map((p) => p.activeVehicleId)
+    .filter(Boolean);
+
   const vehicles = await Vehicle.find({
+    _id: { $in: activeVehicleIds },
     owner: { $in: partnerIds },
     status: "approved",
     isActive: true,
