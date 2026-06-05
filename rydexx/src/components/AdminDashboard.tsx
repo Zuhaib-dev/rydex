@@ -23,6 +23,7 @@ import {
   ShieldAlert,
   Bell,
   BarChart2,
+  Ticket,
 } from "lucide-react";
 import KPI from "./KPI";
 import { motion, AnimatePresence } from "motion/react";
@@ -46,13 +47,14 @@ import AuditLogs from "./admin/AuditLogs";
 import SystemHealth from "./admin/SystemHealth";
 import SendNotification from "./admin/SendNotification";
 import AdminAnalyticsHub from "./AdminAnalyticsHub";
+import AdminCoupons from "./admin/AdminCoupons";
 
 // Import user context layouts to support client-side impersonation
 import Nav from "@/components/Nav";
 import PartnerDashboard from "@/components/PartnerDashboard";
 import PublicHome from "@/components/PublicHome";
 
-type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications" | "analytics";
+type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications" | "analytics" | "coupons";
 type QueueSubTab = "partner" | "kyc" | "vehicle";
 
 function AdminDashboardContent() {
