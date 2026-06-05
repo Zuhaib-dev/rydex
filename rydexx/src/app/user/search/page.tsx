@@ -855,7 +855,7 @@ function SearchContent() {
                         </span>
                       </span>
                     ) : (
-                      `₹${Math.round((vehicles[0].baseFare || 0) + (tripKm || 0) * (vehicles[0].perKmRate || 0)}`
+                      `₹${Math.round((vehicles[0].baseFare || 0) + (tripKm || 0) * (vehicles[0].perKmRate || 0))}`
                     )}
                   </span>
                 </div>
