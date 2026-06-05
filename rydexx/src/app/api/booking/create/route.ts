@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import User from "@/models/user.model";
+import Coupon from "@/models/coupon.model";
 import { auth } from "@/lib/auth";
 import { notifyAdminDashboard } from "@/lib/adminEvents";
 import { findPartnerWithRadiusExpansion } from "@/lib/matching/findPartner";
