@@ -27,6 +27,7 @@ type CreateQuoteInput = {
   passengers?: number;
   notes?: string;
   scheduledAt?: Date | string;
+  promoCode?: string;
 };
 
 const DISTANCE_LIMITS: Record<string, { minKm: number; maxKm: number; label: string }> = {
