@@ -22,6 +22,14 @@ export async function POST(req: Request) {
   if (!session?.user?.id)
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
+  const currentUser = await User.findById(session.user.id).select("isPartnerBlocked");
+  if (currentUser?.isPartnerBlocked) {
+    return NextResponse.json(
+      { message: "Your account is suspended. You cannot book rides." },
+      { status: 403 }
+    );
+  }
+
   const body = await req.json();
   const { quoteId, mobileNumber, driverId: overrideDriverId } = body;
 
