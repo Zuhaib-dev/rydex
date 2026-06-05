@@ -20,6 +20,9 @@ export type BookingSnapshot = {
   tripDistanceKm: number;
   durationMinutes: number;
   fare: number;
+  originalFare?: number;
+  promoCode?: string;
+  discount?: number;
   vehicleType: string;
   vehicleId: string;
   driverId?: string;
@@ -54,6 +57,9 @@ export function snapshotToClientPayload(snapshot: BookingSnapshot) {
     tripDistanceKm: snapshot.tripDistanceKm,
     durationMinutes: snapshot.durationMinutes,
     fare: snapshot.fare,
+    originalFare: snapshot.originalFare,
+    promoCode: snapshot.promoCode,
+    discount: snapshot.discount,
     vehicleType: snapshot.vehicleType,
     routePolyline: snapshot.routePolyline,
     pricingSnapshot: snapshot.pricingSnapshot,
