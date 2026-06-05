@@ -68,7 +68,7 @@ const STATUS_CONFIG = {
     bg: "bg-emerald-50 border-emerald-100",
     text: "text-emerald-700",
     icon: ShieldCheck,
-    label: "Approved & Active",
+    label: "Approved",
   },
   pending: {
     bg: "bg-amber-50 border-amber-100",
