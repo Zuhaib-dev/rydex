@@ -28,6 +28,7 @@ export interface IUser extends Document {
   isPartnerAvailable?: boolean;
   isPartnerBlocked?: boolean;
   activeVehicleId?: mongoose.Types.ObjectId;
+  vehicleLastActivatedAt?: Date;
   lastLocationAt?: Date;
   currentVehicleType?: string;
   partnerStatus:"pending" | "approved" | "rejected";
@@ -133,6 +134,10 @@ const userSchema = new mongoose.Schema<IUser>(
     activeVehicleId:{
       type:mongoose.Schema.Types.ObjectId,
       ref:"Vehicle",
+      default:null
+    },
+    vehicleLastActivatedAt:{
+      type:Date,
       default:null
     },
     lastLocationAt:{
