@@ -37,8 +37,17 @@ function GeoUpdater({ userId }: { userId: string | undefined }) {
         });
       },
       (err) => {
-        if (err.code !== err.POSITION_UNAVAILABLE) {
-          console.warn("Location tracking unavailable:", err.message);
+        console.warn("Location tracking unavailable:", err.message);
+        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+          const now = Date.now();
+          if (now - lastSentRef.current < PARTNER_GEO_PUSH_INTERVAL_MS) return;
+          lastSentRef.current = now;
+          console.log("Using local mock location fallback (Chanapora, Srinagar)");
+          socketRef.current?.emit("update-location", {
+            userId,
+            latitude: 34.0298,
+            longitude: 74.8052,
+          });
         }
       },
       {
