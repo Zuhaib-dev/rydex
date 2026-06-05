@@ -56,14 +56,15 @@ export async function POST(req: Request) {
 
   /* SPLIT CALCULATION */
 
-  const adminCommission = booking.fare * 0.10
-  const partnerAmount = booking.fare - adminCommission
+  const origFare = booking.originalFare || booking.fare;
+  const partnerAmount = origFare * 0.90;
+  const adminCommission = booking.fare - partnerAmount;
 
   booking.paymentStatus = "paid"
   booking.status = "confirmed"
 
-  booking.adminCommission = adminCommission
-  booking.partnerAmount = partnerAmount
+  booking.adminCommission = Math.round(adminCommission * 100) / 100
+  booking.partnerAmount = Math.round(partnerAmount * 100) / 100
 
   await booking.save()
 
