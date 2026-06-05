@@ -632,6 +632,7 @@ function SearchContent() {
                 bookingDisabled={lockingFare}
                 distanceKm={tripKm ?? undefined}
                 isRecommended={true}
+                discountAmount={discountAmount}
                 onBook={handleBooking}
               />
             ) : (
@@ -696,30 +697,45 @@ function SearchContent() {
           </div>
 
           {/* Coupon inputs */}
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value)}
-                placeholder="Apply Coupon (e.g. RYDEX50)"
-                className="w-full text-xs font-bold bg-white border border-zinc-200 rounded-xl px-3 py-2 focus:ring-black focus:border-black uppercase"
-              />
+          <div className="space-y-1.5">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value)}
+                  placeholder="Apply Coupon (e.g. RYDEX50)"
+                  disabled={!!appliedCoupon || applyingCoupon}
+                  className="w-full text-xs font-bold bg-white border border-zinc-200 rounded-xl px-3 py-2 focus:ring-black focus:border-black uppercase disabled:opacity-60"
+                />
+              </div>
+              {appliedCoupon ? (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleClearCoupon}
+                  className="px-4 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 text-xs font-bold rounded-xl transition"
+                >
+                  Clear
+                </motion.button>
+              ) : (
+                <motion.button
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleApplyCoupon}
+                  disabled={applyingCoupon}
+                  className="px-4 bg-zinc-900 hover:bg-black disabled:opacity-50 text-white text-xs font-bold rounded-xl transition"
+                >
+                  {applyingCoupon ? "Applying..." : "Apply"}
+                </motion.button>
+              )}
             </div>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                if (couponCode.toUpperCase() === "RYDEX50") {
-                  setDiscountApplied(true);
-                  triggerToast("Coupon RYDEX50 applied! 50% discount locked.");
-                } else {
-                  triggerToast("Invalid Coupon Code");
-                }
-              }}
-              className="px-4 bg-zinc-900 hover:bg-black text-white text-xs font-bold rounded-xl transition"
-            >
-              Apply
-            </motion.button>
+            {couponError && (
+              <p className="text-[10px] text-red-600 font-bold ml-1">{couponError}</p>
+            )}
+            {appliedCoupon && (
+              <p className="text-[10px] text-green-600 font-bold ml-1">
+                ✓ Coupon {appliedCoupon} applied (Saved ₹{discountAmount})
+              </p>
+            )}
           </div>
         </div>
       </div>
