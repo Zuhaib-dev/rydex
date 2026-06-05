@@ -353,7 +353,7 @@ export default function VehicleManagement() {
                                   {vehicle.vehicleNumber}
                                 </span>
                                 <span className="text-[10px] text-gray-400 font-semibold uppercase">
-                                  {vehicle.type} • {vehicle.fuelType || "N/A"}
+                                  {vehicle.type} • {vehicle.fuelType || "N/A"} • {vehicle.seatingCapacity ?? "N/A"} Seats
                                 </span>
                               </div>
                             </div>
@@ -615,7 +615,7 @@ export default function VehicleManagement() {
                       <div>
                         <span className="text-gray-400">Fuel Type / Seats</span>
                         <p className="text-gray-900 font-bold mt-0.5 uppercase">
-                          {selectedVehicle.fuelType || "N/A"} • {selectedVehicle.seatingCapacity || 4} Seats
+                          {selectedVehicle.fuelType || "N/A"} • {selectedVehicle.seatingCapacity ?? "N/A"} Seats
                         </p>
                       </div>
                       <div>

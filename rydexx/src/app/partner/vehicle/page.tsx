@@ -151,7 +151,7 @@ export default function MyGaragePage() {
   // Auto-select first available document type on opening the document modal
   useEffect(() => {
     if (selectedVehicle && docModalOpen) {
-      const uploadedTypes = selectedVehicle.documents?.map((d) => d.documentType) || [];
+      const uploadedTypes: string[] = selectedVehicle.documents?.map((d) => d.documentType) || [];
       const remainingTypes = DOC_TYPES.filter((t) => !uploadedTypes.includes(t.id));
       if (remainingTypes.length > 0) {
         setSelectedDocType(remainingTypes[0].id);
