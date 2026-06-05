@@ -844,7 +844,20 @@ function SearchContent() {
                     <h4 className="text-xs font-black text-gray-900">{vehicles[0].vehicleModel}</h4>
                     <p className="text-[10px] text-gray-400 mt-0.5">{vehicles[0].vehicleNumber}</p>
                   </div>
-                  <span className="text-base font-black text-zinc-900 font-mono">₹{Math.round((vehicles[0].baseFare || 0) + (tripKm || 0) * (vehicles[0].perKmRate || 0))}</span>
+                  <span className="text-base font-black text-zinc-900 font-mono">
+                    {discountAmount > 0 ? (
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-zinc-400 text-xs font-bold line-through">
+                          ₹{Math.round((vehicles[0].baseFare || 0) + (tripKm || 0) * (vehicles[0].perKmRate || 0))}
+                        </span>
+                        <span>
+                          ₹{Math.max(0, Math.round((vehicles[0].baseFare || 0) + (tripKm || 0) * (vehicles[0].perKmRate || 0) - discountAmount))}
+                        </span>
+                      </span>
+                    ) : (
+                      `₹${Math.round((vehicles[0].baseFare || 0) + (tripKm || 0) * (vehicles[0].perKmRate || 0)}`
+                    )}
+                  </span>
                 </div>
                 <motion.button
                   whileTap={{ scale: 0.98 }}
