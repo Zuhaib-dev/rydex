@@ -386,7 +386,7 @@ export async function countEligiblePartners(
       },
     ],
   })
-    .select("_id")
+    .select("_id activeVehicleId")
     .lean();
 
   if (!partners.length) return 0;
@@ -394,7 +394,12 @@ export async function countEligiblePartners(
   const partnerIds = partners.map((p) => p._id as mongoose.Types.ObjectId);
   const busyIds = await getBusyPartnerIds(partnerIds);
 
+  const activeVehicleIds = partners
+    .map((p) => p.activeVehicleId)
+    .filter(Boolean);
+
   const vehicles = await Vehicle.find({
+    _id: { $in: activeVehicleIds },
     owner: { $in: partnerIds },
     status: "approved",
     isActive: true,
