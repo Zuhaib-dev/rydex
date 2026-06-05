@@ -438,23 +438,38 @@ function CheckoutContent() {
                 </div>
               )}
 
-              {/* Fare */}
-              <div className="flex items-end justify-between pt-6 border-t border-zinc-100">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Total Fare</p>
-                  <p className="text-zinc-400 text-xs font-medium">
-                    Locked · {tripDistanceKm} km · ~{Math.round(durationMinutes)} min
-                  </p>
+              {/* Fare & Receipt Breakdown */}
+              <div className="pt-6 border-t border-zinc-100 space-y-4">
+                {snapshot?.discount && snapshot.discount > 0 ? (
+                  <div className="space-y-2 text-xs font-semibold text-zinc-500 bg-zinc-50 border border-zinc-100 rounded-2xl p-4.5">
+                    <div className="flex justify-between">
+                      <span>Subtotal</span>
+                      <span className="font-mono">₹{snapshot.originalFare ?? (snapshot.fare + snapshot.discount)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600">
+                      <span>Promo Discount ({snapshot.promoCode})</span>
+                      <span className="font-mono">-₹{snapshot.discount}</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-zinc-400 mb-1">Total Fare</p>
+                    <p className="text-zinc-400 text-xs font-medium">
+                      Locked · {tripDistanceKm} km · ~{Math.round(durationMinutes)} min
+                    </p>
+                  </div>
+                  <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
+                    className="flex items-baseline gap-1"
+                  >
+                    <span className="text-zinc-400 text-lg font-black">₹</span>
+                    <span className="text-zinc-900 text-5xl font-black tracking-tight leading-none">{fare}</span>
+                  </motion.div>
                 </div>
-                <motion.div
-                  initial={{ scale: 0.8, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
-                  className="flex items-baseline gap-1"
-                >
-                  <span className="text-zinc-400 text-lg font-black">₹</span>
-                  <span className="text-zinc-900 text-5xl font-black tracking-tight leading-none">{fare}</span>
-                </motion.div>
               </div>
             </div>
           </motion.div>
