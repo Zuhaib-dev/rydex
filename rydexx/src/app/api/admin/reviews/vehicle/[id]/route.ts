@@ -43,12 +43,12 @@ export async function PUT(
     const vehicleId = (await context.params).id;
     const { action, reason } = await request.json();
 
-    if (!["approved", "rejected"].includes(action)) {
+    if (!["approved", "rejected", "suspended"].includes(action)) {
       return NextResponse.json({ message: "Invalid action" }, { status: 400 });
     }
 
-    if (action === "rejected" && !reason?.trim()) {
-      return NextResponse.json({ message: "Reason is required for rejection" }, { status: 400 });
+    if ((action === "rejected" || action === "suspended") && !reason?.trim()) {
+      return NextResponse.json({ message: "Reason is required for rejection/suspension" }, { status: 400 });
     }
 
     const vehicle = await Vehicle.findById(vehicleId);
@@ -62,19 +62,32 @@ export async function PUT(
     }
 
     vehicle.status = action;
-    vehicle.rejectionReason = action === "rejected" ? reason : "";
+    vehicle.rejectionReason = (action === "rejected" || action === "suspended") ? reason : "";
     await vehicle.save();
 
-    user.partnerStatus = action;
-    user.rejectionReason = action === "rejected" ? reason : "";
-    
-    if (action === "approved") {
-      user.partnerOnboardingSteps = 8;
+    // Only update general partner status/steps if onboarding is incomplete
+    if (user.partnerOnboardingSteps < 8) {
+      if (action === "approved") {
+        user.partnerStatus = "approved";
+        user.partnerOnboardingSteps = 8;
+        user.activeVehicleId = vehicle._id;
+      } else {
+        user.partnerStatus = "rejected";
+        user.partnerOnboardingSteps = 6;
+        user.rejectionReason = reason;
+      }
+      await user.save();
     } else {
-      user.partnerOnboardingSteps = 6;
+      // If driver is already live, check if the suspended/rejected vehicle was their active vehicle
+      if (action !== "approved" && String(user.activeVehicleId) === String(vehicle._id)) {
+        user.activeVehicleId = undefined;
+        await user.save();
+      } else if (action === "approved" && !user.activeVehicleId) {
+        // Automatically activate it if they had no active vehicle
+        user.activeVehicleId = vehicle._id;
+        await user.save();
+      }
     }
-
-    await user.save();
 
     // Log the admin action
     const { logAdminAction } = await import("@/lib/auditLogger");
@@ -86,7 +99,7 @@ export async function PUT(
       targetName: `${vehicle.vehicleModel} (${vehicle.vehicleNumber})`,
       details: action === "approved" 
         ? "Approved vehicle and finalized driver onboarding (Step 8)." 
-        : `Rejected vehicle. Reason: ${reason}`
+        : `Vehicle status set to ${action}. Reason: ${reason}`
     });
 
     await notifyAdminDashboard({
@@ -96,6 +109,7 @@ export async function PUT(
 
     return NextResponse.json({ message: `Vehicle ${action} successfully` });
   } catch (error) {
+    console.error("Admin vehicle review error:", error);
     return NextResponse.json({ message: "Server error" }, { status: 500 });
   }
 }
