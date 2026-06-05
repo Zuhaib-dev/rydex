@@ -290,6 +290,7 @@ describe("WebSocket Realtime Integration Tests", () => {
   it("should disconnect client immediately if blocked User connects", () => {
     return new Promise(async (resolve, reject) => {
       let blockedClientSocket;
+      let timeoutId;
       try {
         const testUser = await User.create({
           name: "Blocked User",
@@ -308,14 +309,16 @@ describe("WebSocket Realtime Integration Tests", () => {
         });
 
         blockedClientSocket.on("disconnect", () => {
+          clearTimeout(timeoutId);
           resolve();
         });
 
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           blockedClientSocket.disconnect();
           reject(new Error("Socket did not disconnect automatically"));
         }, 1500);
       } catch (err) {
+        clearTimeout(timeoutId);
         if (blockedClientSocket) blockedClientSocket.disconnect();
         reject(err);
       }
@@ -325,6 +328,8 @@ describe("WebSocket Realtime Integration Tests", () => {
   it("should disconnect active socket connection when blocked event is posted to /emit", () => {
     return new Promise(async (resolve, reject) => {
       let activeClientSocket;
+      let timeoutId;
+      let innerTimeoutId;
       try {
         const testUser = await User.create({
           name: "Soon Blocked",
@@ -337,32 +342,41 @@ describe("WebSocket Realtime Integration Tests", () => {
           activeClientSocket.emit("identity", testUser._id.toString());
         });
 
-        setTimeout(async () => {
-          // Verify user was linked to a socket
-          const dbUser = await User.findById(testUser._id);
-          expect(dbUser.socketId).toBe(activeClientSocket.id);
+        innerTimeoutId = setTimeout(async () => {
+          try {
+            // Verify user was linked to a socket
+            const dbUser = await User.findById(testUser._id);
+            expect(dbUser.socketId).toBe(activeClientSocket.id);
 
-          activeClientSocket.on("blocked", (data) => {
-            expect(data.message).toContain("suspended");
-          });
+            activeClientSocket.on("blocked", (data) => {
+              expect(data.message).toContain("suspended");
+            });
 
-          activeClientSocket.on("disconnect", () => {
-            resolve();
-          });
+            activeClientSocket.on("disconnect", () => {
+              clearTimeout(timeoutId);
+              resolve();
+            });
 
-          // Post a blocked event to /emit
-          await axios.post(`http://localhost:${testPort}/emit`, {
-            userId: testUser._id.toString(),
-            event: "blocked",
-            data: { message: "Your account is suspended." }
-          });
+            // Post a blocked event to /emit
+            await axios.post(`http://localhost:${testPort}/emit`, {
+              userId: testUser._id.toString(),
+              event: "blocked",
+              data: { message: "Your account is suspended." }
+            });
+          } catch (err) {
+            clearTimeout(timeoutId);
+            reject(err);
+          }
         }, 300);
 
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
+          clearTimeout(innerTimeoutId);
           activeClientSocket.disconnect();
           reject(new Error("Active socket was not disconnected by /emit blocked event"));
         }, 2000);
       } catch (err) {
+        clearTimeout(timeoutId);
+        clearTimeout(innerTimeoutId);
         if (activeClientSocket) activeClientSocket.disconnect();
         reject(err);
       }
