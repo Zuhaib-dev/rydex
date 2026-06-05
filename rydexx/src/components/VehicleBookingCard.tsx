@@ -29,6 +29,7 @@ interface VehicleProps {
   distanceKm?: number;
   isRecommended?: boolean;
   bookingDisabled?: boolean;
+  discountAmount?: number;
   onBook?: () => void | Promise<void>;
 }
 
@@ -45,6 +46,7 @@ export default function VehicleBookingCard({
   distanceKm = 0,
   isRecommended,
   bookingDisabled = false,
+  discountAmount = 0,
   onBook,
 }: VehicleProps) {
   const {
@@ -54,6 +56,7 @@ export default function VehicleBookingCard({
 
   const { label, Icon } = TYPE_CONFIG[type] ?? TYPE_CONFIG.car;
   const estimated = Math.round(baseFare + distanceKm * perKmRate);
+  const discountedEstimated = Math.max(0, Math.round(estimated - discountAmount));
 
   const ownerObj = typeof owner === "object" && owner ? owner : null;
   const ratingDisplay = ownerObj && ownerObj.ratingCount && ownerObj.ratingCount > 0
