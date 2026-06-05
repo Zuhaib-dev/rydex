@@ -280,6 +280,7 @@ function AdminDashboardContent() {
                 {activeTab === "map" && "Control Tower Map"}
                 {activeTab === "queues" && "Operations Queue"}
                 {activeTab === "users" && "User Directory"}
+                {activeTab === "vehicles" && "Vehicle Directory"}
                 {activeTab === "coupons" && "Promo Coupons Manager"}
                 {activeTab === "notifications" && "Broadcast Notifications"}
                 {activeTab === "security" && "Security Logs"}
@@ -605,6 +606,9 @@ function AdminDashboardContent() {
 
               {/* --- VIEW: USER MANAGEMENT --- */}
               {activeTab === "users" && <UserManagement />}
+
+              {/* --- VIEW: VEHICLE DIRECTORY --- */}
+              {activeTab === "vehicles" && <VehicleManagement />}
 
               {/* --- VIEW: COUPON MANAGEMENT --- */}
               {activeTab === "coupons" && <AdminCoupons />}
