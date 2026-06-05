@@ -34,6 +34,7 @@ export async function POST(req: Request) {
     passengers,
     notes,
     scheduledAt,
+    promoCode,
   } = body;
 
   if (
@@ -78,6 +79,7 @@ export async function POST(req: Request) {
     passengers,
     notes,
     scheduledAt,
+    promoCode,
   });
 
   if (!result.success) {
