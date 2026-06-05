@@ -36,6 +36,8 @@ export default function PartnerLiveTracker() {
     identify();
     socket.on("connect", identify);
 
+    let fallbackInterval: NodeJS.Timeout | null = null;
+
     const watcher = navigator.geolocation.watchPosition(
       (pos) => {
         const now = Date.now();
@@ -51,21 +53,27 @@ export default function PartnerLiveTracker() {
       (err) => {
         console.warn("Partner location unavailable:", err.message);
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-          const now = Date.now();
-          if (now - lastSentRef.current < PARTNER_GEO_PUSH_INTERVAL_MS) return;
-          lastSentRef.current = now;
-          console.log("Using local mock location fallback (Chanapora, Srinagar)");
-          socket.emit("update-location", {
-            userId,
-            latitude: 34.0298,
-            longitude: 74.8052,
-          });
+          const sendMock = () => {
+            console.log("Using local mock location fallback (Chanapora, Srinagar)");
+            socket.emit("update-location", {
+              userId,
+              latitude: 34.0298,
+              longitude: 74.8052,
+            });
+          };
+
+          sendMock();
+
+          if (!fallbackInterval) {
+            fallbackInterval = setInterval(sendMock, PARTNER_GEO_PUSH_INTERVAL_MS);
+          }
         }
       },
       { enableHighAccuracy: true, maximumAge: 3000, timeout: 12000 },
     );
 
     return () => {
+      if (fallbackInterval) clearInterval(fallbackInterval);
       socket.emit("partner-availability", { available: false });
       socket.off("connect", identify);
       navigator.geolocation.clearWatch(watcher);

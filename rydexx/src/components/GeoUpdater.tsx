@@ -30,6 +30,8 @@ function GeoUpdater({ userId }: { userId: string | undefined }) {
     identify();
     socketRef.current.on("connect", identify);
 
+    let fallbackInterval: NodeJS.Timeout | null = null;
+
     const watcher = navigator.geolocation.watchPosition(
       (pos) => {
         const now = Date.now();
@@ -47,15 +49,20 @@ function GeoUpdater({ userId }: { userId: string | undefined }) {
       (err) => {
         console.warn("Location tracking unavailable:", err.message);
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-          const now = Date.now();
-          if (now - lastSentRef.current < PARTNER_GEO_PUSH_INTERVAL_MS) return;
-          lastSentRef.current = now;
-          console.log("Using local mock location fallback (Chanapora, Srinagar)");
-          socketRef.current?.emit("update-location", {
-            userId,
-            latitude: 34.0298,
-            longitude: 74.8052,
-          });
+          const sendMock = () => {
+            console.log("Using local mock location fallback (Chanapora, Srinagar)");
+            socketRef.current?.emit("update-location", {
+              userId,
+              latitude: 34.0298,
+              longitude: 74.8052,
+            });
+          };
+
+          sendMock();
+
+          if (!fallbackInterval) {
+            fallbackInterval = setInterval(sendMock, PARTNER_GEO_PUSH_INTERVAL_MS);
+          }
         }
       },
       {
@@ -65,6 +72,7 @@ function GeoUpdater({ userId }: { userId: string | undefined }) {
     );
 
     return () => {
+      if (fallbackInterval) clearInterval(fallbackInterval);
       socketRef.current?.emit("partner-availability", { available: false });
       socketRef.current?.off("connect", identify);
       navigator.geolocation.clearWatch(watcher);
