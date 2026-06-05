@@ -161,6 +161,9 @@ export async function POST(req: Request) {
     pickupLocation: snapshot.pickupLocation,
     dropLocation: snapshot.dropLocation,
     fare: snapshot.fare,
+    originalFare: snapshot.originalFare || snapshot.fare,
+    promoCode: snapshot.promoCode,
+    discount: snapshot.discount || 0,
     tripDistanceKm: snapshot.tripDistanceKm,
     durationMinutes: snapshot.durationMinutes,
     routePolyline: snapshot.routePolyline,
@@ -179,6 +182,21 @@ export async function POST(req: Request) {
     notes: snapshot.notes,
     scheduledAt: snapshot.scheduledAt,
   });
+
+  // If promo code was applied, record usage on the Coupon model
+  if (snapshot.promoCode) {
+    try {
+      await Coupon.findOneAndUpdate(
+        { code: snapshot.promoCode.toUpperCase() },
+        {
+          $inc: { usedCount: 1 },
+          $addToSet: { usedByUsers: session.user.id },
+        }
+      );
+    } catch (err) {
+      console.error("[booking/create] Coupon count increment failed:", err);
+    }
+  }
 
   // Delete the cached quote from Redis now that the booking has been converted
   try {
