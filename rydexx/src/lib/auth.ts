@@ -29,6 +29,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           throw new Error("User not found");
         }
 
+        if (user.isPartnerBlocked) {
+          throw new Error("Your account has been suspended by the administrator.");
+        }
+
         if (!user.password) {
           throw new Error("Use Google login");
         }
@@ -61,6 +65,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         await connectDb();
 
         let dbUser = await User.findOne({ email: user.email });
+        if (dbUser && dbUser.isPartnerBlocked) {
+          return false; // Reject Google sign-in
+        }
 
         if (!dbUser) {
           dbUser = await User.create({
@@ -92,11 +99,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       } else if (token.email) {
         await connectDb();
         const dbUser = await User.findOne({ email: token.email })
-          .select("_id role")
+          .select("_id role isPartnerBlocked")
           .lean();
         if (dbUser) {
-          token.id = String(dbUser._id);
-          token.role = dbUser.role as string;
+          if (dbUser.isPartnerBlocked) {
+            token.blocked = true;
+          } else {
+            token.id = String(dbUser._id);
+            token.role = dbUser.role as string;
+            token.blocked = false;
+          }
         }
       }
 
@@ -104,6 +116,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
 
     async session({ session, token }) {
+      if (token.blocked) {
+        session.user = null as any;
+        return session;
+      }
       if (session.user) {
         session.user.id = token.id as string;
         session.user.name = token.name;

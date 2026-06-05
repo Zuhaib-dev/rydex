@@ -4,6 +4,7 @@ import connectDb from "@/lib/db";
 import { logAdminAction } from "@/lib/auditLogger";
 import User from "@/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
+import { emitToSocketServer } from "@/lib/socketServer";
 
 export async function POST(
   request: NextRequest,
@@ -28,6 +29,14 @@ export async function POST(
     // Toggle blocking
     user.isPartnerBlocked = block;
     await user.save();
+
+    if (block) {
+      await emitToSocketServer({
+        userId: user._id.toString(),
+        event: "blocked",
+        data: { message: "Your account has been suspended by the administrator." },
+      }).catch((err) => console.warn("Failed to emit block event:", err));
+    }
 
     // Log the admin action
     await logAdminAction({

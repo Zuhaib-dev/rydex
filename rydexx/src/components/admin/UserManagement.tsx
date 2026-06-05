@@ -69,7 +69,8 @@ export default function UserManagement() {
 
   useEffect(() => {
     fetchUsers(1, "", "", "");
-  }, [fetchUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
