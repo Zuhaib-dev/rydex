@@ -323,8 +323,14 @@ io.on("connection", (socket) => {
   socket.on("identity", async (userId) => {
     socket.userId = userId;
 
-    const user = await User.findById(userId).select("role location").lean();
+    const user = await User.findById(userId).select("role location isPartnerBlocked").lean();
     if (!user) return;
+
+    if (user.isPartnerBlocked) {
+      socket.emit("blocked", { message: "Your account is suspended." });
+      socket.disconnect(true);
+      return;
+    }
 
     const now = new Date();
     const updateFields = {
