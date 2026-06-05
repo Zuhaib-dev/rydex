@@ -31,6 +31,18 @@ export async function GET(req: Request) {
         },
       );
     }
+
+    if (user.isPartnerBlocked) {
+      return Response.json(
+        { message: "Your account is suspended." },
+        {
+          status: 401,
+          headers: {
+            "Cache-Control": "no-store, max-age=0",
+          },
+        },
+      );
+    }
     
     // Automatically initialize location for partners if missing to enable search/booking matching
     if (user.role === "partner" && (!user.location || !user.location.coordinates || user.location.coordinates.length === 0)) {

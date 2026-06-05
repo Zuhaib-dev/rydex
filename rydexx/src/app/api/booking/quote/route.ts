@@ -4,6 +4,8 @@ import { createLockedBookingQuote } from "@/lib/createBookingQuote";
 import { snapshotToClientPayload } from "@/lib/bookingSnapshot";
 import { isRateLimited } from "@/lib/rateLimit";
 import { checkBookingGeoFence } from "@/lib/geoFence";
+import connectDb from "@/lib/db";
+import User from "@/models/user.model";
 
 export async function POST(req: Request) {
   const session = await auth();
