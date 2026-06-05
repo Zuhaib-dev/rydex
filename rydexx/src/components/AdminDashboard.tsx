@@ -48,6 +48,7 @@ import SystemHealth from "./admin/SystemHealth";
 import SendNotification from "./admin/SendNotification";
 import AdminAnalyticsHub from "./AdminAnalyticsHub";
 import AdminCoupons from "./admin/AdminCoupons";
+import VehicleManagement from "./admin/VehicleManagement";
 
 // Import user context layouts to support client-side impersonation
 import Nav from "@/components/Nav";
