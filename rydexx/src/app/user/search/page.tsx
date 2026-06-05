@@ -345,6 +345,51 @@ function SearchContent() {
     );
   };
 
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return;
+    if (vehicles.length === 0) {
+      triggerToast("No vehicle available to apply coupon");
+      return;
+    }
+    
+    setApplyingCoupon(true);
+    setCouponError(null);
+    
+    const estFare = Math.round((vehicles[0].baseFare || 0) + (tripKm || 0) * (vehicles[0].perKmRate || 0));
+    
+    try {
+      const res = await fetch(`/api/coupon/validate?code=${encodeURIComponent(couponCode.trim())}&fare=${estFare}`);
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        setAppliedCoupon(data.code);
+        setDiscountAmount(data.discountAmount);
+        triggerToast(`Coupon ${data.code} applied! ₹${data.discountAmount} discount.`);
+      } else {
+        setAppliedCoupon(null);
+        setDiscountAmount(0);
+        setCouponError(data.message || "Invalid coupon code");
+        triggerToast(data.message || "Invalid coupon code");
+      }
+    } catch (err) {
+      console.error(err);
+      setAppliedCoupon(null);
+      setDiscountAmount(0);
+      setCouponError("Failed to validate coupon");
+      triggerToast("Failed to validate coupon");
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const handleClearCoupon = () => {
+    setCouponCode("");
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponError(null);
+    triggerToast("Coupon cleared");
+  };
+
   // Lock Fare Booking Handler
   const handleBooking = async () => {
     if (vehicles.length === 0) return;
@@ -370,6 +415,7 @@ function SearchContent() {
           passengers: Number(params.get("passengers")) || 1,
           notes: params.get("notes") || "",
           scheduledAt: params.get("scheduledAt") || undefined,
+          promoCode: appliedCoupon || undefined,
         }),
       });
       const data = await res.json();
