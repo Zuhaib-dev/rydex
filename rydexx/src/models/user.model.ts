@@ -27,6 +27,7 @@ export interface IUser extends Document {
   isOnline:boolean,
   isPartnerAvailable?: boolean;
   isPartnerBlocked?: boolean;
+  activeVehicleId?: mongoose.Types.ObjectId;
   lastLocationAt?: Date;
   currentVehicleType?: string;
   partnerStatus:"pending" | "approved" | "rejected";
