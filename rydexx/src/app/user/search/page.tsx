@@ -119,7 +119,10 @@ function SearchContent() {
   // Bottom Sheet Height state for mobile (peeking, half-height, or fully-expanded)
   const [paymentMethod, setPaymentMethod] = useState<"card" | "upi" | "cash">("upi");
   const [couponCode, setCouponCode] = useState("");
-  const [, setDiscountApplied] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
 
   const [notification, setNotification] = useState<string | null>(null);
   // Geo-fence state — set when quote API returns cashOnly flag
