@@ -37,6 +37,9 @@ export interface IBooking extends Document {
   };
 
   fare: number;
+  originalFare?: number;
+  promoCode?: string;
+  discount?: number;
   tripDistanceKm?: number;
   durationMinutes?: number;
   routePolyline?: GeoJSON.LineString;
@@ -118,6 +121,9 @@ const BookingSchema = new Schema<IBooking>(
     
 
     fare: { type: Number, required: true },
+    originalFare: { type: Number },
+    promoCode: { type: String, uppercase: true, trim: true },
+    discount: { type: Number, default: 0 },
     tripDistanceKm: { type: Number },
     durationMinutes: { type: Number },
     routePolyline: { type: Schema.Types.Mixed },

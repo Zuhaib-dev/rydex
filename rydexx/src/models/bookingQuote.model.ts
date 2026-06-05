@@ -10,6 +10,9 @@ export interface IBookingQuote extends Document {
   tripDistanceKm: number;
   durationMinutes: number;
   fare: number;
+  originalFare?: number;
+  promoCode?: string;
+  discount?: number;
   vehicleType: string;
   vehicleId: Types.ObjectId;
   driverId?: Types.ObjectId;
@@ -41,6 +44,9 @@ const BookingQuoteSchema = new Schema<IBookingQuote>(
     tripDistanceKm: { type: Number, required: true },
     durationMinutes: { type: Number, required: true },
     fare: { type: Number, required: true },
+    originalFare: { type: Number },
+    promoCode: { type: String, uppercase: true, trim: true },
+    discount: { type: Number, default: 0 },
     vehicleType: { type: String, required: true },
     vehicleId: { type: Schema.Types.ObjectId, ref: "Vehicle", required: true },
     driverId: { type: Schema.Types.ObjectId, ref: "User" },
