@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import connectDb from "@/lib/db";
 import Vehicle from "@/models/vehicle.model";
 import BookingQuote from "@/models/bookingQuote.model";
+import Coupon from "@/models/coupon.model";
 import { fetchDrivingRoute } from "@/lib/mapboxRouting";
 import { getRedisClient } from "@/lib/redis";
 import { calculateTripFare } from "@/lib/fare";
