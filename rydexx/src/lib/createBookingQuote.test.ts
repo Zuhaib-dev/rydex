@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vites
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import Vehicle from "@/models/vehicle.model";
+import Coupon from "@/models/coupon.model";
 import { fetchDrivingRoute } from "@/lib/mapboxRouting";
 
 // Mock Mapbox Routing
@@ -283,6 +284,209 @@ describe("createLockedBookingQuote - Distance Sanitization", () => {
     if (result.success) {
       expect(result.snapshot.tripDistanceKm).toBe(1500);
       expect(result.snapshot.fare).toBe(75500); // 500 + 1500 * 50 = 75500
+    }
+  });
+});
+
+describe("createLockedBookingQuote - Coupon Engine", () => {
+  let vehicle: any;
+  const userId = new mongoose.Types.ObjectId().toString();
+
+  beforeEach(async () => {
+    // Create an approved vehicle for testing
+    vehicle = await Vehicle.create({
+      owner: new mongoose.Types.ObjectId(),
+      type: "car",
+      vehicleModel: "Corolla",
+      vehicleNumber: "CAR777",
+      baseFare: 50,
+      perKmRate: 10,
+      waitingCharge: 2,
+      status: "approved",
+      isActive: true,
+    });
+
+    // Mock 5 km route -> Base calculated fare = 50 + 5 * 10 = 100
+    vi.mocked(fetchDrivingRoute).mockResolvedValue({
+      distanceMeters: 5000,
+      durationSeconds: 600,
+      distanceKm: 5,
+      durationMinutes: 10,
+      polyline: { type: "LineString", coordinates: [[0, 0], [1, 1]] },
+    } as any);
+  });
+
+  it("should apply flat coupon successfully", async () => {
+    await Coupon.create({
+      code: "FLAT50",
+      discountType: "flat",
+      discountValue: 50,
+      expiryDate: new Date(Date.now() + 100000),
+      isActive: true,
+    });
+
+    const result = await createLockedBookingQuote({
+      userId,
+      pickupAddress: "A",
+      dropAddress: "B",
+      pickupLng: 74.0,
+      pickupLat: 34.0,
+      dropLng: 74.05,
+      dropLat: 34.05,
+      vehicleId: vehicle._id.toString(),
+      promoCode: "FLAT50",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.snapshot.originalFare).toBe(100);
+      expect(result.snapshot.discount).toBe(50);
+      expect(result.snapshot.fare).toBe(50);
+      expect(result.snapshot.promoCode).toBe("FLAT50");
+    }
+  });
+
+  it("should apply percentage coupon successfully", async () => {
+    await Coupon.create({
+      code: "PERC10",
+      discountType: "percentage",
+      discountValue: 10,
+      expiryDate: new Date(Date.now() + 100000),
+      isActive: true,
+    });
+
+    const result = await createLockedBookingQuote({
+      userId,
+      pickupAddress: "A",
+      dropAddress: "B",
+      pickupLng: 74.0,
+      pickupLat: 34.0,
+      dropLng: 74.05,
+      dropLat: 34.05,
+      vehicleId: vehicle._id.toString(),
+      promoCode: "PERC10",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.snapshot.discount).toBe(10); // 10% of 100
+      expect(result.snapshot.fare).toBe(90);
+    }
+  });
+
+  it("should respect max discount cap for percentage coupon", async () => {
+    await Coupon.create({
+      code: "PERC50CAP",
+      discountType: "percentage",
+      discountValue: 50, // 50% of 100 is 50
+      maxDiscount: 30,  // Cap is 30
+      expiryDate: new Date(Date.now() + 100000),
+      isActive: true,
+    });
+
+    const result = await createLockedBookingQuote({
+      userId,
+      pickupAddress: "A",
+      dropAddress: "B",
+      pickupLng: 74.0,
+      pickupLat: 34.0,
+      dropLng: 74.05,
+      dropLat: 34.05,
+      vehicleId: vehicle._id.toString(),
+      promoCode: "PERC50CAP",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.snapshot.discount).toBe(30); // Capped at 30
+      expect(result.snapshot.fare).toBe(70);
+    }
+  });
+
+  it("should not apply coupon if minBookingAmount is not met", async () => {
+    await Coupon.create({
+      code: "MIN150",
+      discountType: "flat",
+      discountValue: 50,
+      minBookingAmount: 150, // Fare is only 100
+      expiryDate: new Date(Date.now() + 100000),
+      isActive: true,
+    });
+
+    const result = await createLockedBookingQuote({
+      userId,
+      pickupAddress: "A",
+      dropAddress: "B",
+      pickupLng: 74.0,
+      pickupLat: 34.0,
+      dropLng: 74.05,
+      dropLat: 34.05,
+      vehicleId: vehicle._id.toString(),
+      promoCode: "MIN150",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.snapshot.discount).toBe(0);
+      expect(result.snapshot.fare).toBe(100);
+      expect(result.snapshot.promoCode).toBeUndefined();
+    }
+  });
+
+  it("should not apply coupon if user has already redeemed it", async () => {
+    await Coupon.create({
+      code: "ONCEONLY",
+      discountType: "flat",
+      discountValue: 50,
+      expiryDate: new Date(Date.now() + 100000),
+      isActive: true,
+      usedByUsers: [new mongoose.Types.ObjectId(userId)], // User already used it
+    });
+
+    const result = await createLockedBookingQuote({
+      userId,
+      pickupAddress: "A",
+      dropAddress: "B",
+      pickupLng: 74.0,
+      pickupLat: 34.0,
+      dropLng: 74.05,
+      dropLat: 34.05,
+      vehicleId: vehicle._id.toString(),
+      promoCode: "ONCEONLY",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.snapshot.discount).toBe(0);
+      expect(result.snapshot.fare).toBe(100);
+    }
+  });
+
+  it("should not apply expired coupon", async () => {
+    await Coupon.create({
+      code: "EXPIRED",
+      discountType: "flat",
+      discountValue: 50,
+      expiryDate: new Date(Date.now() - 100000), // Expired in the past
+      isActive: true,
+    });
+
+    const result = await createLockedBookingQuote({
+      userId,
+      pickupAddress: "A",
+      dropAddress: "B",
+      pickupLng: 74.0,
+      pickupLat: 34.0,
+      dropLng: 74.05,
+      dropLat: 34.05,
+      vehicleId: vehicle._id.toString(),
+      promoCode: "EXPIRED",
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.snapshot.discount).toBe(0);
+      expect(result.snapshot.fare).toBe(100);
     }
   });
 });
