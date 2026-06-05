@@ -278,6 +278,7 @@ function AdminDashboardContent() {
                 {activeTab === "map" && "Control Tower Map"}
                 {activeTab === "queues" && "Operations Queue"}
                 {activeTab === "users" && "User Directory"}
+                {activeTab === "coupons" && "Promo Coupons Manager"}
                 {activeTab === "notifications" && "Broadcast Notifications"}
                 {activeTab === "security" && "Security Logs"}
                 {activeTab === "health" && "System Telemetry"}
@@ -602,6 +603,9 @@ function AdminDashboardContent() {
 
               {/* --- VIEW: USER MANAGEMENT --- */}
               {activeTab === "users" && <UserManagement />}
+
+              {/* --- VIEW: COUPON MANAGEMENT --- */}
+              {activeTab === "coupons" && <AdminCoupons />}
 
               {/* --- VIEW: NOTIFICATIONS --- */}
               {activeTab === "notifications" && <SendNotification />}
