@@ -30,13 +30,36 @@ export async function POST(
       return NextResponse.json({ message: "Only approved vehicles can be activated" }, { status: 400 });
     }
 
-    // Set the user's activeVehicleId
-    await User.findByIdAndUpdate(session.user.id, {
-      $set: { 
+    // Set the user's activeVehicleId with 1-hour switch cooldown lock
+    const currentUser = await User.findById(session.user.id);
+    if (!currentUser) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    // If it is already active, return success directly
+    if (currentUser.activeVehicleId && String(currentUser.activeVehicleId) === String(vehicle._id)) {
+      return NextResponse.json({
+        message: "Vehicle is already active",
         activeVehicleId: vehicle._id,
-        currentVehicleType: vehicle.type // Sync the current vehicle type
+      });
+    }
+
+    if (currentUser.vehicleLastActivatedAt) {
+      const lockDuration = 60 * 60 * 1000; // 1 hour
+      const elapsed = Date.now() - new Date(currentUser.vehicleLastActivatedAt).getTime();
+      if (elapsed < lockDuration) {
+        const remainingMinutes = Math.ceil((lockDuration - elapsed) / 60000);
+        return NextResponse.json(
+          { message: `You can only switch your active vehicle once per hour. Please wait ${remainingMinutes} more minutes.` },
+          { status: 400 }
+        );
       }
-    });
+    }
+
+    currentUser.activeVehicleId = vehicle._id;
+    currentUser.currentVehicleType = vehicle.type;
+    currentUser.vehicleLastActivatedAt = new Date();
+    await currentUser.save();
 
     return NextResponse.json({
       message: "Vehicle activated successfully",
