@@ -20,10 +20,11 @@ export async function POST(
   booking.paymentDeadline = undefined;
   
   if (method === "cash") {
-    const adminCommission = booking.fare * 0.10;
-    const partnerAmount = booking.fare - adminCommission;
-    booking.adminCommission = adminCommission;
-    booking.partnerAmount = partnerAmount;
+    const origFare = booking.originalFare || booking.fare;
+    const partnerAmount = origFare * 0.90;
+    const adminCommission = booking.fare - partnerAmount;
+    booking.adminCommission = Math.round(adminCommission * 100) / 100;
+    booking.partnerAmount = Math.round(partnerAmount * 100) / 100;
   }
 
   await booking.save();
