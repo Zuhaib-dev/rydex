@@ -83,7 +83,40 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
     Math.round((tripDistanceKm / 25) * 60),
   );
 
-  const fare = calculateTripFare(vehicle, tripDistanceKm);
+  const baseFareValue = calculateTripFare(vehicle, tripDistanceKm);
+  let fare = baseFareValue;
+  let discount = 0;
+  let appliedPromo: string | undefined = undefined;
+
+  if (input.promoCode) {
+    const normalizedCode = input.promoCode.trim().toUpperCase();
+    const coupon = await Coupon.findOne({ code: normalizedCode });
+    if (coupon && coupon.isActive && new Date(coupon.expiryDate) >= new Date()) {
+      const hasUsed = coupon.usedByUsers.some(
+        (id: any) => id.toString() === input.userId
+      );
+      const underLimit = coupon.usageLimit === undefined || coupon.usedCount < coupon.usageLimit;
+      const minAmountMet = !coupon.minBookingAmount || baseFareValue >= coupon.minBookingAmount;
+
+      if (!hasUsed && underLimit && minAmountMet) {
+        appliedPromo = coupon.code;
+        if (coupon.discountType === "flat") {
+          discount = coupon.discountValue;
+        } else if (coupon.discountType === "percentage") {
+          discount = (baseFareValue * coupon.discountValue) / 100;
+          if (coupon.maxDiscount && discount > coupon.maxDiscount) {
+            discount = coupon.maxDiscount;
+          }
+        }
+        if (discount > baseFareValue) {
+          discount = baseFareValue;
+        }
+        fare = baseFareValue - discount;
+        fare = Math.round(fare * 100) / 100;
+        discount = Math.round(discount * 100) / 100;
+      }
+    }
+  }
 
   const pricingSnapshot = {
     baseFare: Number(vehicle.baseFare) || 0,
@@ -101,6 +134,9 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
     tripDistanceKm,
     durationMinutes,
     fare,
+    originalFare: baseFareValue,
+    promoCode: appliedPromo,
+    discount,
     vehicleType: String(vehicle.type),
     vehicleId: String(vehicle._id),
     driverId: input.driverId,
