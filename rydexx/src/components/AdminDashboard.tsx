@@ -162,6 +162,7 @@ function AdminDashboardContent() {
     { id: "map" as const, label: "Control Tower Map", icon: MapPin },
     { id: "queues" as const, label: "Operations Queue", icon: Clock, badge: totalPendingQueueCount },
     { id: "users" as const, label: "User Directory", icon: Users },
+    { id: "coupons" as const, label: "Promo Codes", icon: Ticket },
     { id: "notifications" as const, label: "Broadcast", icon: Bell },
     { id: "security" as const, label: "Security Logs", icon: Lock },
     { id: "health" as const, label: "System Health", icon: Activity },
