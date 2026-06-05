@@ -130,6 +130,11 @@ const userSchema = new mongoose.Schema<IUser>(
       default:false,
       index:true,
     },
+    activeVehicleId:{
+      type:mongoose.Schema.Types.ObjectId,
+      ref:"Vehicle",
+      default:null
+    },
     lastLocationAt:{
       type:Date,
       index:true,
