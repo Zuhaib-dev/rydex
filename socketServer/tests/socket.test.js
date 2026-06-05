@@ -310,7 +310,7 @@ describe("WebSocket Realtime Integration Tests", () => {
 
         blockedClientSocket.on("disconnect", () => {
           clearTimeout(timeoutId);
-          resolve();
+          setTimeout(resolve, 50);
         });
 
         timeoutId = setTimeout(() => {
@@ -348,13 +348,13 @@ describe("WebSocket Realtime Integration Tests", () => {
             const dbUser = await User.findById(testUser._id);
             expect(dbUser.socketId).toBe(activeClientSocket.id);
 
+            let disconnected = false;
             activeClientSocket.on("blocked", (data) => {
               expect(data.message).toContain("suspended");
             });
 
             activeClientSocket.on("disconnect", () => {
-              clearTimeout(timeoutId);
-              resolve();
+              disconnected = true;
             });
 
             // Post a blocked event to /emit
@@ -363,6 +363,12 @@ describe("WebSocket Realtime Integration Tests", () => {
               event: "blocked",
               data: { message: "Your account is suspended." }
             });
+
+            // Verify client was disconnected
+            expect(disconnected).toBe(true);
+
+            clearTimeout(timeoutId);
+            setTimeout(resolve, 50);
           } catch (err) {
             clearTimeout(timeoutId);
             reject(err);
