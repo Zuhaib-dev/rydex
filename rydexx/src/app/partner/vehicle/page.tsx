@@ -115,8 +115,12 @@ export default function MyGaragePage() {
   const [newYear, setNewYear] = useState(new Date().getFullYear());
   const [newFuel, setNewFuel] = useState<"petrol" | "diesel" | "cng" | "electric" | "hybrid">("petrol");
   const [newSeats, setNewSeats] = useState(4);
+  const [newBaseFare, setNewBaseFare] = useState("");
+  const [newPerKmRate, setNewPerKmRate] = useState("");
+  const [newWaitingCharge, setNewWaitingCharge] = useState("");
   const [newImage, setNewImage] = useState<File | null>(null);
   const [newImageUrl, setNewImageUrl] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Document modal
@@ -143,6 +147,19 @@ export default function MyGaragePage() {
   useEffect(() => {
     fetchGarage();
   }, []);
+
+  // Auto-select first available document type on opening the document modal
+  useEffect(() => {
+    if (selectedVehicle && docModalOpen) {
+      const uploadedTypes = selectedVehicle.documents?.map((d) => d.documentType) || [];
+      const remainingTypes = DOC_TYPES.filter((t) => !uploadedTypes.includes(t.id));
+      if (remainingTypes.length > 0) {
+        setSelectedDocType(remainingTypes[0].id);
+      } else {
+        setSelectedDocType("");
+      }
+    }
+  }, [selectedVehicle, docModalOpen]);
 
   const handleActivate = async (id: string) => {
     try {
@@ -178,10 +195,90 @@ export default function MyGaragePage() {
     reader.readAsDataURL(file);
   };
 
+  const validateVehicleForm = () => {
+    const errs: Record<string, string> = {};
+    const VEHICLE_REGEX = /^[A-Za-z]{2}[\s-]?[0-9]{2}[\s-]?[A-Za-z]{0,2}[\s-]?[0-9]{4}$/;
+    const VEHICLE_MODEL_REGEX = /^[a-zA-Z0-9\-_()\/+.]+(?:\s+[a-zA-Z0-9\-_()\/+.]+)*$/;
+    const BRAND_REGEX = /^[a-zA-Z\s.-]+$/;
+    const COLOR_REGEX = /^[a-zA-Z\s-]+$/;
+
+    const trimmedBrand = newBrand.trim();
+    if (!trimmedBrand) {
+      errs.brand = "Brand/Make is required";
+    } else if (trimmedBrand.length < 2 || trimmedBrand.length > 50) {
+      errs.brand = "Must be between 2 and 50 characters";
+    } else if (!BRAND_REGEX.test(trimmedBrand)) {
+      errs.brand = "Invalid brand name (letters, spaces, dots, dashes only)";
+    }
+
+    const trimmedModel = newModel.trim();
+    if (!trimmedModel) {
+      errs.vehicleModel = "Model name is required";
+    } else if (trimmedModel.length < 2 || trimmedModel.length > 50) {
+      errs.vehicleModel = "Must be between 2 and 50 characters";
+    } else if (!VEHICLE_MODEL_REGEX.test(trimmedModel)) {
+      errs.vehicleModel = "Contains invalid characters";
+    }
+
+    const trimmedNumber = newNumber.trim();
+    if (!trimmedNumber) {
+      errs.vehicleNumber = "Registration number is required";
+    } else if (!VEHICLE_REGEX.test(trimmedNumber)) {
+      errs.vehicleNumber = "Invalid format (e.g. MH12 AB 1234)";
+    }
+
+    const trimmedColor = newColor.trim();
+    if (!trimmedColor) {
+      errs.color = "Color is required";
+    } else if (trimmedColor.length < 2 || trimmedColor.length > 30) {
+      errs.color = "Must be between 2 and 30 characters";
+    } else if (!COLOR_REGEX.test(trimmedColor)) {
+      errs.color = "Only letters, spaces, and dashes allowed";
+    }
+
+    const currentYear = new Date().getFullYear();
+    if (!newYear) {
+      errs.manufacturingYear = "Year is required";
+    } else if (newYear < 1990 || newYear > currentYear + 1) {
+      errs.manufacturingYear = `Must be between 1990 and ${currentYear + 1}`;
+    }
+
+    if (!newSeats || isNaN(newSeats) || newSeats < 1 || newSeats > 20) {
+      errs.seatingCapacity = "Must be between 1 and 20";
+    }
+
+    const bf = Number(newBaseFare);
+    const pkm = Number(newPerKmRate);
+    const wc = Number(newWaitingCharge);
+    const isTruck = newType === "truck";
+    const maxBase = isTruck ? 200 : 100;
+    const maxPerKm = isTruck ? 200 : 100;
+
+    if (!newBaseFare) {
+      errs.baseFare = "Base fare is required";
+    } else if (isNaN(bf) || bf < 1 || bf > maxBase) {
+      errs.baseFare = `Base fare must be between 1 and ${maxBase}`;
+    }
+
+    if (!newPerKmRate) {
+      errs.perKmRate = "Per KM rate is required";
+    } else if (isNaN(pkm) || pkm < 5 || pkm > maxPerKm) {
+      errs.perKmRate = `Price per KM must be between 5 and ${maxPerKm}`;
+    }
+
+    if (!newWaitingCharge) {
+      errs.waitingCharge = "Waiting charge is required";
+    } else if (isNaN(wc) || wc < 1 || wc > 10) {
+      errs.waitingCharge = "Waiting charge must be between 1 and 10";
+    }
+
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleAddVehicleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newBrand || !newModel || !newNumber || !newColor || !newYear) {
-      alert("Please fill all required fields.");
+    if (!validateVehicleForm()) {
       return;
     }
 
@@ -199,14 +296,17 @@ export default function MyGaragePage() {
 
       await axios.post("/api/vehicles", {
         type: newType,
-        brand: newBrand,
-        vehicleModel: newModel,
-        vehicleNumber: newNumber,
-        color: newColor,
+        brand: newBrand.trim(),
+        vehicleModel: newModel.trim(),
+        vehicleNumber: newNumber.trim(),
+        color: newColor.trim(),
         manufacturingYear: newYear,
         fuelType: newFuel,
         seatingCapacity: newSeats,
         imageUrl: uploadedUrl,
+        baseFare: Number(newBaseFare),
+        perKmRate: Number(newPerKmRate),
+        waitingCharge: Number(newWaitingCharge),
       });
 
       setAddModalOpen(false);
@@ -227,13 +327,17 @@ export default function MyGaragePage() {
     setNewYear(new Date().getFullYear());
     setNewFuel("petrol");
     setNewSeats(4);
+    setNewBaseFare("");
+    setNewPerKmRate("");
+    setNewWaitingCharge("");
     setNewImage(null);
     setNewImageUrl("");
+    setErrors({});
   };
 
   const handleDocSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!docFile || !selectedVehicle) return;
+    if (!docFile || !selectedVehicle || !selectedDocType) return;
 
     setUploadingDoc(true);
     try {
@@ -531,10 +635,14 @@ export default function MyGaragePage() {
                       type="text"
                       required
                       value={newBrand}
-                      onChange={(e) => setNewBrand(e.target.value)}
+                      onChange={(e) => {
+                        setNewBrand(e.target.value);
+                        if (errors.brand) setErrors(prev => { const n = {...prev}; delete n.brand; return n; });
+                      }}
                       placeholder="e.g. Maruti Suzuki"
-                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                      className={`w-full px-3 py-2 bg-zinc-50 border rounded-xl text-sm ${errors.brand ? "border-red-400 bg-red-50/50" : "border-zinc-200"}`}
                     />
+                    {errors.brand && <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.brand}</p>}
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
@@ -544,10 +652,14 @@ export default function MyGaragePage() {
                       type="text"
                       required
                       value={newModel}
-                      onChange={(e) => setNewModel(e.target.value)}
+                      onChange={(e) => {
+                        setNewModel(e.target.value);
+                        if (errors.vehicleModel) setErrors(prev => { const n = {...prev}; delete n.vehicleModel; return n; });
+                      }}
                       placeholder="e.g. Swift Dzire"
-                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                      className={`w-full px-3 py-2 bg-zinc-50 border rounded-xl text-sm ${errors.vehicleModel ? "border-red-400 bg-red-50/50" : "border-zinc-200"}`}
                     />
+                    {errors.vehicleModel && <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.vehicleModel}</p>}
                   </div>
                 </div>
 
@@ -560,10 +672,14 @@ export default function MyGaragePage() {
                       type="text"
                       required
                       value={newNumber}
-                      onChange={(e) => setNewNumber(e.target.value)}
+                      onChange={(e) => {
+                        setNewNumber(e.target.value);
+                        if (errors.vehicleNumber) setErrors(prev => { const n = {...prev}; delete n.vehicleNumber; return n; });
+                      }}
                       placeholder="e.g. MH12AB1234"
-                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm uppercase"
+                      className={`w-full px-3 py-2 bg-zinc-50 border rounded-xl text-sm uppercase ${errors.vehicleNumber ? "border-red-400 bg-red-50/50" : "border-zinc-200"}`}
                     />
+                    {errors.vehicleNumber && <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.vehicleNumber}</p>}
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
@@ -573,10 +689,14 @@ export default function MyGaragePage() {
                       type="text"
                       required
                       value={newColor}
-                      onChange={(e) => setNewColor(e.target.value)}
+                      onChange={(e) => {
+                        setNewColor(e.target.value);
+                        if (errors.color) setErrors(prev => { const n = {...prev}; delete n.color; return n; });
+                      }}
                       placeholder="e.g. White"
-                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                      className={`w-full px-3 py-2 bg-zinc-50 border rounded-xl text-sm ${errors.color ? "border-red-400 bg-red-50/50" : "border-zinc-200"}`}
                     />
+                    {errors.color && <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.color}</p>}
                   </div>
                 </div>
 
@@ -588,10 +708,14 @@ export default function MyGaragePage() {
                     <input
                       type="number"
                       required
-                      value={newYear}
-                      onChange={(e) => setNewYear(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                      value={newYear || ""}
+                      onChange={(e) => {
+                        setNewYear(Number(e.target.value));
+                        if (errors.manufacturingYear) setErrors(prev => { const n = {...prev}; delete n.manufacturingYear; return n; });
+                      }}
+                      className={`w-full px-3 py-2 bg-zinc-50 border rounded-xl text-sm ${errors.manufacturingYear ? "border-red-400 bg-red-50/50" : "border-zinc-200"}`}
                     />
+                    {errors.manufacturingYear && <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.manufacturingYear}</p>}
                   </div>
                   <div>
                     <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
@@ -615,10 +739,68 @@ export default function MyGaragePage() {
                     </label>
                     <input
                       type="number"
-                      value={newSeats}
-                      onChange={(e) => setNewSeats(Number(e.target.value))}
-                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                      value={newSeats || ""}
+                      onChange={(e) => {
+                        setNewSeats(Number(e.target.value));
+                        if (errors.seatingCapacity) setErrors(prev => { const n = {...prev}; delete n.seatingCapacity; return n; });
+                      }}
+                      className={`w-full px-3 py-2 bg-zinc-50 border rounded-xl text-sm ${errors.seatingCapacity ? "border-red-400 bg-red-50/50" : "border-zinc-200"}`}
                     />
+                    {errors.seatingCapacity && <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.seatingCapacity}</p>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Base Fare (₹)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={newBaseFare}
+                      onChange={(e) => {
+                        setNewBaseFare(e.target.value);
+                        if (errors.baseFare) setErrors(prev => { const n = {...prev}; delete n.baseFare; return n; });
+                      }}
+                      placeholder="e.g. 50"
+                      className={`w-full px-3 py-2 bg-zinc-50 border rounded-xl text-sm ${errors.baseFare ? "border-red-400 bg-red-50/50" : "border-zinc-200"}`}
+                    />
+                    {errors.baseFare && <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.baseFare}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Per KM Rate (₹)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={newPerKmRate}
+                      onChange={(e) => {
+                        setNewPerKmRate(e.target.value);
+                        if (errors.perKmRate) setErrors(prev => { const n = {...prev}; delete n.perKmRate; return n; });
+                      }}
+                      placeholder="e.g. 15"
+                      className={`w-full px-3 py-2 bg-zinc-50 border rounded-xl text-sm ${errors.perKmRate ? "border-red-400 bg-red-50/50" : "border-zinc-200"}`}
+                    />
+                    {errors.perKmRate && <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.perKmRate}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Waiting Fees (₹/m)
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      value={newWaitingCharge}
+                      onChange={(e) => {
+                        setNewWaitingCharge(e.target.value);
+                        if (errors.waitingCharge) setErrors(prev => { const n = {...prev}; delete n.waitingCharge; return n; });
+                      }}
+                      placeholder="e.g. 2"
+                      className={`w-full px-3 py-2 bg-zinc-50 border rounded-xl text-sm ${errors.waitingCharge ? "border-red-400 bg-red-50/50" : "border-zinc-200"}`}
+                    />
+                    {errors.waitingCharge && <p className="text-[10px] text-red-500 mt-1 font-semibold">{errors.waitingCharge}</p>}
                   </div>
                 </div>
 
@@ -702,96 +884,111 @@ export default function MyGaragePage() {
                 Upload credentials for <strong className="text-zinc-800">{selectedVehicle.brand} {selectedVehicle.vehicleModel}</strong>.
               </p>
 
-              <form onSubmit={handleDocSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
-                    Document Type
-                  </label>
-                  <select
-                    value={selectedDocType}
-                    onChange={(e) => setSelectedDocType(e.target.value)}
-                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
-                  >
-                    {DOC_TYPES.map((type) => (
-                      <option key={type.id} value={type.id}>
-                        {type.label} ({type.desc})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
-                    Expiration Date
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={docExpiry}
-                      onChange={(e) => setDocExpiry(e.target.value)}
-                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
-                    File Attachment
-                  </label>
-                  <input
-                    type="file"
-                    ref={docInputRef}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) setDocFile(file);
-                    }}
-                    className="hidden"
-                    accept="image/*,application/pdf"
-                  />
-                  {docFile ? (
-                    <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2 text-zinc-700">
-                        <FileText size={16} />
-                        <span className="font-bold truncate max-w-[200px]">{docFile.name}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => docInputRef.current?.click()}
-                        className="text-zinc-500 hover:text-black font-black uppercase text-[10px]"
-                      >
-                        Change
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => docInputRef.current?.click()}
-                      className="w-full py-6 border border-dashed border-zinc-300 rounded-xl hover:bg-zinc-50 transition-colors flex flex-col items-center justify-center text-zinc-400 gap-1"
-                    >
-                      <Upload size={20} />
-                      <span className="text-xs font-semibold">Select PDF or Image</span>
-                    </button>
-                  )}
-                </div>
-
-                <div className="pt-2 flex gap-3">
-                  <button
-                    type="submit"
-                    disabled={uploadingDoc || !docFile}
-                    className="flex-1 py-3.5 bg-black hover:bg-zinc-800 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5"
-                  >
-                    {uploadingDoc && <Loader2 size={16} className="animate-spin" />}
-                    Upload File
-                  </button>
+              {DOC_TYPES.filter(type => !selectedVehicle?.documents?.some(d => d.documentType === type.id)).length === 0 ? (
+                <div className="p-8 text-center bg-zinc-50 border border-zinc-100 rounded-2xl flex flex-col items-center gap-3">
+                  <CheckCircle size={36} className="text-emerald-500 animate-pulse" />
+                  <p className="text-sm font-bold text-zinc-800">All Documents Uploaded</p>
+                  <p className="text-xs text-zinc-400">All compliance credentials for this vehicle have already been successfully uploaded.</p>
                   <button
                     type="button"
                     onClick={() => setDocModalOpen(false)}
-                    className="px-6 py-3.5 border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                    className="mt-2 w-full py-3 bg-zinc-950 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:bg-zinc-800 transition-colors"
                   >
-                    Cancel
+                    Close
                   </button>
                 </div>
-              </form>
+              ) : (
+                <form onSubmit={handleDocSubmit} className="space-y-5">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Document Type
+                    </label>
+                    <select
+                      value={selectedDocType}
+                      onChange={(e) => setSelectedDocType(e.target.value)}
+                      className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                    >
+                      {DOC_TYPES.filter(type => !selectedVehicle?.documents?.some(d => d.documentType === type.id)).map((type) => (
+                        <option key={type.id} value={type.id}>
+                          {type.label} ({type.desc})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      Expiration Date
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={docExpiry}
+                        onChange={(e) => setDocExpiry(e.target.value)}
+                        className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase tracking-wider text-zinc-400 mb-1">
+                      File Attachment
+                    </label>
+                    <input
+                      type="file"
+                      ref={docInputRef}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) setDocFile(file);
+                      }}
+                      className="hidden"
+                      accept="image/*,application/pdf"
+                    />
+                    {docFile ? (
+                      <div className="p-3 bg-zinc-50 border border-zinc-200 rounded-xl flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2 text-zinc-700">
+                          <FileText size={16} />
+                          <span className="font-bold truncate max-w-[200px]">{docFile.name}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => docInputRef.current?.click()}
+                          className="text-zinc-500 hover:text-black font-black uppercase text-[10px]"
+                        >
+                          Change
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => docInputRef.current?.click()}
+                        className="w-full py-6 border border-dashed border-zinc-300 rounded-xl hover:bg-zinc-50 transition-colors flex flex-col items-center justify-center text-zinc-400 gap-1"
+                      >
+                        <Upload size={20} />
+                        <span className="text-xs font-semibold">Select PDF or Image</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="pt-2 flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={uploadingDoc || !docFile}
+                      className="flex-1 py-3.5 bg-black hover:bg-zinc-800 disabled:opacity-50 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-1.5"
+                    >
+                      {uploadingDoc && <Loader2 size={16} className="animate-spin" />}
+                      Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDocModalOpen(false)}
+                      className="px-6 py-3.5 border border-zinc-200 hover:bg-zinc-50 text-zinc-700 text-xs font-black uppercase tracking-widest rounded-xl transition-all"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
             </motion.div>
           </div>
         )}
