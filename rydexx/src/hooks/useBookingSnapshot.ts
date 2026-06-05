@@ -10,6 +10,9 @@ export type ClientBookingSnapshot = {
   tripDistanceKm: number;
   durationMinutes: number;
   fare: number;
+  originalFare?: number;
+  promoCode?: string;
+  discount?: number;
   vehicleType: string;
   routePolyline: GeoJSON.LineString;
   pricingSnapshot: {
