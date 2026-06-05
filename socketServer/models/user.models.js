@@ -86,6 +86,17 @@ const UserSchema = new Schema(
       enum: ["bike", "auto", "car", "loading", "truck"],
     },
 
+    activeVehicleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vehicle",
+      default: null,
+    },
+
+    vehicleLastActivatedAt: {
+      type: Date,
+      default: null,
+    },
+
     location: {
       type: {
         type: String,
