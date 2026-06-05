@@ -225,7 +225,6 @@ function emitToBookingRoom(bookingId, event, data) {
   const room = `booking-${String(bookingId)}`;
   io.to(room).emit(event, data);
 }
-
 app.post("/emit", requireSocketSecret, async (req, res) => {
   const { userId, event, data, bookingId: roomFromBody } = req.body;
   const bookingRoomId = roomFromBody || data?.bookingId;
@@ -235,6 +234,12 @@ app.post("/emit", requireSocketSecret, async (req, res) => {
 
     if (user?.socketId) {
       io.to(user.socketId).emit(event, data);
+      if (event === "blocked") {
+        const socketToDisconnect = io.sockets.sockets.get(user.socketId);
+        if (socketToDisconnect) {
+          socketToDisconnect.disconnect(true);
+        }
+      }
     }
 
     if (bookingRoomId) {
