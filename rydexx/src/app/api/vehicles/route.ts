@@ -191,4 +191,4 @@ export const POST = withMetrics(async function POST(req: NextRequest) {
     console.error("Create vehicle error:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
-}
+});
