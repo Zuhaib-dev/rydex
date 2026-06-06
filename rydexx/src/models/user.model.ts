@@ -28,6 +28,7 @@ export interface IUser extends Document {
   isPartnerAvailable?: boolean;
   isPartnerBlocked?: boolean;
   activeVehicleId?: mongoose.Types.ObjectId;
+  activeVehicle?: any;
   vehicleLastActivatedAt?: Date;
   lastLocationAt?: Date;
   currentVehicleType?: string;
