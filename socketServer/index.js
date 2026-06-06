@@ -729,6 +729,16 @@ io.on("connection", (socket) => {
 
     await User.updateOne({ _id: socket.userId }, update);
 
+    await logSocketEvent(
+      "user_disconnected",
+      `User identified socket disconnected: ${socket.userId}`,
+      "info",
+      "auth",
+      socket.userId,
+      socket.userId,
+      "User"
+    );
+
     if (user?.role === "partner") {
       notifyAdminMapThrottled();
       notifyPublicAvailabilityThrottled("disconnect");
