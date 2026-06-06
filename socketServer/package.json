@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon index",
-    "start": "node --max-old-space-size=1024 --optimize-for-size index.js",
+    "dev": "nodemon --exec tsx index.ts",
+    "build": "tsc",
+    "start": "node --max-old-space-size=1024 --optimize-for-size dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
@@ -26,10 +27,15 @@
     "socket.io": "^4.8.3"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.9.2",
     "@vitest/coverage-v8": "^4.1.8",
     "ioredis-mock": "^8.13.1",
     "mongodb-memory-server": "^11.2.0",
     "socket.io-client": "^4.8.3",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
     "vitest": "^4.1.8"
   }
 }

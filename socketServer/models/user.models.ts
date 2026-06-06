@@ -1,8 +1,39 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface IUser extends Document {
+  name: string;
+  email: string;
+  password?: string;
+  role: "user" | "partner" | "admin";
+  partnerStatus?: "pending" | "approved" | "rejected";
+  partnerOnboardingStep: number;
+  partnerProfileCompleted: boolean;
+  partnerRejectionReason?: string;
+  partnerApprovedAt?: Date;
+  isPartnerBlocked: boolean;
+  videoKycStatus: "not_required" | "pending" | "in_progress" | "approved" | "rejected";
+  videoKycRoomId?: string;
+  videoKycRejectionReason?: string;
+  isOnline: boolean;
+  socketId?: string | null;
+  currentVehicleType?: "bike" | "auto" | "car" | "loading" | "truck";
+  activeVehicleId?: mongoose.Types.ObjectId | null;
+  vehicleLastActivatedAt?: Date | null;
+  location?: {
+    type: "Point";
+    coordinates: number[]; // [lng, lat]
+  };
+  lastLocationAt?: Date;
+  lastLocationUpdate?: Date;
+  isPartnerAvailable: boolean;
+  isEmailVerified: boolean;
+  otp?: string;
+  otpExpiresAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
-
-const UserSchema = new Schema(
+const UserSchema = new Schema<IUser>(
   {
     name: { type: String, required: true, trim: true },
 
@@ -76,9 +107,9 @@ const UserSchema = new Schema(
       index: true,
     },
 
-    socketId:{
-      type:String,
-      default:null
+    socketId: {
+      type: String,
+      default: null
     },
 
     currentVehicleType: {
@@ -87,7 +118,7 @@ const UserSchema = new Schema(
     },
 
     activeVehicleId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "Vehicle",
       default: null,
     },
@@ -139,6 +170,6 @@ const UserSchema = new Schema(
 UserSchema.index({ location: "2dsphere" });
 
 const User =
-  mongoose.models.User || mongoose.model("User", UserSchema);
+  mongoose.models.User || mongoose.model<IUser>("User", UserSchema);
 
 export default User;

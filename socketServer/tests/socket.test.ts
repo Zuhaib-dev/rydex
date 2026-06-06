@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
-import { io as Client } from "socket.io-client";
+import { io as Client, Socket as ClientSocket } from "socket.io-client";
 import RedisMock from "ioredis-mock";
 
 vi.mock("ioredis", () => {
   return {
-    default: class MockRedis extends RedisMock {
-      constructor(...args) {
-        super(...args);
-        this.config = vi.fn().mockResolvedValue("OK");
-        this.geoadd = vi.fn().mockResolvedValue(1);
-        this.zrem = vi.fn().mockResolvedValue(1);
+    Redis: class MockRedis extends RedisMock {
+      constructor(options?: any) {
+        super(options);
+        (this as any).config = vi.fn().mockResolvedValue("OK");
+        (this as any).geoadd = vi.fn().mockResolvedValue(1);
+        (this as any).zrem = vi.fn().mockResolvedValue(1);
       }
     }
   };
@@ -19,17 +19,17 @@ vi.mock("ioredis", () => {
 
 // Mock axios so that background API calls to Next.js (like cascade) are mocked, while local HTTP calls go through
 vi.mock("axios", async (importOriginal) => {
-  const actualAxios = await importOriginal();
+  const actualAxios: any = await importOriginal();
   return {
     default: {
       ...actualAxios,
-      post: vi.fn().mockImplementation((url, data, config) => {
+      post: vi.fn().mockImplementation((url: string, data: any, config: any) => {
         if (url.includes("/api/booking/") && url.includes("/cascade")) {
           return Promise.resolve({ data: { success: true } });
         }
         return actualAxios.post(url, data, config);
       }),
-      get: vi.fn().mockImplementation((url, config) => {
+      get: vi.fn().mockImplementation((url: string, config: any) => {
         return actualAxios.get(url, config);
       }),
     },
@@ -38,12 +38,12 @@ vi.mock("axios", async (importOriginal) => {
 
 import axios from "axios";
 
-let mongoServer;
-let server;
-let io;
-let User;
-let clientSocket;
-let testPort;
+let mongoServer: MongoMemoryServer;
+let server: any;
+let io: any;
+let User: any;
+let clientSocket: any;
+let testPort: number;
 
 beforeAll(async () => {
   // 1. Setup in-memory MongoDB
@@ -61,9 +61,10 @@ beforeAll(async () => {
   User = userMod.default;
 
   // 3. Listen on a random free port
-  await new Promise((resolve) => {
+  await new Promise<void>((resolve) => {
     server.listen(0, () => {
-      testPort = server.address().port;
+      const address = server.address();
+      testPort = typeof address === "string" ? 8000 : address.port;
       resolve();
     });
   });
@@ -89,7 +90,7 @@ beforeEach(async () => {
 
 describe("WebSocket Realtime Integration Tests", () => {
   it("should update driver socketId and status on identity event", () => {
-    return new Promise(async (resolve, reject) => {
+    return new Promise<void>(async (resolve, reject) => {
       try {
         // Create user in in-memory DB
         const testUser = await User.create({
@@ -126,7 +127,7 @@ describe("WebSocket Realtime Integration Tests", () => {
           }, 300);
         });
 
-        clientSocket.on("connect_error", (err) => {
+        clientSocket.on("connect_error", (err: any) => {
           reject(err);
         });
       } catch (err) {
@@ -136,8 +137,8 @@ describe("WebSocket Realtime Integration Tests", () => {
   });
 
   it("should relay chat messages within the booking room", () => {
-    return new Promise(async (resolve, reject) => {
-      let clientSocket1, clientSocket2;
+    return new Promise<void>(async (resolve, reject) => {
+      let clientSocket1: ClientSocket, clientSocket2: ClientSocket;
       try {
         const bookingId = new mongoose.Types.ObjectId().toString();
 
@@ -149,7 +150,7 @@ describe("WebSocket Realtime Integration Tests", () => {
             clientSocket2.emit("join-booking", bookingId);
 
             setTimeout(() => {
-              clientSocket2.on("chat-message", (msg) => {
+              clientSocket2.on("chat-message", (msg: any) => {
                 try {
                   expect(msg.text).toBe("Hello Driver!");
                   expect(msg.sender).toBe("user");
@@ -182,8 +183,6 @@ describe("WebSocket Realtime Integration Tests", () => {
           });
         });
       } catch (err) {
-        if (clientSocket1) clientSocket1.disconnect();
-        if (clientSocket2) clientSocket2.disconnect();
         reject(err);
       }
     });
@@ -221,14 +220,14 @@ describe("WebSocket Realtime Integration Tests", () => {
       await new Promise(resolve => process.nextTick(resolve));
 
       const mockPost = axios.post;
-      const calls = vi.mocked(mockPost).mock.calls;
+      const calls = vi.mocked(mockPost).mock.calls as any[][];
       
       const cascadeCall = calls.find(call => 
         call[0].includes(`/api/booking/${bookingId}/cascade`)
       );
       
       expect(cascadeCall).toBeDefined();
-      expect(cascadeCall[1].driverId).toBe(driverId);
+      expect(cascadeCall![1].driverId).toBe(driverId);
 
     } finally {
       vi.useRealTimers();
@@ -236,8 +235,8 @@ describe("WebSocket Realtime Integration Tests", () => {
   });
 
   it("should throttle location updates exceeding the rate limit", () => {
-    return new Promise(async (resolve, reject) => {
-      let tempClientSocket;
+    return new Promise<void>(async (resolve, reject) => {
+      let tempClientSocket: any;
       try {
         const testDriver = await User.create({
           name: "Throttled Driver",
@@ -281,16 +280,15 @@ describe("WebSocket Realtime Integration Tests", () => {
           }, 100);
         });
       } catch (err) {
-        if (tempClientSocket) tempClientSocket.disconnect();
         reject(err);
       }
     });
   });
 
   it("should disconnect client immediately if blocked User connects", () => {
-    return new Promise(async (resolve, reject) => {
-      let blockedClientSocket;
-      let timeoutId;
+    return new Promise<void>(async (resolve, reject) => {
+      let blockedClientSocket: any;
+      let timeoutId: any;
       try {
         const testUser = await User.create({
           name: "Blocked User",
@@ -304,7 +302,7 @@ describe("WebSocket Realtime Integration Tests", () => {
           blockedClientSocket.emit("identity", testUser._id.toString());
         });
 
-        blockedClientSocket.on("blocked", (data) => {
+        blockedClientSocket.on("blocked", (data: any) => {
           expect(data.message).toContain("suspended");
         });
 
@@ -319,17 +317,16 @@ describe("WebSocket Realtime Integration Tests", () => {
         }, 1500);
       } catch (err) {
         clearTimeout(timeoutId);
-        if (blockedClientSocket) blockedClientSocket.disconnect();
         reject(err);
       }
     });
   });
 
   it("should disconnect active socket connection when blocked event is posted to /emit", () => {
-    return new Promise(async (resolve, reject) => {
-      let activeClientSocket;
-      let timeoutId;
-      let innerTimeoutId;
+    return new Promise<void>(async (resolve, reject) => {
+      let activeClientSocket: any;
+      let timeoutId: any;
+      let innerTimeoutId: any;
       try {
         const testUser = await User.create({
           name: "Soon Blocked",
@@ -349,7 +346,7 @@ describe("WebSocket Realtime Integration Tests", () => {
             expect(dbUser.socketId).toBe(activeClientSocket.id);
 
             let disconnected = false;
-            activeClientSocket.on("blocked", (data) => {
+            activeClientSocket.on("blocked", (data: any) => {
               expect(data.message).toContain("suspended");
             });
 
@@ -383,7 +380,6 @@ describe("WebSocket Realtime Integration Tests", () => {
       } catch (err) {
         clearTimeout(timeoutId);
         clearTimeout(innerTimeoutId);
-        if (activeClientSocket) activeClientSocket.disconnect();
         reject(err);
       }
     });

@@ -1,9 +1,25 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema } from "mongoose";
 
-const auditLogSchema = new mongoose.Schema(
+export interface IAuditLog extends Document {
+  adminId?: mongoose.Types.ObjectId;
+  adminName?: string;
+  adminEmail?: string;
+  action: string;
+  targetId?: mongoose.Types.ObjectId;
+  targetModel?: string;
+  targetName?: string;
+  details?: string;
+  severity: "info" | "warning" | "error" | "critical";
+  category: "auth" | "admin" | "config" | "api" | "security" | "task" | "db";
+  actor: string;
+  correlationId?: string;
+  createdAt?: Date;
+}
+
+const auditLogSchema = new Schema<IAuditLog>(
   {
     adminId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: false,
     },
@@ -15,7 +31,7 @@ const auditLogSchema = new mongoose.Schema(
       index: true,
     },
     targetId: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: Schema.Types.ObjectId,
     },
     targetModel: String,
     targetName: String,
@@ -40,5 +56,5 @@ const auditLogSchema = new mongoose.Schema(
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
-const AuditLog = mongoose.models.AuditLog || mongoose.model("AuditLog", auditLogSchema);
+const AuditLog = mongoose.models.AuditLog || mongoose.model<IAuditLog>("AuditLog", auditLogSchema);
 export default AuditLog;

@@ -1,12 +1,14 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import http from "http";
 import dotenv from "dotenv";
-import { Server } from "socket.io";
+import { Server, Socket } from "socket.io";
 import axios from "axios";
-import Redis from "ioredis";
+import { Redis } from "ioredis";
 import { createAdapter } from "@socket.io/redis-adapter";
 import os from "os";
 import AuditLog from "./models/auditLog.models.js";
+import User from "./models/user.models.js";
+import mongoose from "mongoose";
 
 dotenv.config();
 
@@ -15,7 +17,7 @@ const redisSub = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
 
 // Dedicated Redis clients for Socket.IO horizontal scaling
 const socketPub = redisPub.duplicate();
-const socketSub = redisPub.duplicate(); 
+const socketSub = redisPub.duplicate();
 
 // Metrics trackers
 let peakConnections = 0;
@@ -26,7 +28,15 @@ setInterval(() => {
 }, 60000);
 
 // Logging Helper
-async function logSocketEvent(action, details, severity = "info", category = "task", actor = "system", targetId = null, targetModel = null) {
+async function logSocketEvent(
+  action: string,
+  details: string,
+  severity = "info",
+  category = "task",
+  actor = "system",
+  targetId: string | null = null,
+  targetModel: string | null = null
+) {
   try {
     const logEntry = new AuditLog({
       action,
@@ -34,12 +44,12 @@ async function logSocketEvent(action, details, severity = "info", category = "ta
       severity,
       category,
       actor,
-      targetId,
-      targetModel
+      targetId: targetId ? new mongoose.Types.ObjectId(targetId) : null,
+      targetModel,
     });
     await logEntry.save();
     io.to("admin-dashboard").emit("live-audit-log", logEntry.toObject());
-  } catch (err) {
+  } catch (err: any) {
     console.error("Failed to write socket log:", err.message);
   }
 }
@@ -48,37 +58,37 @@ async function logSocketEvent(action, details, severity = "info", category = "ta
 async function getRedisMetrics() {
   try {
     const rawInfo = await redisPub.info();
-    const metrics = {};
-    rawInfo.split("\r\n").forEach(line => {
+    const metrics: Record<string, string> = {};
+    rawInfo.split("\r\n").forEach((line: string) => {
       const parts = line.split(":");
       if (parts.length === 2) {
         metrics[parts[0]] = parts[1];
       }
     });
 
-    const hits = parseInt(metrics.keyspace_hits || 0, 10);
-    const misses = parseInt(metrics.keyspace_misses || 0, 10);
+    const hits = parseInt(metrics.keyspace_hits || "0", 10);
+    const misses = parseInt(metrics.keyspace_misses || "0", 10);
     const total = hits + misses;
     const hitRate = total > 0 ? Math.round((hits / total) * 100) : 100;
 
     let keysCount = 0;
     if (metrics.db0) {
       const keysParts = metrics.db0.split(",");
-      keysParts.forEach(part => {
+      keysParts.forEach((part) => {
         const keyVal = part.split("=");
         if (keyVal[0] === "keys") {
-          keysCount = parseInt(keyVal[1] || 0, 10);
+          keysCount = parseInt(keyVal[1] || "0", 10);
         }
       });
     }
 
     return {
-      memoryUsedBytes: parseInt(metrics.used_memory || 0, 10),
+      memoryUsedBytes: parseInt(metrics.used_memory || "0", 10),
       memoryUsedHuman: metrics.used_memory_human || "0B",
-      connectedClients: parseInt(metrics.connected_clients || 0, 10),
+      connectedClients: parseInt(metrics.connected_clients || "0", 10),
       keysCount,
-      evictedKeys: parseInt(metrics.evicted_keys || 0, 10),
-      hitRate
+      evictedKeys: parseInt(metrics.evicted_keys || "0", 10),
+      hitRate,
     };
   } catch (err) {
     return {
@@ -87,7 +97,7 @@ async function getRedisMetrics() {
       connectedClients: 2,
       keysCount: 5,
       evictedKeys: 0,
-      hitRate: 100
+      hitRate: 100,
     };
   }
 }
@@ -101,13 +111,13 @@ async function getApiMetrics() {
 
     let totalLatency = 0;
     let successCount = 0;
-    const latencies = [];
-    
-    rawList.forEach(item => {
+    const latencies: number[] = [];
+
+    rawList.forEach((item: string) => {
       const parts = item.split(":");
       if (parts.length >= 2) {
-        const latency = parseInt(parts[0] || 0, 10);
-        const status = parseInt(parts[1] || 200, 10);
+        const latency = parseInt(parts[0] || "0", 10);
+        const status = parseInt(parts[1] || "200", 10);
         latencies.push(latency);
         totalLatency += latency;
         if (status >= 200 && status < 400) {
@@ -129,11 +139,11 @@ async function getApiMetrics() {
 
     return {
       avgResponseTimeMs: Math.round(totalLatency / totalCount),
-      p95LatencyMs: latencies[p95Idx] || latencies[latencies.length - 1],
-      p99LatencyMs: latencies[p99Idx] || latencies[latencies.length - 1],
+      p95LatencyMs: latencies[p95Idx] ?? latencies[latencies.length - 1],
+      p99LatencyMs: latencies[p99Idx] ?? latencies[latencies.length - 1],
       rps: Math.round(totalCount / 10), // normalized RPS estimate
       successRate,
-      errorRate: 100 - successRate
+      errorRate: 100 - successRate,
     };
   } catch (err) {
     return { avgResponseTimeMs: 0, p95LatencyMs: 0, p99LatencyMs: 0, rps: 0, successRate: 100, errorRate: 0 };
@@ -141,23 +151,27 @@ async function getApiMetrics() {
 }
 
 // Prevent unhandled rejection crashes during transient connection dropouts
-redisPub.on("error", (err) => console.error("Redis Pub Client Error:", err.message));
-redisSub.on("error", (err) => console.error("Redis Sub Client Error:", err.message));
-socketPub.on("error", (err) => console.error("Redis SocketPub Client Error:", err.message));
-socketSub.on("error", (err) => console.error("Redis SocketSub Client Error:", err.message));
+redisPub.on("error", (err: Error) => console.error("Redis Pub Client Error:", err.message));
+redisSub.on("error", (err: Error) => console.error("Redis Sub Client Error:", err.message));
+socketPub.on("error", (err: Error) => console.error("Redis SocketPub Client Error:", err.message));
+socketSub.on("error", (err: Error) => console.error("Redis SocketSub Client Error:", err.message));
 
-import mongoose from "mongoose";
-import User from "./models/user.models.js";
-
-await mongoose.connect(process.env.MONGODB_URL);
+const mongoUrl = process.env.MONGODB_URL;
+if (!mongoUrl) {
+  throw new Error("MONGODB_URL env is not set!");
+}
+await mongoose.connect(mongoUrl);
 
 // Clean up stale online connections on startup
 try {
-  const resetResult = await User.updateMany({}, {
-    isOnline: false,
-    socketId: null,
-    isPartnerAvailable: false,
-  });
+  const resetResult = await User.updateMany(
+    {},
+    {
+      isOnline: false,
+      socketId: null,
+      isPartnerAvailable: false,
+    }
+  );
   console.log("Database startup cleanup completed. Reset result:", resetResult);
 } catch (error) {
   console.error("Database startup cleanup failed:", error);
@@ -167,7 +181,7 @@ try {
 try {
   await redisPub.del("driver:locations:active");
   console.log("Redis active locations cleared on startup.");
-} catch (error) {
+} catch (error: any) {
   console.error("Failed to clear Redis active locations on startup:", error.message);
 }
 
@@ -175,12 +189,12 @@ try {
 try {
   await redisPub.config("SET", "notify-keyspace-events", "Ex");
   console.log("Redis keyspace events notifications configured successfully.");
-} catch (error) {
+} catch (error: any) {
   console.error("Failed to configure Redis keyspace events:", error.message);
 }
 
 // Listen to expired keyspace events for auto-offline
-redisSub.subscribe("__keyevent@0__:expired", (err) => {
+redisSub.subscribe("__keyevent@0__:expired", (err: Error | null | undefined) => {
   if (err) {
     console.error("Failed to subscribe to Redis expiration channel:", err.message);
   } else {
@@ -188,7 +202,7 @@ redisSub.subscribe("__keyevent@0__:expired", (err) => {
   }
 });
 
-redisSub.on("message", async (channel, message) => {
+redisSub.on("message", async (channel: string, message: string) => {
   if (channel === "__keyevent@0__:expired") {
     // ── Presence heartbeat expiration → mark partner offline ──
     if (message.startsWith("presence:driver:")) {
@@ -255,7 +269,7 @@ redisSub.on("message", async (channel, message) => {
           bookingId,
           "Booking"
         );
-      } catch (err) {
+      } catch (err: any) {
         console.warn(`[RedisDispatch] Cascade error for booking ${bookingId}:`, err.message);
       } finally {
         // Clean up companion key
@@ -270,7 +284,7 @@ app.use(express.json());
 const server = http.createServer(app);
 const port = process.env.PORT || 8000;
 
-const normalizeOrigin = (origin) => origin?.replace(/\/+$/, "");
+const normalizeOrigin = (origin: string | undefined) => origin?.replace(/\/+$/, "");
 const allowedOrigins = [
   process.env.NEXT_BASE_URL,
   process.env.CLIENT_URL,
@@ -280,7 +294,37 @@ const allowedOrigins = [
   .filter(Boolean)
   .map(normalizeOrigin);
 
-const io = new Server(server, {
+// Declare typed interfaces for Socket events
+export interface ServerToClientEvents {
+  blocked: (data: { message: string }) => void;
+  "live-audit-log": (log: any) => void;
+  "admin-dashboard-update": (data: { scope: string; reason: string; at: number }) => void;
+  "driver-availability-updated": (data: { reason: string; at: number }) => void;
+  "admin-driver-location": (data: { driverId: string; latitude: number; longitude: number; at: number }) => void;
+  "driver-location": (data: { latitude: number; longitude: number; status: string }) => void;
+  "chat-message": (msg: any) => void;
+  "system-telemetry-update": (payload: any) => void;
+  "new-booking": (data: any) => void;
+  "booking-updated": (data: any) => void;
+}
+
+export interface ClientToServerEvents {
+  identity: (userId: string) => void;
+  "join-admin": () => void;
+  "join-booking": (bookingId: string) => void;
+  "leave-booking": (bookingId: string) => void;
+  "driver-location-update": (data: { bookingId: string; latitude: number; longitude: number; status?: string }) => void;
+  "chat-message": (msg: { rideId: string; text: string; sender: string }) => void;
+  "update-location": (data: { latitude: number; longitude: number }) => void;
+  "partner-availability": (data: { available: boolean }) => void;
+}
+
+export interface InterServerEvents {}
+export interface SocketData {
+  userId?: string;
+}
+
+const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(server, {
   cors: {
     origin(origin, callback) {
       if (!origin || allowedOrigins.includes(normalizeOrigin(origin))) {
@@ -302,17 +346,17 @@ try {
   console.error("Failed to configure Socket.IO Redis Adapter:", error);
 }
 
-app.get("/", (req, res) => {
+app.get("/", (req: Request, res: Response) => {
   res.json({ success: true, service: "rydex-socket-server" });
 });
 
-app.get("/health", (req, res) => {
+app.get("/health", (req: Request, res: Response) => {
   res.json({ success: true, clientsCount: io.engine.clientsCount });
 });
 
-const activeTimers = new Map();
-let adminMapNotifyTimer = null;
-let publicAvailabilityNotifyTimer = null;
+const activeTimers = new Map<string, NodeJS.Timeout>();
+let adminMapNotifyTimer: NodeJS.Timeout | null = null;
+let publicAvailabilityNotifyTimer: NodeJS.Timeout | null = null;
 
 function notifyAdminMapThrottled() {
   if (adminMapNotifyTimer) return;
@@ -337,7 +381,7 @@ function notifyPublicAvailabilityThrottled(reason = "availability") {
   }, 1000);
 }
 
-function requireSocketSecret(req, res, next) {
+function requireSocketSecret(req: Request, res: Response, next: NextFunction) {
   const secret = process.env.SOCKET_INTERNAL_SECRET;
   if (!secret) {
     next();
@@ -353,11 +397,11 @@ function requireSocketSecret(req, res, next) {
 }
 
 /** Broadcast to all admins in the control-tower room */
-app.post("/emit-admin", requireSocketSecret, (req, res) => {
+app.post("/emit-admin", requireSocketSecret, (req: Request, res: Response) => {
   const { event = "admin-dashboard-update", data } = req.body ?? {};
 
   try {
-    io.to("admin-dashboard").emit(event, data);
+    io.to("admin-dashboard").emit(event as any, data);
     res.json({ success: true });
   } catch (error) {
     console.error("Emit-admin handler error:", error);
@@ -365,12 +409,13 @@ app.post("/emit-admin", requireSocketSecret, (req, res) => {
   }
 });
 
-function emitToBookingRoom(bookingId, event, data) {
+function emitToBookingRoom(bookingId: string, event: string, data: any) {
   if (!bookingId) return;
   const room = `booking-${String(bookingId)}`;
-  io.to(room).emit(event, data);
+  io.to(room).emit(event as any, data);
 }
-app.post("/emit", requireSocketSecret, async (req, res) => {
+
+app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
   const { userId, event, data, bookingId: roomFromBody } = req.body;
   const bookingRoomId = roomFromBody || data?.bookingId;
 
@@ -378,7 +423,7 @@ app.post("/emit", requireSocketSecret, async (req, res) => {
     const user = await User.findById(userId).select("socketId").lean();
 
     if (user?.socketId) {
-      io.to(user.socketId).emit(event, data);
+      io.to(user.socketId).emit(event as any, data);
       if (event === "blocked") {
         const socketToDisconnect = io.sockets.sockets.get(user.socketId);
         if (socketToDisconnect) {
@@ -398,7 +443,7 @@ app.post("/emit", requireSocketSecret, async (req, res) => {
 
       // Clear any existing timers for this booking
       if (activeTimers.has(bookingId)) {
-        clearTimeout(activeTimers.get(bookingId));
+        clearTimeout(activeTimers.get(bookingId)!);
         activeTimers.delete(bookingId);
       }
 
@@ -412,7 +457,7 @@ app.post("/emit", requireSocketSecret, async (req, res) => {
         await redisPub.set(`dispatch:driver:${bookingId}`, driverId, "EX", 45);
         redisTimerSet = true;
         console.log(`[RedisDispatch] Set dispatch:timer:${bookingId} (40s TTL)`);
-      } catch (err) {
+      } catch (err: any) {
         console.warn(`[RedisDispatch] Redis timer unavailable, using in-memory fallback:`, err.message);
       }
 
@@ -439,7 +484,7 @@ app.post("/emit", requireSocketSecret, async (req, res) => {
               ...(cascadeSecret ? { headers: { "x-cascade-secret": cascadeSecret } } : {}),
             }
           );
-        } catch (err) {
+        } catch (err: any) {
           console.warn(`[InMemoryTimer] Cascade error for booking ${bookingId}:`, err.message);
         } finally {
           activeTimers.delete(bookingId);
@@ -447,14 +492,13 @@ app.post("/emit", requireSocketSecret, async (req, res) => {
       }, 40000);
 
       activeTimers.set(bookingId, timer);
-
     } else if (event === "booking-updated" && data?.bookingId && data?.status) {
       const bookingId = String(data.bookingId);
       const status = String(data.status);
 
       if (status !== "requested" && activeTimers.has(bookingId)) {
         console.log(`Clearing matchmaking timer for booking ${bookingId} (status updated to ${status})`);
-        clearTimeout(activeTimers.get(bookingId));
+        clearTimeout(activeTimers.get(bookingId)!);
         activeTimers.delete(bookingId);
         // Also clean up Redis dispatch keys
         redisPub.del(`dispatch:timer:${bookingId}`).catch(() => {});
@@ -475,13 +519,13 @@ if (process.env.NODE_ENV !== "test") {
     try {
       const redisMetrics = await getRedisMetrics();
       const apiMetrics = await getApiMetrics();
-      
+
       const payload = {
         ws: {
           connectedClients: io.engine.clientsCount,
           connectionRate: connectionsThisMinute,
           peakConnections: peakConnections,
-          status: "Healthy"
+          status: "Healthy",
         },
         redis: redisMetrics,
         api: apiMetrics,
@@ -492,26 +536,31 @@ if (process.env.NODE_ENV !== "test") {
           memoryFreeGb: Math.round(os.freemem() / 1024 / 1024 / 1024),
           processHeapUsedMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
           processHeapTotalMb: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-          jobQueueSize: activeTimers.size
+          jobQueueSize: activeTimers.size,
         },
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       io.to("admin-dashboard").emit("system-telemetry-update", payload);
-    } catch (err) {
+    } catch (err: any) {
       console.error("[Telemetry] Failed to gather and broadcast telemetry:", err.message);
     }
   }, 2000);
 }
 
-io.on("connection", (socket) => {
+// Extend socket type definition for type-safety inside io handlers
+interface SocketWithUser extends Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> {
+  userId?: string;
+}
+
+io.on("connection", (socket: SocketWithUser) => {
   connectionsThisMinute++;
   const connectedClients = io.engine.clientsCount;
   if (connectedClients > peakConnections) {
     peakConnections = connectedClients;
   }
 
-  socket.on("identity", async (userId) => {
+  socket.on("identity", async (userId: string) => {
     socket.userId = userId;
 
     const user = await User.findById(userId).select("role location isPartnerBlocked").lean();
@@ -534,7 +583,7 @@ io.on("connection", (socket) => {
     );
 
     const now = new Date();
-    const updateFields = {
+    const updateFields: Record<string, any> = {
       socketId: socket.id,
       isOnline: true,
     };
@@ -582,26 +631,23 @@ io.on("connection", (socket) => {
     }
   });
 
-  // server.js — sab jagah ek hi format rakho
-
-  socket.on("join-booking", (bookingId) => {
+  socket.on("join-booking", (bookingId: string) => {
     if (!bookingId) return;
     console.log("joining room:", `booking-${bookingId}`);
     socket.join(`booking-${bookingId}`);
   });
 
-  socket.on("leave-booking", (bookingId) => {
+  socket.on("leave-booking", (bookingId: string) => {
     if (!bookingId) return;
     socket.leave(`booking-${bookingId}`);
   });
 
   socket.on("driver-location-update", async (data) => {
-    io.to(`booking-${data.bookingId}`) // ✅ already sahi
-      .emit("driver-location", {
-        latitude: data.latitude,
-        longitude: data.longitude,
-        status: data.status || "arriving",
-      });
+    io.to(`booking-${data.bookingId}`).emit("driver-location", {
+      latitude: data.latitude,
+      longitude: data.longitude,
+      status: data.status || "arriving",
+    });
 
     if (socket.userId && typeof data.latitude === "number" && typeof data.longitude === "number") {
       const now = new Date();
@@ -625,7 +671,7 @@ io.on("connection", (socket) => {
           at: now.getTime(),
         });
         notifyAdminMapThrottled();
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to update driver location in DB/Redis on driver-location-update:", err.message);
       }
     }
@@ -633,7 +679,7 @@ io.on("connection", (socket) => {
 
   socket.on("chat-message", (msg) => {
     console.log("chat to room:", `booking-${msg.rideId}`);
-    io.to(`booking-${msg.rideId}`).emit("chat-message", msg); // ← prefix add karo
+    io.to(`booking-${msg.rideId}`).emit("chat-message", msg);
   });
 
   socket.on("update-location", async ({ latitude, longitude }) => {
@@ -649,12 +695,14 @@ io.on("connection", (socket) => {
       pipeline.zcard(rateLimitKey);
       pipeline.zadd(rateLimitKey, timestamp, `${timestamp}-${Math.random()}`);
       pipeline.expire(rateLimitKey, 6);
-      
+
       const results = await pipeline.exec();
-      const count = results[1][1];
-      if (count >= 10) {
-        console.warn(`[RateLimiter] Driver ${socket.userId} throttled on update-location.`);
-        return; // Ignore update
+      if (results && results[1]) {
+        const count = results[1][1] as number;
+        if (count >= 10) {
+          console.warn(`[RateLimiter] Driver ${socket.userId} throttled on update-location.`);
+          return; // Ignore update
+        }
       }
     } catch (err) {
       console.error("Rate Limiter error on location update:", err);
@@ -671,7 +719,7 @@ io.on("connection", (socket) => {
         lastLocationAt: now,
         lastLocationUpdate: now,
       },
-      { returnDocument: "after", select: "role" },
+      { returnDocument: "after", select: "role" }
     ).lean();
 
     if (user?.role === "partner") {
@@ -704,10 +752,13 @@ io.on("connection", (socket) => {
       await redisPub.zrem("driver:locations:active", socket.userId);
     }
 
-    await User.updateOne({ _id: socket.userId }, {
-      isPartnerAvailable: isAvailable,
-      isOnline: isAvailable,
-    });
+    await User.updateOne(
+      { _id: socket.userId },
+      {
+        isPartnerAvailable: isAvailable,
+        isOnline: isAvailable,
+      }
+    );
     notifyPublicAvailabilityThrottled("availability");
   });
 
@@ -715,7 +766,7 @@ io.on("connection", (socket) => {
     if (!socket.userId) return;
 
     const user = await User.findById(socket.userId).select("role").lean();
-    const update = {
+    const update: Record<string, any> = {
       socketId: null,
       isPartnerAvailable: false,
     };
