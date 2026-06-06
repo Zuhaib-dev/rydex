@@ -7,7 +7,7 @@ import { withMetrics } from "@/lib/apiMetrics";
 
 export const dynamic = "force-dynamic";
 
-export const GET = withMetrics(async function GET(req: Request) {
+const getHandler = async (req: Request) => {
   try {
     await connectDb();
     const session = await auth();
@@ -81,4 +81,6 @@ export const GET = withMetrics(async function GET(req: Request) {
       },
     );
   }
-});
+};
+
+export const GET = withMetrics(getHandler);

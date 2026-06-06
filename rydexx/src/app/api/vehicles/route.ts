@@ -9,8 +9,7 @@ import { withMetrics } from "@/lib/apiMetrics";
 const VEHICLE_REGEX = /^[A-Za-z]{2}[\s-]?[0-9]{2}[\s-]?[A-Za-z]{0,2}[\s-]?[0-9]{4}$/;
 const VEHICLE_MODEL_REGEX = /^[a-zA-Z0-9\-_()\/+.]+(?:\s+[a-zA-Z0-9\-_()\/+.]+)*$/;
 
-// GET: List all vehicles for the logged-in partner
-export const GET = withMetrics(async function GET(req: NextRequest) {
+const getHandler = async (req: NextRequest) => {
   try {
     await connectDb();
     const session = await auth();
@@ -44,10 +43,12 @@ export const GET = withMetrics(async function GET(req: NextRequest) {
     console.error("Fetch partner vehicles error:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
-});
+};
+
+export const GET = withMetrics(getHandler);
 
 // POST: Add a new vehicle to the driver's garage
-export const POST = withMetrics(async function POST(req: NextRequest) {
+const postHandler = async (req: NextRequest) => {
   try {
     await connectDb();
     const session = await auth();
@@ -191,4 +192,6 @@ export const POST = withMetrics(async function POST(req: NextRequest) {
     console.error("Create vehicle error:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
-});
+};
+
+export const POST = withMetrics(postHandler);
