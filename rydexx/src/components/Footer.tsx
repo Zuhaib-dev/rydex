@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "motion/react";
 import { ArrowUpRight } from "lucide-react";
 
 const XIcon = () => (
@@ -93,17 +92,16 @@ function Footer() {
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {SOCIALS.map(({ icon: Icon, href, label }) => (
-                <motion.a
+                <a
                   key={label}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  whileHover={{ y: -2 }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/4 text-white/45 transition hover:border-white/25 hover:text-white"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/45 transition hover:-translate-y-0.5 hover:border-white/25 hover:text-white"
                 >
                   <Icon />
-                </motion.a>
+                </a>
               ))}
             </div>
           </div>
