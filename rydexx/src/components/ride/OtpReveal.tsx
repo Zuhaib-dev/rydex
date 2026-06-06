@@ -25,7 +25,7 @@ export default function OtpReveal({ type, otp, visible, onDismiss }: OtpRevealPr
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 16, scale: 0.98 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="fixed inset-x-4 bottom-36 z-[60] mx-auto max-w-md lg:bottom-8 lg:right-[440px] lg:left-auto lg:mx-0"
+          className="fixed inset-x-4 bottom-36 z-60 mx-auto max-w-md lg:bottom-8 lg:right-[440px] lg:left-auto lg:mx-0"
         >
           <div className="relative overflow-hidden rounded-2xl border border-emerald-500/30 bg-zinc-950 p-5 shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
             <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-emerald-500/20 blur-2xl" />
