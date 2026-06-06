@@ -1,5 +1,4 @@
 import { getRedisClient } from "./redis";
-import { NextRequest, NextResponse } from "next/server";
 
 export async function recordApiMetrics(
   durationMs: number,
@@ -18,22 +17,27 @@ export async function recordApiMetrics(
   }
 }
 
-export function withMetrics(handler: (req: NextRequest, ...args: any[]) => Promise<NextResponse>) {
-  return async function (req: NextRequest, ...args: any[]) {
+export function withMetrics(handler: (req: any, ...args: any[]) => Promise<any>) {
+  return async function (req: any, ...args: any[]) {
     const start = Date.now();
     let status = 200;
     try {
       const response = await handler(req, ...args);
-      status = response.status;
+      // Next.js Route handlers return standard Response/NextResponse objects
+      status = response?.status || 200;
       return response;
     } catch (error) {
       status = 500;
       throw error;
     } finally {
       const duration = Date.now() - start;
-      const url = new URL(req.url);
-      const path = url.pathname;
-      void recordApiMetrics(duration, status, path);
+      try {
+        const url = new URL(req.url);
+        const path = url.pathname;
+        void recordApiMetrics(duration, status, path);
+      } catch (urlError) {
+        console.error("[ApiMetrics] Failed to parse URL in metrics tracker:", urlError);
+      }
     }
   };
 }
