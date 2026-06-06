@@ -310,7 +310,7 @@ export default function VendorPendingPage() {
                               )}
                               {booking.scheduledAt && (
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px] font-black uppercase text-zinc-400 font-bold">Schedule:</span>
+                                  <span className="text-[10px]  uppercase text-zinc-400 font-bold">Schedule:</span>
                                   <span className="text-zinc-900 font-bold bg-zinc-200/60 px-2 py-0.5 rounded-md">
                                     {new Date(booking.scheduledAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                                   </span>
@@ -319,7 +319,7 @@ export default function VendorPendingPage() {
                             </div>
                             {booking.notes && (
                               <div className="text-xs border-t border-zinc-200/40 pt-2.5">
-                                <span className="text-[10px] font-black uppercase text-zinc-400 font-bold block mb-1">Driver Instructions:</span>
+                                <span className="text-[10px] uppercase text-zinc-400 font-bold block mb-1">Driver Instructions:</span>
                                 <p className="text-zinc-800 font-medium italic">"{booking.notes}"</p>
                               </div>
                             )}
