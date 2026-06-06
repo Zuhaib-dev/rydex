@@ -3,9 +3,11 @@ import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
 
+import { withMetrics } from "@/lib/apiMetrics";
+
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export const GET = withMetrics(async function GET(req: Request) {
   try {
     await connectDb();
     const session = await auth();
