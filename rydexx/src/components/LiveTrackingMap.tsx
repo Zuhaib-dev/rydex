@@ -329,13 +329,13 @@ export default function LiveRideMap({
   const getTurnIcon = (type: string) => {
     switch (type) {
       case "left":
-        return <ArrowUpLeft className="h-6 w-6 text-[#9eff6b]" />;
+        return <ArrowUpLeft className="h-6 w-6 text-landing-accent" />;
       case "right":
-        return <ArrowUpRight className="h-6 w-6 text-[#9eff6b]" />;
+        return <ArrowUpRight className="h-6 w-6 text-landing-accent" />;
       case "destination":
         return <CheckCircle2 className="h-6 w-6 text-emerald-400 animate-pulse" />;
       default:
-        return <ArrowUp className="h-6 w-6 text-[#9eff6b]" />;
+        return <ArrowUp className="h-6 w-6 text-landing-accent" />;
     }
   };
 
@@ -485,10 +485,10 @@ export default function LiveRideMap({
         <div className="absolute top-20 left-4 right-4 md:left-6 md:right-auto md:w-[360px] bg-zinc-950/90 border border-zinc-800 text-white p-5 rounded-3xl shadow-2xl backdrop-blur-md z-50 flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl shrink-0">
-              {nextTurnStep ? getTurnIcon(nextTurnStep.type) : <ArrowUp className="h-6 w-6 text-[#9eff6b]" />}
+              {nextTurnStep ? getTurnIcon(nextTurnStep.type) : <ArrowUp className="h-6 w-6 text-landing-accent" />}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase font-bold tracking-widest text-[#9eff6b]">
+              <p className="text-[10px] uppercase font-bold tracking-widest text-landing-accent">
                 {nextTurnDistance > 0 ? `In ${Math.round(nextTurnDistance)} meters` : "Arrived"}
               </p>
               <h4 className="text-sm font-black truncate text-white">
@@ -506,18 +506,18 @@ export default function LiveRideMap({
           {/* Progress Bar */}
           <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800">
             <div
-              className="bg-linear-to-r from-[#9eff6b] to-emerald-400 h-full rounded-full transition-all duration-350"
+              className="bg-linear-to-r from-landing-accent to-emerald-400 h-full rounded-full transition-all duration-350"
               style={{ width: `${progress}%` }}
             />
           </div>
 
           <div className="flex items-center justify-between text-xs text-zinc-400 border-t border-zinc-900 pt-3">
             <div className="flex items-center gap-1.5">
-              <Gauge size={13} className="text-[#9eff6b]" />
+              <Gauge size={13} className="text-landing-accent" />
               <span className="font-semibold text-white">{speedKmh.toFixed(0)} <span className="text-[10px] text-zinc-500 font-medium">km/h</span></span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Clock size={13} className="text-[#9eff6b]" />
+              <Clock size={13} className="text-landing-accent" />
               <span className="font-semibold text-white">{formatEta(etaRemainingSeconds)}</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -563,7 +563,7 @@ export default function LiveRideMap({
                   onClick={() => setSpeedMultiplier(mult)}
                   className={`px-2.5 py-1 text-[9px] font-black rounded-lg transition-all ${
                     speedMultiplier === mult 
-                      ? "bg-[#9eff6b] text-zinc-950" 
+                      ? "bg-landing-accent text-zinc-950" 
                       : "text-zinc-400 hover:text-white hover:bg-zinc-850"
                   }`}
                 >
@@ -581,7 +581,7 @@ export default function LiveRideMap({
           onClick={handleStartSimulation}
           className="absolute bottom-4 right-4 z-40 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold transition-all hover:scale-105"
         >
-          <Sparkles size={14} className="text-[#9eff6b] animate-pulse" />
+          <Sparkles size={14} className="text-landing-accent animate-pulse" />
           <span>Simulate Ride</span>
         </button>
       )}
