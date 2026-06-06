@@ -24,24 +24,48 @@ export async function GET() {
       isOnline: true,
       partnerStatus: "approved",
       location: { $exists: true },
-    }).select("name mobileNumber location image socketId lastLocationAt _id").lean();
+    }).select("name email mobileNumber location image socketId lastLocationAt _id activeVehicleId currentVehicleType").lean();
 
-    // Fetch vehicles for these drivers to know their vehicleType (car, bike, truck)
-    const driverIds = drivers.map(d => d._id);
-    const vehicles = await Vehicle.find({
-      owner: { $in: driverIds },
+    // Fetch only active vehicles for these drivers to know their current vehicleType (car, bike, truck, etc.)
+    const activeVehicleIds = drivers
+      .map(d => d.activeVehicleId)
+      .filter(id => id != null);
+
+    const activeVehicles = await Vehicle.find({
+      _id: { $in: activeVehicleIds },
       isActive: true,
       status: "approved"
     }).select("owner type").lean();
 
     const vehicleMap = new Map();
-    vehicles.forEach(v => {
+    activeVehicles.forEach(v => {
       vehicleMap.set(v.owner.toString(), v.type);
     });
 
+    // Fallback: If a driver doesn't have an activeVehicleId or the vehicle wasn't found/approved,
+    // look up any approved vehicle of theirs.
+    const remainingDriverIds = drivers
+      .filter(d => !d.activeVehicleId || !vehicleMap.has(d._id.toString()))
+      .map(d => d._id);
+
+    if (remainingDriverIds.length > 0) {
+      const fallbackVehicles = await Vehicle.find({
+        owner: { $in: remainingDriverIds },
+        isActive: true,
+        status: "approved"
+      }).select("owner type").lean();
+
+      fallbackVehicles.forEach(v => {
+        const key = v.owner.toString();
+        if (!vehicleMap.has(key)) {
+          vehicleMap.set(key, v.type);
+        }
+      });
+    }
+
     const driversWithVehicleType = drivers.map(d => ({
       ...d,
-      vehicleType: vehicleMap.get(d._id.toString()) || "car" // Default to car if no vehicle found
+      vehicleType: vehicleMap.get(d._id.toString()) || d.currentVehicleType || "car" // Default to car if no vehicle found
     }));
 
     // 2. Fetch active rides
