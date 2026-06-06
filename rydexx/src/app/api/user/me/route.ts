@@ -81,4 +81,4 @@ export const GET = withMetrics(async function GET(req: Request) {
       },
     );
   }
-}
+});

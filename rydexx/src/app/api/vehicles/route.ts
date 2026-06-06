@@ -44,7 +44,7 @@ export const GET = withMetrics(async function GET(req: NextRequest) {
     console.error("Fetch partner vehicles error:", error);
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
-}
+});
 
 // POST: Add a new vehicle to the driver's garage
 export const POST = withMetrics(async function POST(req: NextRequest) {
