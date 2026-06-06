@@ -424,6 +424,14 @@ export default function MyGaragePage() {
 
       {/* Main Garage */}
       <main className="max-w-6xl mx-auto px-4 py-8">
+        {cooldownSecs > 0 && (
+          <div className="mb-6 bg-amber-50 border border-amber-100 rounded-3xl p-4 flex items-center gap-3 text-amber-800 shadow-sm">
+            <Clock className="animate-pulse shrink-0 text-amber-600" size={18} />
+            <p className="text-xs font-semibold">
+              Activation Cooldown: You recently changed your active vehicle. You can switch to another vehicle in <span className="font-black">{formatCooldown(cooldownSecs)}</span>.
+            </p>
+          </div>
+        )}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 gap-3">
             <Loader2 className="animate-spin text-zinc-500" size={32} />
@@ -580,14 +588,20 @@ export default function MyGaragePage() {
                     {vehicle.status === "approved" && (
                       <button
                         onClick={() => handleActivate(vehicle._id)}
-                        disabled={isActive}
+                        disabled={isActive || cooldownSecs > 0}
                         className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${
                           isActive
                             ? "bg-zinc-100 text-zinc-400 cursor-default"
-                            : "bg-zinc-950 text-white hover:bg-zinc-800 active:scale-95"
+                            : cooldownSecs > 0
+                              ? "bg-zinc-100 text-zinc-400 cursor-not-allowed"
+                              : "bg-zinc-950 text-white hover:bg-zinc-800 active:scale-95"
                         }`}
                       >
-                        {isActive ? "Active" : "Set Active"}
+                        {isActive
+                          ? "Active"
+                          : cooldownSecs > 0
+                            ? `Locked (${formatCooldown(cooldownSecs)})`
+                            : "Set Active"}
                       </button>
                     )}
                     <button
