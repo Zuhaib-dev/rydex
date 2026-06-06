@@ -81,7 +81,7 @@ export default function PartnerForceDispatchOverlay() {
   return (
     <AnimatePresence>
       {activeDispatch && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-md">
           {/* Card Container */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
