@@ -276,6 +276,30 @@ export default function ObservabilityDashboard() {
     }
   };
 
+  const formatActionName = (action: string) => {
+    const mappings: Record<string, string> = {
+      user_signup: "New User Signup",
+      user_signup_failed: "Signup Failed",
+      email_verified: "Email Verified",
+      email_verification_failed: "Email Verification Failed",
+      email_verification_locked: "Verification Locked",
+      email_verification_invalid_otp: "Invalid OTP Attempt",
+      email_verification_error: "Verification Error",
+      partner_signup_initiated: "Partner Signup Started",
+      approve_partner_documents: "Partner Docs Approved",
+      reject_partner: "Partner Docs Rejected",
+      approved_video_kyc: "Partner KYC Approved",
+      rejected_video_kyc: "Partner KYC Rejected",
+      approved_vehicle: "Vehicle Approved / Partner Activated",
+      rejected_vehicle: "Vehicle Rejected",
+      suspended_vehicle: "Vehicle Suspended",
+      block_user: "User Blocked",
+      unblock_user: "User Unblocked",
+      resolve_sos: "SOS Alert Resolved",
+    };
+    return mappings[action] || action.replace(/_/g, " ").toUpperCase();
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
@@ -520,7 +544,7 @@ export default function ObservabilityDashboard() {
                       via {log.actor} •
                     </span>
                     <div className="flex-1 min-w-0">
-                      <strong className="text-white font-bold">{log.action}: </strong>
+                      <strong className="text-white font-bold">{formatActionName(log.action)}: </strong>
                       <span className="text-zinc-300 whitespace-pre-wrap font-medium">{log.details}</span>
                       {log.correlationId && (
                         <span className="text-zinc-600 block mt-0.5 text-[9px]">Trace ID: {log.correlationId}</span>

@@ -51,23 +51,50 @@ export default function AuditLogs() {
   }, [fetchLogs]);
 
   const getActionBadgeStyle = (action: string) => {
-    if (action.includes("approve")) {
+    const act = action.toLowerCase();
+    if (act.includes("approve") || act.includes("verified")) {
       return "bg-green-50 text-green-700 border-green-100";
     }
-    if (action.includes("reject")) {
+    if (act.includes("reject")) {
       return "bg-rose-50 text-rose-700 border-rose-100";
     }
-    if (action.includes("block")) {
+    if (act.includes("block") || act.includes("failed") || act.includes("locked") || act.includes("error")) {
       return "bg-red-50 text-red-700 border-red-200";
     }
-    if (action.includes("unblock")) {
+    if (act.includes("unblock")) {
       return "bg-emerald-50 text-emerald-700 border-emerald-100";
+    }
+    if (act.includes("signup")) {
+      return "bg-blue-50 text-blue-700 border-blue-100";
+    }
+    if (act.includes("sos") || act.includes("suspend") || act.includes("invalid")) {
+      return "bg-amber-50 text-amber-700 border-amber-100";
     }
     return "bg-gray-50 text-gray-700 border-gray-100";
   };
 
   const formatActionName = (action: string) => {
-    return action.replace(/_/g, " ").toUpperCase();
+    const mappings: Record<string, string> = {
+      user_signup: "New User Signup",
+      user_signup_failed: "Signup Failed",
+      email_verified: "Email Verified",
+      email_verification_failed: "Email Verification Failed",
+      email_verification_locked: "Verification Locked",
+      email_verification_invalid_otp: "Invalid OTP Attempt",
+      email_verification_error: "Verification Error",
+      partner_signup_initiated: "Partner Signup Started",
+      approve_partner_documents: "Partner Docs Approved",
+      reject_partner: "Partner Docs Rejected",
+      approved_video_kyc: "Partner KYC Approved",
+      rejected_video_kyc: "Partner KYC Rejected",
+      approved_vehicle: "Vehicle Approved / Partner Activated",
+      rejected_vehicle: "Vehicle Rejected",
+      suspended_vehicle: "Vehicle Suspended",
+      block_user: "User Blocked",
+      unblock_user: "User Unblocked",
+      resolve_sos: "SOS Alert Resolved",
+    };
+    return mappings[action] || action.replace(/_/g, " ").toUpperCase();
   };
 
   if (loading) {
