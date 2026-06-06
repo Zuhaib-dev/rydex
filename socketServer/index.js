@@ -469,7 +469,48 @@ app.post("/emit", requireSocketSecret, async (req, res) => {
   }
 });
 
+// Start telemetry ticker
+if (process.env.NODE_ENV !== "test") {
+  setInterval(async () => {
+    try {
+      const redisMetrics = await getRedisMetrics();
+      const apiMetrics = await getApiMetrics();
+      
+      const payload = {
+        ws: {
+          connectedClients: io.engine.clientsCount,
+          connectionRate: connectionsThisMinute,
+          peakConnections: peakConnections,
+          status: "Healthy"
+        },
+        redis: redisMetrics,
+        api: apiMetrics,
+        server: {
+          cpuLoad: os.loadavg()[0],
+          memoryUsagePercentage: Math.round(((os.totalmem() - os.freemem()) / os.totalmem()) * 100),
+          memoryTotalGb: Math.round(os.totalmem() / 1024 / 1024 / 1024),
+          memoryFreeGb: Math.round(os.freemem() / 1024 / 1024 / 1024),
+          processHeapUsedMb: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+          processHeapTotalMb: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+          jobQueueSize: activeTimers.size
+        },
+        timestamp: Date.now()
+      };
+
+      io.to("admin-dashboard").emit("system-telemetry-update", payload);
+    } catch (err) {
+      console.error("[Telemetry] Failed to gather and broadcast telemetry:", err.message);
+    }
+  }, 2000);
+}
+
 io.on("connection", (socket) => {
+  connectionsThisMinute++;
+  const connectedClients = io.engine.clientsCount;
+  if (connectedClients > peakConnections) {
+    peakConnections = connectedClients;
+  }
+
   socket.on("identity", async (userId) => {
     socket.userId = userId;
 
@@ -481,6 +522,16 @@ io.on("connection", (socket) => {
       socket.disconnect(true);
       return;
     }
+
+    await logSocketEvent(
+      "user_connected",
+      `User identified on socket: ${userId} (${user.role})`,
+      "info",
+      "auth",
+      userId,
+      userId,
+      "User"
+    );
 
     const now = new Date();
     const updateFields = {
