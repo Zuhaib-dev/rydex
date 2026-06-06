@@ -50,6 +50,7 @@ import AdminAnalyticsHub from "./AdminAnalyticsHub";
 import AdminCoupons from "./admin/AdminCoupons";
 import VehicleManagement from "./admin/VehicleManagement";
 import ObservabilityDashboard from "./admin/ObservabilityDashboard";
+import useSWR from "swr";
 
 // Import user context layouts to support client-side impersonation
 import Nav from "@/components/Nav";
@@ -65,6 +66,13 @@ function AdminDashboardContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data: recData } = useSWR(
+    activeTab === "overview" ? "/api/admin/recommendations/index" : null,
+    fetcher,
+    { refreshInterval: 10000 }
+  );
   const profileRef = useRef<HTMLDivElement>(null);
   
   const { data: session } = useSession();
@@ -530,6 +538,117 @@ function AdminDashboardContent() {
                         ))}
                       </div>
                     </div>
+                  </section>
+
+                  {/* --- Guidance Adherence & Recommendation Logs --- */}
+                  <section className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(320px,0.65fr)_minmax(0,1.35fr)]">
+                    
+                    {/* Compliance circular progress gauge */}
+                    <div className="bg-white border border-gray-100 rounded-[28px] p-6 shadow-sm flex flex-col justify-between">
+                      <div>
+                        <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full">
+                          <Activity size={10} /> Allocation Index
+                        </span>
+                        <h3 className="text-lg font-black text-gray-900 mt-3">Guidance Adherence</h3>
+                        <p className="text-xs text-gray-400 mt-1">Measures percentage of smart recommendations followed by online drivers.</p>
+                      </div>
+
+                      <div className="flex flex-col items-center justify-center my-6">
+                        <div className="relative w-36 h-36 flex items-center justify-center">
+                          <svg className="w-full h-full transform -rotate-90">
+                            <circle cx="72" cy="72" r="58" strokeWidth="10" stroke="#f3f4f6" fill="transparent" />
+                            <circle
+                              cx="72"
+                              cy="72"
+                              r="58"
+                              strokeWidth="10"
+                              stroke="#a855f7"
+                              strokeDasharray={2 * Math.PI * 58}
+                              strokeDashoffset={(2 * Math.PI * 58) * (1 - (recData?.stats?.complianceRate || 75.0) / 100)}
+                              strokeLinecap="round"
+                              fill="transparent"
+                              className="transition-all duration-1000 ease-out"
+                            />
+                          </svg>
+                          <div className="absolute flex flex-col items-center">
+                            <span className="text-3xl font-black text-zinc-900 tracking-tighter font-mono">
+                              {recData?.stats?.complianceRate || "75.0"}%
+                            </span>
+                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Adherence</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-2 border-t border-gray-50 pt-4 text-center">
+                        <div>
+                          <p className="text-sm font-black text-gray-800 font-mono">{recData?.stats?.followed || 0}</p>
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Followed</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-gray-800 font-mono">{recData?.stats?.ignored || 0}</p>
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Ignored</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-gray-800 font-mono">{recData?.stats?.pending || 0}</p>
+                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Pending</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recommendation Audit Table */}
+                    <div className="bg-white border border-gray-100 rounded-[28px] p-6 shadow-sm flex flex-col justify-between">
+                      <div className="flex items-center justify-between border-b border-gray-50 pb-4 mb-4">
+                        <div>
+                          <h3 className="text-sm font-black uppercase tracking-wider text-gray-900">Driver Relocation Stream</h3>
+                          <p className="text-2xs text-gray-400 font-bold uppercase mt-0.5">Real-time dispatch metrics</p>
+                        </div>
+                        <span className="text-2xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full font-black uppercase tracking-wider">
+                          Active Dispatch Index
+                        </span>
+                      </div>
+
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left text-xs border-separate border-spacing-y-2">
+                          <thead>
+                            <tr className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
+                              <th className="py-2 px-3">Driver</th>
+                              <th className="py-2 px-3">Sector Target</th>
+                              <th className="py-2 px-3 text-center">Distance</th>
+                              <th className="py-2 px-3 text-center">Multiplier</th>
+                              <th className="py-2 px-3 text-right">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {!recData?.recent?.length ? (
+                              <tr>
+                                <td colSpan={5} className="text-center py-6 text-gray-400 font-medium">No guidance logs streamed yet.</td>
+                              </tr>
+                            ) : (
+                              recData.recent.slice(0, 5).map((log: any) => (
+                                <tr key={log._id} className="bg-gray-50/50 hover:bg-gray-50 transition-colors">
+                                  <td className="py-3 px-3 rounded-l-2xl font-bold">
+                                    <div>{log.driverName}</div>
+                                    <div className="text-[10px] text-gray-400 font-semibold">{log.driverEmail}</div>
+                                  </td>
+                                  <td className="py-3 px-3 font-semibold text-gray-800">{log.recommendedPlaceName}</td>
+                                  <td className="py-3 px-3 text-center font-mono text-gray-500 font-semibold">{log.distanceKm} km</td>
+                                  <td className="py-3 px-3 text-center font-mono text-purple-600 font-bold">{log.multiplier}x</td>
+                                  <td className="py-3 px-3 rounded-r-2xl text-right">
+                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
+                                      log.status === "followed" ? "bg-emerald-50 text-emerald-600" :
+                                      log.status === "ignored" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
+                                    }`}>
+                                      {log.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
                   </section>
                 </div>
               )}
