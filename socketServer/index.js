@@ -207,6 +207,16 @@ redisSub.on("message", async (channel, message) => {
         await redisPub.zrem("driver:locations:active", driverId);
         notifyAdminMapThrottled();
         notifyPublicAvailabilityThrottled("presence-expired");
+
+        await logSocketEvent(
+          "driver_presence_expired",
+          `Presence heartbeat expired. Driver marked offline automatically.`,
+          "warning",
+          "task",
+          "system",
+          driverId,
+          "User"
+        );
       } catch (err) {
         console.error(`Error processing offline expiry for driver ${driverId}:`, err);
       }
@@ -234,6 +244,16 @@ redisSub.on("message", async (channel, message) => {
             timeout: 10000,
             ...(cascadeSecret ? { headers: { "x-cascade-secret": cascadeSecret } } : {}),
           }
+        );
+
+        await logSocketEvent(
+          "booking_cascade_timeout",
+          `Matchmaker response timer expired. Initiating driver cascade.`,
+          "info",
+          "task",
+          "system",
+          bookingId,
+          "Booking"
         );
       } catch (err) {
         console.warn(`[RedisDispatch] Cascade error for booking ${bookingId}:`, err.message);
