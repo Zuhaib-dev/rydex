@@ -304,7 +304,7 @@ export default function VendorPendingPage() {
                             <div className="flex items-center gap-4 text-xs font-semibold text-zinc-600">
                               {booking.passengers && (
                                 <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px] font-black uppercase text-zinc-400 font-bold">Seats:</span>
+                                  <span className="text-[10px]  uppercase text-zinc-400 font-bold">Seats:</span>
                                   <span className="text-zinc-900 font-bold bg-zinc-200/60 px-2 py-0.5 rounded-md">{booking.passengers} Pax</span>
                                 </div>
                               )}

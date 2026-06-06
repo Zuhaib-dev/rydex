@@ -4,13 +4,16 @@ import User from "@/models/user.model";
 import bcrypt from "bcryptjs";
 import { getOtpEmailTemplate } from "@/lib/emailTemplate";
 import { NextRequest, NextResponse } from "next/server";
+import { logSystemEvent } from "@/lib/auditLogger";
 
 export async function POST(req: NextRequest) {
+  let requestEmail = "unknown";
   try {
     const body = await req.json();
     const name = typeof body.name === "string" ? body.name.trim() : "";
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = typeof body.password === "string" ? body.password : "";
+    requestEmail = email || "unknown";
 
     if (!name || !email || !password) {
       return NextResponse.json(
@@ -72,6 +75,17 @@ export async function POST(req: NextRequest) {
       getOtpEmailTemplate(otp, "Thank you for registering with Rydex! Please use the following OTP to verify your email address.", "Verify Your Email")
     );
     
+    await logSystemEvent({
+      action: "user_signup",
+      details: `User registered with email: ${email}`,
+      severity: "info",
+      category: "auth",
+      actor: email,
+      targetId: user._id,
+      targetModel: "User",
+      targetName: name,
+    });
+
     const userResponse = {
       _id: user._id,
       name: user.name,
@@ -84,6 +98,14 @@ export async function POST(req: NextRequest) {
   } catch (error: any) {
     console.error("Registration error:", error);
     
+    await logSystemEvent({
+      action: "user_signup_failed",
+      details: `Signup attempt failed for email: ${requestEmail}. Error: ${error.message || error}`,
+      severity: "error",
+      category: "auth",
+      actor: requestEmail,
+    });
+
     // Provide a generic error message to the client to avoid leaking sensitive details
     // like the email body (OTP) if the mailer fails.
     let errorMessage = "An error occurred during registration. Please try again.";
