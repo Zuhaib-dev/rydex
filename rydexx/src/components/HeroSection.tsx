@@ -79,7 +79,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
   return (
     <div
       ref={containerRef}
-      className="relative min-h-[100svh] w-full overflow-hidden bg-landing-bg"
+      className="relative min-h-svh w-full overflow-hidden bg-landing-bg"
     >
       {/* Background */}
       <motion.div className="absolute inset-0 scale-105" style={{ y: bgY }}>
@@ -93,8 +93,8 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
         />
       </motion.div>
 
-      <div className="absolute inset-0 bg-linear-to-b from-[#060608]/85 via-[#060608]/55 to-landing-bg" />
-      <div className="absolute inset-0 bg-linear-to-r from-[#060608]/80 via-[#060608]/25 to-transparent" />
+      <div className="absolute inset-0 bg-linear-to-b from-landing-bg/85 via-landing-bg/55 to-landing-bg" />
+      <div className="absolute inset-0 bg-linear-to-r from-landing-bg/80 via-landing-bg/25 to-transparent" />
       <GradientMesh />
       <div
         className="absolute inset-0 opacity-[0.04]"
@@ -107,7 +107,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
 
       <motion.div
         style={{ y: contentY, opacity }}
-        className="relative z-10 mx-auto flex min-h-[100svh] max-w-7xl flex-col justify-center px-4 pb-28 pt-28 sm:px-8 lg:px-10"
+        className="relative z-10 mx-auto flex min-h-svh max-w-7xl flex-col justify-center px-4 pb-28 pt-28 sm:px-8 lg:px-10"
       >
         <div className="grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-16">
           {/* Copy */}
@@ -116,7 +116,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.55, ease: EASE }}
-              className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/[0.05] px-4 py-2 backdrop-blur-md"
+              className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md"
             >
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-landing-accent opacity-60" />
@@ -162,7 +162,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
               {pills.map(({ icon: Icon, label }) => (
                 <span
                   key={label}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-white/55 backdrop-blur-sm"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/8 bg-white/4 px-3 py-1.5 text-xs font-medium text-white/55 backdrop-blur-sm"
                 >
                   <Icon size={12} className="text-landing-accent" />
                   {label}
@@ -179,7 +179,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
               <PrimaryButton
                 onClick={handleBook}
                 disabled={status === "loading" && !userData}
-                className="!px-8 !py-4"
+                className="px-8! py-4!"
               >
                 Book a ride
                 <ArrowRight
@@ -207,7 +207,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
             style={{ rotate: cardRotate }}
             className="relative mx-auto w-full max-w-md lg:mx-0 lg:max-w-none"
           >
-            <div className="absolute -inset-4 rounded-[2rem] bg-landing-accent/10 blur-2xl" aria-hidden />
+            <div className="absolute -inset-4 rounded-4xl bg-landing-accent/10 blur-2xl" aria-hidden />
             <div className="glass-dark relative overflow-hidden rounded-3xl p-5 shadow-[0_24px_80px_rgba(0,0,0,0.45)] sm:p-6">
               <div className="mb-5 flex items-center justify-between">
                 <div>
@@ -223,7 +223,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
                 </span>
               </div>
 
-              <div className="relative mb-5 h-36 overflow-hidden rounded-2xl bg-white/[0.04]">
+              <div className="relative mb-5 h-36 overflow-hidden rounded-2xl bg-white/4">
                 <div className="absolute inset-0 bg-linear-to-br from-landing-accent/10 via-transparent to-emerald-500/5" />
                 <svg
                   className="absolute inset-0 h-full w-full text-white/15"
@@ -254,7 +254,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
               </div>
 
               <div className="space-y-3">
-                <div className="flex items-start gap-3 rounded-xl bg-white/[0.03] p-3">
+                <div className="flex items-start gap-3 rounded-xl bg-white/3 p-3">
                   <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-landing-accent/15 text-landing-accent">
                     <Navigation size={14} />
                   </div>
@@ -267,8 +267,8 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 rounded-xl bg-white/[0.03] p-3">
-                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] text-white/70">
+                <div className="flex items-start gap-3 rounded-xl bg-white/3 p-3">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/6 text-white/70">
                     <MapPin size={14} />
                   </div>
                   <div className="min-w-0">
@@ -282,7 +282,7 @@ function HeroSection({ onAuthRequired }: { onAuthRequired: () => void }) {
                 </div>
               </div>
 
-              <div className="mt-4 flex items-center justify-between border-t border-white/[0.06] pt-4">
+              <div className="mt-4 flex items-center justify-between border-t border-white/6 pt-4">
                 <div className="flex items-center gap-2 text-sm text-white/50">
                   <Car size={16} className="text-landing-accent" />
                   <span>SUV · Premium</span>
