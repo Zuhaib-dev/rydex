@@ -100,6 +100,18 @@ export async function POST(req: Request) {
     user.role = "partner";
     await user.save();
 
+    const { logSystemEvent } = await import("@/lib/auditLogger");
+    await logSystemEvent({
+      action: "partner_signup_initiated",
+      details: `User registered vehicle details and transitioned to partner role. Vehicle: ${number} (${modelName}, Type: ${vehicleType})`,
+      severity: "info",
+      category: "auth",
+      actor: user.email,
+      targetId: user._id,
+      targetModel: "User",
+      targetName: user.name,
+    });
+
     return Response.json({ message: "Vehicle details saved successfully" });
   } catch (error) {
     console.error(error);
