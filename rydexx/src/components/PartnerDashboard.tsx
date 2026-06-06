@@ -114,23 +114,76 @@ function PartnerDashboard() {
         {/* Weather Status */}
         <WeatherWidget className="mb-8 max-w-sm" />
         {isFullyApproved ? (
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-600">
-                Live Partner
-              </p>
-              <h1 className="mt-2 text-4xl font-bold tracking-tight text-gray-900">
-                Partner Dashboard
-              </h1>
-              <p className="mt-2 text-lg text-gray-500">
-                Your account is approved and ready to receive rides.
-              </p>
+          <>
+            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-600">
+                  Live Partner
+                </p>
+                <h1 className="mt-2 text-4xl font-bold tracking-tight text-gray-900">
+                  Partner Dashboard
+                </h1>
+                <p className="mt-2 text-lg text-gray-500">
+                  Your account is approved and ready to receive rides.
+                </p>
+              </div>
+              <div className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100">
+                <Check size={16} />
+                Live on Rydex
+              </div>
             </div>
-            <div className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-bold text-emerald-700 ring-1 ring-emerald-100">
-              <Check size={16} />
-              Live on Rydex
+
+            {/* Active Vehicle Badge */}
+            <div className="mb-8 bg-white border border-gray-200 rounded-[28px] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              {activeVehicle ? (
+                <>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-zinc-950 text-white flex items-center justify-center shrink-0">
+                      {(() => {
+                        switch (activeVehicle.type) {
+                          case "bike": return <Bike size={24} />;
+                          case "auto": return <Tally3 size={24} />;
+                          case "car": return <Car size={24} />;
+                          case "loading": return <Package size={24} />;
+                          case "truck": return <Truck size={24} />;
+                          default: return <Car size={24} />;
+                        }
+                      })()}
+                    </div>
+                    <div>
+                      <span className="text-[10px] font-black uppercase tracking-wider text-zinc-400">Active Vehicle</span>
+                      <h3 className="text-base font-black text-zinc-900 uppercase mt-0.5">{activeVehicle.brand} {activeVehicle.vehicleModel}</h3>
+                      <p className="text-xs text-zinc-500 font-semibold mt-0.5">Plate: <span className="font-mono text-zinc-800 font-bold bg-zinc-100 border border-zinc-200/60 px-1.5 py-0.5 rounded text-[11px]">{activeVehicle.vehicleNumber}</span></p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/partner/vehicle"
+                    className="text-xs bg-zinc-100 hover:bg-zinc-200 border border-zinc-200/50 text-zinc-800 px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider transition-all w-fit"
+                  >
+                    Change Active
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="text-rose-500 shrink-0 mt-0.5" size={20} />
+                    <div>
+                      <h3 className="text-sm font-bold text-rose-950">No Active Vehicle Set</h3>
+                      <p className="text-xs text-rose-600 mt-0.5">
+                        You must select an approved active vehicle from your garage to start receiving rides.
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/partner/vehicle"
+                    className="text-xs bg-rose-600 hover:bg-rose-700 text-white px-4 py-2.5 rounded-xl font-bold uppercase tracking-wider transition-all w-fit shadow-md shadow-rose-600/10"
+                  >
+                    Select Active
+                  </Link>
+                </>
+              )}
             </div>
-          </div>
+          </>
         ) : (
           <>
             {/* Header */}

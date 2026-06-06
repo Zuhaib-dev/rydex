@@ -1,4 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
+import {
+  ArrowLeft,
+  MapPin,
+  Navigation,
+  Loader2,
+  IndianRupee,
+  Clock,
+  Zap,
+  Route,
+  Bike,
+  Car,
+  Truck,
+  Package,
+  Tally3,
+} from "lucide-react";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
 import { io as Client } from "socket.io-client";
