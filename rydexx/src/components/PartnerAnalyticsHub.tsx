@@ -506,7 +506,7 @@ export default function PartnerAnalyticsHub() {
               <div className="bg-gray-900 text-white rounded-3xl p-6 relative overflow-hidden h-[450px] shadow-inner flex flex-col justify-between border border-gray-800">
                 {/* Simulated Radar Wave */}
                 <div className="absolute inset-0 bg-radial-to-t from-emerald-500/5 to-transparent pointer-events-none" />
-                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#ffffff_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
+                <div className="absolute inset-0 opacity-15 bg-[radial-gradient(#ffffff_1px,transparent_1px)] bg-size-[24px_24px] pointer-events-none" />
 
                 {/* Top Overlay HUD */}
                 <div className="relative flex justify-between items-start z-10">
@@ -1238,7 +1238,7 @@ export default function PartnerAnalyticsHub() {
                             <td className="py-4 px-4 rounded-r-2xl text-right">
                               {driver.isPremiumPartner ? (
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black shadow-sm border ${
-                                  isMe ? "bg-amber-400 text-black border-amber-300" : "bg-gradient-to-r from-amber-400 to-orange-400 text-white border-amber-200"
+                                  isMe ? "bg-amber-400 text-black border-amber-300" : "bg-linear-to-r from-amber-400 to-orange-400 text-white border-amber-200"
                                 }`}>
                                   <Flame size={12} className={isMe ? "text-black" : "text-white"} />
                                   PREMIUM

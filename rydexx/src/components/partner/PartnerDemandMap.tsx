@@ -324,7 +324,7 @@ export default function PartnerDemandMap() {
                 <div className="relative flex items-center justify-center">
                   <span className="absolute inline-flex h-9 w-9 rounded-full bg-emerald-400/30 animate-ping" />
                   <div className="relative w-7 h-7 rounded-full bg-emerald-500 border-2 border-white flex items-center justify-center shadow-xl text-black">
-                    <Navigation className="fill-black rotate-45 transform -translate-y-[1px]" size={14} />
+                    <Navigation className="fill-black rotate-45 transform -translate-y-px" size={14} />
                   </div>
                 </div>
               </Marker>

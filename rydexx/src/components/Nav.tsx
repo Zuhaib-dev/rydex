@@ -273,7 +273,7 @@ export default function Nav() {
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         className={`fixed top-3 left-1/2 z-50 w-[94%] -translate-x-1/2 rounded-full text-white transition-all duration-500 md:w-[86%] ${
           isLandingHome && !scrolled
-            ? "border border-white/10 bg-[#060608]/55 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl"
+            ? "border border-white/10 bg-landing-bg/55 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl"
             : "bg-[#0B0B0B] shadow-[0_15px_50px_rgba(0,0,0,0.7)]"
         } ${scrolled ? "py-2" : "py-3"}`}
       >
