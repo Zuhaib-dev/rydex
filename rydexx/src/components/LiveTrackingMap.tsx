@@ -178,6 +178,29 @@ export default function LiveRideMap({
   // Dynamic values that switch between live GPS updates and simulator updates
   const displayPosition = (isSimActive && simPosition) ? [simPosition[1], simPosition[0]] as LatLng : smoothDriver;
   const displayBearing = (isSimActive && simPosition) ? simBearing : bearing;
+
+  const simCompletedRouteFeature = useMemo(() => {
+    if (!simPosition || !activeLegCoords) return null;
+    let idx = 0;
+    while (
+      idx < activeLegCoords.length - 2 &&
+      distanceMeters(
+        [activeLegCoords[idx][1], activeLegCoords[idx][0]],
+        [simPosition[1], simPosition[0]]
+      ) > 12
+    ) {
+      idx++;
+    }
+    const completedCoords = [...activeLegCoords.slice(0, idx), simPosition];
+    return {
+      type: "Feature" as const,
+      properties: {},
+      geometry: {
+        type: "LineString" as const,
+        coordinates: completedCoords,
+      },
+    };
+  }, [simPosition, activeLegCoords]);
   const displayEta = isSimActive
     ? Math.round(etaRemainingSeconds / 60)
     : (status === "arriving" ? etaPickup : etaDrop);
@@ -407,31 +430,11 @@ export default function LiveRideMap({
         )}
 
         {/* Completed route track overlay during simulation */}
-        {isSimActive && simPosition && activeLegCoords && (
+        {isSimActive && simCompletedRouteFeature && (
           <Source
             id="sim-completed-route"
             type="geojson"
-            data={useMemo(() => {
-              let idx = 0;
-              while (
-                idx < activeLegCoords.length - 2 &&
-                distanceMeters(
-                  [activeLegCoords[idx][1], activeLegCoords[idx][0]],
-                  [simPosition[1], simPosition[0]]
-                ) > 12
-              ) {
-                idx++;
-              }
-              const completedCoords = [...activeLegCoords.slice(0, idx), simPosition];
-              return {
-                type: "Feature" as const,
-                properties: {},
-                geometry: {
-                  type: "LineString" as const,
-                  coordinates: completedCoords,
-                },
-              };
-            }, [simPosition, activeLegCoords])}
+            data={simCompletedRouteFeature}
           >
             <Layer
               id="sim-completed-line"

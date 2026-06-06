@@ -81,6 +81,29 @@ export default function FrozenRouteMap({
     };
   }, [coords, pickup, drop]);
 
+  const completedRouteFeature = useMemo(() => {
+    if (!currentPosition) return null;
+    let idx = 0;
+    while (
+      idx < coords.length - 2 && 
+      distanceMeters(
+        [coords[idx][1], coords[idx][0]], 
+        [currentPosition[1], currentPosition[0]]
+      ) > 10
+    ) {
+      idx++;
+    }
+    const completedCoords = [...coords.slice(0, idx), currentPosition];
+    return {
+      type: "Feature" as const,
+      properties: {},
+      geometry: {
+        type: "LineString" as const,
+        coordinates: completedCoords,
+      },
+    };
+  }, [currentPosition, coords]);
+
   const centerLng = (bounds.minLng + bounds.maxLng) / 2;
   const centerLat = (bounds.minLat + bounds.maxLat) / 2;
 
@@ -198,27 +221,11 @@ export default function FrozenRouteMap({
         </Source>
 
         {/* Render animated route history path */}
-        {isActive && currentPosition && (
+        {isActive && completedRouteFeature && (
           <Source
             id="route-completed"
             type="geojson"
-            data={useMemo(() => {
-              const currentDist = cumulativeDistancesOfCoords(coords);
-              // Find index of current position
-              let idx = 0;
-              while (idx < coords.length - 2 && distanceMeters([coords[idx][1], coords[idx][0]], [currentPosition[1], currentPosition[0]]) > 10) {
-                idx++;
-              }
-              const completedCoords = [...coords.slice(0, idx), currentPosition];
-              return {
-                type: "Feature" as const,
-                properties: {},
-                geometry: {
-                  type: "LineString" as const,
-                  coordinates: completedCoords,
-                },
-              };
-            }, [currentPosition, coords])}
+            data={completedRouteFeature}
           >
             <Layer
               id="route-completed-line"
