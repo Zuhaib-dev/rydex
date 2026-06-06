@@ -405,7 +405,7 @@ function CheckoutContent() {
                           <Users size={14} />
                         </div>
                         <div>
-                          <p className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-400">Seats Reserved</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Seats Reserved</p>
                           <p className="text-xs font-bold text-zinc-800">{snapshot.passengers} Seat{snapshot.passengers > 1 ? "s" : ""}</p>
                         </div>
                       </div>
@@ -416,7 +416,7 @@ function CheckoutContent() {
                           <Calendar size={14} />
                         </div>
                         <div>
-                          <p className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-400">Scheduled For</p>
+                          <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Scheduled For</p>
                           <p className="text-xs font-bold text-zinc-800">
                             {new Date(snapshot.scheduledAt).toLocaleDateString([], { month: "short", day: "numeric" })} @ {new Date(snapshot.scheduledAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </p>
@@ -430,8 +430,8 @@ function CheckoutContent() {
                         <FileText size={14} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[9px] font-black uppercase tracking-[0.1em] text-zinc-400">Driver Instructions</p>
-                        <p className="text-xs font-bold text-zinc-800 italic leading-snug break-words">"{snapshot.notes}"</p>
+                        <p className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Driver Instructions</p>
+                        <p className="text-xs font-bold text-zinc-800 italic leading-snug wrap-break-word">"{snapshot.notes}"</p>
                       </div>
                     </div>
                   )}
