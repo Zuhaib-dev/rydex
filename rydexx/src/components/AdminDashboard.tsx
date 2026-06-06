@@ -169,6 +169,7 @@ function AdminDashboardContent() {
     { id: "notifications" as const, label: "Broadcast", icon: Bell },
     { id: "security" as const, label: "Security Logs", icon: Lock },
     { id: "health" as const, label: "System Health", icon: Activity },
+    { id: "observability" as const, label: "Observability Hub", icon: Activity },
   ];
 
   const SidebarContent = () => (
