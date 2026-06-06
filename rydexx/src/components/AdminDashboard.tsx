@@ -286,6 +286,7 @@ function AdminDashboardContent() {
                 {activeTab === "notifications" && "Broadcast Notifications"}
                 {activeTab === "security" && "Security Logs"}
                 {activeTab === "health" && "System Telemetry"}
+                {activeTab === "observability" && "System Observability"}
               </h1>
             </div>
 
