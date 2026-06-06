@@ -11,8 +11,12 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell
 } from "recharts";
 import axios from "axios";
+import useSWR from "swr";
+import dynamic from "next/dynamic";
 
-type TabType = "overview" | "operations" | "fleet" | "drivers" | "analytics" | "settlements" | "goals";
+const PartnerDemandMap = dynamic(() => import("./partner/PartnerDemandMap"), { ssr: false });
+
+type TabType = "overview" | "demand" | "operations" | "fleet" | "drivers" | "analytics" | "settlements" | "goals";
 type TimeframeType = "daily" | "weekly" | "monthly";
 type DashboardMode = "solo" | "fleet";
 
@@ -103,6 +107,13 @@ export default function PartnerAnalyticsHub() {
   const [dashboardMode, setDashboardMode] = useState<DashboardMode>("solo");
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [timeframe, setTimeframe] = useState<TimeframeType>("daily");
+
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data: demandData } = useSWR(
+    dashboardMode === "solo" ? "/api/partner/demand" : null,
+    fetcher,
+    { refreshInterval: 20000 }
+  );
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -268,6 +279,7 @@ export default function PartnerAnalyticsHub() {
         <div className="flex bg-gray-100 p-1.5 rounded-2xl overflow-x-auto self-start lg:self-center">
           {([
             { id: "overview", label: "Overview" },
+            { id: "demand", label: "Live Demand Map" },
             ...(dashboardMode === "fleet"
               ? [
                   { id: "operations", label: "Live Command" },
@@ -352,6 +364,31 @@ export default function PartnerAnalyticsHub() {
               </div>
 
             </div>
+
+            {/* Smart Dispatcher Card */}
+            {dashboardMode === "solo" && demandData?.recommendation && (
+              <div className="bg-linear-to-br from-purple-900 to-indigo-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6 border border-white/10">
+                <div className="space-y-2 relative z-10 flex-1">
+                  <span className="inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-purple-200 bg-white/10 px-3 py-1 rounded-full">
+                    <Compass size={11} className="animate-spin text-amber-400" />
+                    AI Dispatch Recommendations
+                  </span>
+                  <h3 className="text-xl font-bold tracking-tight mt-2">
+                    {demandData.recommendation.isInside ? "Optimal Positioning Detected" : "Low Demand in Sector"}
+                  </h3>
+                  <p className="text-xs text-purple-100 leading-relaxed font-semibold">
+                    {demandData.recommendation.message}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setActiveTab("demand")}
+                  className="w-full md:w-auto shrink-0 px-6 py-3 bg-white text-zinc-950 font-black rounded-xl text-xs uppercase tracking-wider transition hover:bg-gray-100 flex items-center justify-center gap-1.5 shadow-lg active:scale-95 cursor-pointer"
+                >
+                  <MapPin size={14} className="text-purple-700" />
+                  Open Live Demand Map
+                </button>
+              </div>
+            )}
 
             {/* Performance and Efficiency estimates widgets */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -440,6 +477,18 @@ export default function PartnerAnalyticsHub() {
               </div>
 
             </div>
+          </motion.div>
+        )}
+
+        {/* ═══ TAB: DEMAND MAP OVERLAY ═══ */}
+        {activeTab === "demand" && (
+          <motion.div
+            key="demand-map"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <PartnerDemandMap />
           </motion.div>
         )}
 
