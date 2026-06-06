@@ -1,11 +1,14 @@
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import bcrypt from "bcryptjs";
+import { logSystemEvent } from "@/lib/auditLogger";
 
 export async function POST(req: Request) {
+  let requestEmail = "unknown";
   try {
     await connectDb();
     const { email, otp } = await req.json();
+    requestEmail = email || "unknown";
     console.log("[verify-email] received:", { email, otp: otp ? "[EXISTS]" : "[MISSING]" });
 
     if (!email || !otp) {
@@ -25,6 +28,16 @@ export async function POST(req: Request) {
 
     // 1. Check if OTP exists
     if (!user.otp) {
+      await logSystemEvent({
+        action: "email_verification_failed",
+        details: "Verification attempt failed: OTP not found or already verified.",
+        severity: "warning",
+        category: "auth",
+        actor: email,
+        targetId: user._id,
+        targetModel: "User",
+        targetName: user.name,
+      });
       return Response.json(
         { message: "OTP not found or already verified. Please request a new one." },
         { status: 400 }
@@ -37,6 +50,16 @@ export async function POST(req: Request) {
       user.otpExpiryAt = undefined;
       user.otpAttempts = 0;
       await user.save();
+      await logSystemEvent({
+        action: "email_verification_locked",
+        details: "OTP locked: too many verification attempts.",
+        severity: "warning",
+        category: "auth",
+        actor: email,
+        targetId: user._id,
+        targetModel: "User",
+        targetName: user.name,
+      });
       return Response.json(
         { message: "Too many failed attempts. This OTP has been locked. Please request a new one." },
         { status: 400 }
@@ -49,6 +72,16 @@ export async function POST(req: Request) {
       user.otpExpiryAt = undefined;
       user.otpAttempts = 0;
       await user.save();
+      await logSystemEvent({
+        action: "email_verification_failed",
+        details: "Verification attempt failed: OTP expired.",
+        severity: "warning",
+        category: "auth",
+        actor: email,
+        targetId: user._id,
+        targetModel: "User",
+        targetName: user.name,
+      });
       return Response.json(
         { message: "OTP has expired. Please request a new one." },
         { status: 400 }
@@ -59,19 +92,40 @@ export async function POST(req: Request) {
     const isMatch = await bcrypt.compare(otp, user.otp);
     if (!isMatch) {
       user.otpAttempts = (user.otpAttempts || 0) + 1;
+      const attemptsLeft = 5 - user.otpAttempts;
       if (user.otpAttempts >= 5) {
         user.otp = undefined;
         user.otpExpiryAt = undefined;
         user.otpAttempts = 0;
         await user.save();
+        await logSystemEvent({
+          action: "email_verification_locked",
+          details: "OTP locked: too many invalid attempts.",
+          severity: "warning",
+          category: "auth",
+          actor: email,
+          targetId: user._id,
+          targetModel: "User",
+          targetName: user.name,
+        });
         return Response.json(
           { message: "Too many failed attempts. This OTP has been locked. Please request a new one." },
           { status: 400 }
         );
       }
       await user.save();
+      await logSystemEvent({
+        action: "email_verification_invalid_otp",
+        details: `Invalid OTP entered. ${attemptsLeft} attempts remaining.`,
+        severity: "warning",
+        category: "auth",
+        actor: email,
+        targetId: user._id,
+        targetModel: "User",
+        targetName: user.name,
+      });
       return Response.json(
-        { message: `Invalid OTP. ${5 - user.otpAttempts} attempts remaining.` },
+        { message: `Invalid OTP. ${attemptsLeft} attempts remaining.` },
         { status: 400 }
       );
     }
@@ -83,6 +137,17 @@ export async function POST(req: Request) {
     user.otpAttempts = 0;
     await user.save();
 
+    await logSystemEvent({
+      action: "email_verified",
+      details: "Email verified successfully.",
+      severity: "info",
+      category: "auth",
+      actor: email,
+      targetId: user._id,
+      targetModel: "User",
+      targetName: user.name,
+    });
+
     return Response.json(
       { message: "Email verified successfully" },
       { status: 200 }
@@ -90,6 +155,13 @@ export async function POST(req: Request) {
 
   } catch (error: any) {
     console.error("[verify-email] error:", error);
+    await logSystemEvent({
+      action: "email_verification_error",
+      details: `Internal error during email verification for ${requestEmail}: ${error.message || error}`,
+      severity: "error",
+      category: "auth",
+      actor: requestEmail,
+    });
     return Response.json(
       { message: "An internal server error occurred during email verification." },
       { status: 500 }
