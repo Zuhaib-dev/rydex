@@ -50,7 +50,7 @@ export default function NotificationBell() {
         >
           <div className="flex-1 w-0 p-4">
             <div className="flex items-start">
-              <div className="flex-shrink-0 pt-0.5">
+              <div className="shrink-0 pt-0.5">
                 <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center">
                   <Bell className="h-5 w-5 text-blue-500" />
                 </div>
@@ -193,7 +193,7 @@ export default function NotificationBell() {
                     <div
                       key={n._id}
                       className={`relative p-4 transition hover:bg-white/5 ${
-                        !n.isRead ? "bg-white/[0.02]" : ""
+                        !n.isRead ? "bg-white/2" : ""
                       }`}
                       onClick={() => {
                         if (!n.isRead) markAsRead(n._id);

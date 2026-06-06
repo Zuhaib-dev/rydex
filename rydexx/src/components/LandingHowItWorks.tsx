@@ -56,8 +56,8 @@ export default function LandingHowItWorks() {
         </motion.div>
 
         <div className="relative grid grid-cols-1 gap-8 md:grid-cols-4 md:gap-6">
-          <div className="absolute top-[2.75rem] left-[12%] right-[12%] hidden h-px md:block">
-            <div className="h-full w-full bg-white/[0.06]" />
+          <div className="absolute top-11 left-[12%] right-[12%] hidden h-px md:block">
+            <div className="h-full w-full bg-white/6" />
             <motion.div
               initial={{ scaleX: 0 }}
               whileInView={{ scaleX: 1 }}
@@ -81,11 +81,11 @@ export default function LandingHowItWorks() {
                 <div className="relative z-10 flex items-center gap-4 md:flex-col md:items-start">
                   <motion.div
                     whileHover={{ scale: 1.04 }}
-                    className="flex h-[3.25rem] w-[3.25rem] shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-landing-accent shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
+                    className="flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/4 text-landing-accent shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
                   >
                     <Icon size={22} strokeWidth={1.75} />
                   </motion.div>
-                  <span className="font-display hidden text-5xl font-bold leading-none text-white/[0.04] md:block">
+                  <span className="font-display hidden text-5xl font-bold leading-none text-white/4 md:block">
                     {step.num}
                   </span>
                 </div>
