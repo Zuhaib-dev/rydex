@@ -92,7 +92,7 @@ function VehicleSlider() {
 
         <div
           ref={scrollRef}
-          className="scrollbar-hide -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 pt-2 sm:-mx-0 sm:px-0"
+          className="scrollbar-hide -mx-4 flex gap-4 overflow-x-auto px-4 pb-2 pt-2 sm:mx-0 sm:px-0"
         >
           {vehicles.map((v, i) => {
             const Icon = v.icon;
