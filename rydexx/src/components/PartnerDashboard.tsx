@@ -4,7 +4,7 @@ import { RootState } from "@/redux/store";
 import { useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "motion/react";
-import { Check, Lock, AlertCircle, RefreshCw } from "lucide-react";
+import { Check, Lock, AlertCircle, RefreshCw, Bike, Car, Truck, Package, Tally3 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import StatusCard from "./StatusCard";
@@ -44,6 +44,7 @@ function PartnerDashboard() {
   // Follow Partner Status too
   const [polledPartnerStatus, setPolledPartnerStatus] = useState<string | null>(null);
   const [polledPartnerRejectionReason, setPolledPartnerRejectionReason] = useState<string | undefined>(undefined);
+  const [activeVehicle, setActiveVehicle] = useState<any>(userData?.activeVehicle || null);
 
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const completedSteps = polledCompletedSteps ?? userData?.partnerOnboardingSteps ?? 0;
@@ -68,6 +69,7 @@ function PartnerDashboard() {
           if (u.partnerOnboardingSteps !== undefined) {
              setPolledCompletedSteps(u.partnerOnboardingSteps);
           }
+          setActiveVehicle(u.activeVehicle || null);
         }
       } catch (error: any) {
         if (error.response?.status === 404 || error.response?.status === 401) {
