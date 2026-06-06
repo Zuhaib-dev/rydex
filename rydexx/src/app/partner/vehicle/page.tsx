@@ -102,6 +102,8 @@ export default function MyGaragePage() {
   const router = useRouter();
   const [vehicles, setVehicles] = useState<VehicleData[]>([]);
   const [activeVehicleId, setActiveVehicleId] = useState<string | null>(null);
+  const [vehicleLastActivatedAt, setVehicleLastActivatedAt] = useState<string | null>(null);
+  const [cooldownSecs, setCooldownSecs] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
   // Add vehicle modal
@@ -137,6 +139,7 @@ export default function MyGaragePage() {
       const { data } = await axios.get("/api/vehicles");
       setVehicles(data.vehicles || []);
       setActiveVehicleId(data.activeVehicleId || null);
+      setVehicleLastActivatedAt(data.vehicleLastActivatedAt || null);
     } catch (err) {
       console.error("Error loading garage details:", err);
     } finally {
@@ -147,6 +150,36 @@ export default function MyGaragePage() {
   useEffect(() => {
     fetchGarage();
   }, []);
+
+  useEffect(() => {
+    if (!vehicleLastActivatedAt) {
+      setCooldownSecs(0);
+      return;
+    }
+
+    const calculateCooldown = () => {
+      const lastActivated = new Date(vehicleLastActivatedAt).getTime();
+      const now = Date.now();
+      const elapsed = now - lastActivated;
+      const remainingMs = (3600 * 1000) - elapsed;
+      if (remainingMs > 0) {
+        setCooldownSecs(Math.ceil(remainingMs / 1000));
+      } else {
+        setCooldownSecs(0);
+      }
+    };
+
+    calculateCooldown();
+    const interval = setInterval(calculateCooldown, 1000);
+
+    return () => clearInterval(interval);
+  }, [vehicleLastActivatedAt]);
+
+  const formatCooldown = (secs: number) => {
+    const minutes = Math.floor(secs / 60);
+    const seconds = secs % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  };
 
   // Auto-select first available document type on opening the document modal
   useEffect(() => {
