@@ -213,7 +213,7 @@ export default function GlobalDynamicIsland() {
 
   return (
     <AnimatePresence>
-      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[999] pointer-events-auto">
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-999 pointer-events-auto">
         <motion.div
           layout
           onClick={(e) => {
