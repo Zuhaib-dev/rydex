@@ -45,7 +45,7 @@ function Footer() {
     <footer className="relative overflow-hidden bg-landing-bg text-white landing-noise">
       <div className="absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
       <div className="landing-container py-16 sm:py-20">
-        <div className="grid gap-12 border-b border-white/[0.08] pb-12 sm:grid-cols-2 lg:grid-cols-12 lg:gap-10">
+        <div className="grid gap-12 border-b border-white/8 pb-12 sm:grid-cols-2 lg:grid-cols-12 lg:gap-10">
           <div className="lg:col-span-5">
             <Image
               src="/logo.png"
@@ -100,7 +100,7 @@ function Footer() {
                   rel="noopener noreferrer"
                   aria-label={label}
                   whileHover={{ y: -2 }}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-white/45 transition hover:border-white/25 hover:text-white"
+                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/4 text-white/45 transition hover:border-white/25 hover:text-white"
                 >
                   <Icon />
                 </motion.a>

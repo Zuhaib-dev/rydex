@@ -677,7 +677,7 @@ export default function RidePage() {
             initial={{ opacity: 0, y: 50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[999] pointer-events-none"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-999 pointer-events-none"
           >
             <div className="bg-zinc-900/90 text-white backdrop-blur-md px-4 py-2.5 rounded-xl shadow-2xl border border-zinc-800 text-xs font-bold flex items-center gap-2">
               <span>{toastMessage}</span>
