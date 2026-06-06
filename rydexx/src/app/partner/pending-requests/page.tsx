@@ -12,6 +12,11 @@ import {
   Clock,
   Zap,
   Route,
+  Bike,
+  Car,
+  Truck,
+  Package,
+  Tally3,
 } from "lucide-react";
 import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
@@ -223,12 +228,26 @@ export default function VendorPendingPage() {
                     <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-zinc-900 via-emerald-500 to-zinc-900" />
 
                     <div className="flex flex-wrap justify-between items-center gap-3 border-b border-gray-100 pb-4 mb-6">
-                      <span className="text-xs font-bold text-gray-400 font-mono tracking-wider">
-                        #{booking._id.slice(-6).toUpperCase()}
-                        {booking.vehicleType
-                          ? ` · ${booking.vehicleType.toUpperCase()}`
-                          : ""}
-                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-gray-400 font-mono tracking-wider">
+                          #{booking._id.slice(-6).toUpperCase()}
+                        </span>
+                        {booking.vehicleType && (
+                          <span className="inline-flex items-center gap-1.5 bg-zinc-950 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shadow-sm">
+                            {(() => {
+                              switch (booking.vehicleType.toLowerCase()) {
+                                case "bike": return <Bike size={10} className="text-zinc-300" />;
+                                case "auto": return <Tally3 size={10} className="text-zinc-300" />;
+                                case "car": return <Car size={10} className="text-zinc-300" />;
+                                case "loading": return <Package size={10} className="text-zinc-300" />;
+                                case "truck": return <Truck size={10} className="text-zinc-300" />;
+                                default: return <Car size={10} className="text-zinc-300" />;
+                              }
+                            })()}
+                            <span>{booking.vehicleType}</span>
+                          </span>
+                        )}
+                      </div>
                       <RequestTimer
                         driverAssignedAt={booking.driverAssignedAt}
                         onTimeout={() => handleTimeout(booking._id)}
