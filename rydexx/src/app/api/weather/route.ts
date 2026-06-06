@@ -1,5 +1,16 @@
 import { NextRequest } from "next/server";
 
+const FALLBACK_WEATHER = {
+  temp: 22,
+  feelsLike: 21,
+  humidity: 55,
+  windSpeed: 3.6,
+  condition: "Clouds",
+  description: "scattered clouds",
+  name: "Srinagar",
+  isFallback: true
+};
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -8,10 +19,7 @@ export async function GET(req: NextRequest) {
 
     const apiKey = process.env.OPENWEATHER_API_KEY;
     if (!apiKey) {
-      return Response.json(
-        { message: "OpenWeather API key is not configured" },
-        { status: 500 }
-      );
+      return Response.json(FALLBACK_WEATHER);
     }
 
     const response = await fetch(
@@ -20,20 +28,17 @@ export async function GET(req: NextRequest) {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error("OpenWeather API error details:", errText);
-      return Response.json(
-        { message: "Failed to fetch weather from OpenWeather" },
-        { status: response.status }
-      );
+      console.warn("OpenWeather API responded with error. Falling back to mock:", errText);
+      return Response.json(FALLBACK_WEATHER);
     }
 
     const data = await response.json();
 
     const weatherInfo = {
-      temp: Math.round(data.main?.temp ?? 0),
-      feelsLike: Math.round(data.main?.feels_like ?? 0),
-      humidity: data.main?.humidity ?? 0,
-      windSpeed: data.wind?.speed ?? 0,
+      temp: Math.round(data.main?.temp ?? 22),
+      feelsLike: Math.round(data.main?.feels_like ?? 21),
+      humidity: data.main?.humidity ?? 55,
+      windSpeed: data.wind?.speed ?? 3.6,
       condition: data.weather?.[0]?.main ?? "Clouds",
       description: data.weather?.[0]?.description ?? "scattered clouds",
       name: data.name || "Srinagar",
@@ -41,7 +46,7 @@ export async function GET(req: NextRequest) {
 
     return Response.json(weatherInfo);
   } catch (error) {
-    console.error("Error fetching weather:", error);
-    return Response.json({ message: "Internal server error" }, { status: 500 });
+    console.warn("Error fetching weather. Falling back to mock:", error);
+    return Response.json(FALLBACK_WEATHER);
   }
 }
