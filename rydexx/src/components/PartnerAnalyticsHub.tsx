@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "motion/react";
 import {
   TrendingUp, TrendingDown, Zap, Calendar, BarChart2, Star, Wallet,
   Flame, Award, Fuel, Percent, BadgeAlert, Layers, Trophy, CheckCircle, Info,
-  MapPin, ShieldAlert, Cpu, Eye, Settings, RefreshCw, Radio, UserCheck, Play, Check, AlertTriangle
+  MapPin, ShieldAlert, Cpu, Eye, Settings, RefreshCw, Radio, UserCheck, Play, Check, AlertTriangle, Compass
 } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell
