@@ -9,5 +9,6 @@
     "resolveJsonModule": true,
     "outDir": "./dist"
   },
-  "include": ["**/*.ts"]
+  "include": ["*.ts", "models/**/*.ts"],
+  "exclude": ["tests", "dist", "node_modules"]
 }
