@@ -17,6 +17,22 @@ import {
   DropMarker,
   DriverMarker,
 } from "@/components/ride/RideMapMarkers";
+import { useNavigationSimulator } from "@/hooks/useNavigationSimulator";
+import {
+  Sparkles,
+  X,
+  ArrowUpLeft,
+  ArrowUpRight,
+  ArrowUp,
+  CheckCircle2,
+  VolumeX,
+  Volume2,
+  Play,
+  Pause,
+  RotateCcw,
+  Gauge,
+  Clock,
+} from "lucide-react";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const MAP_STYLE = "mapbox://styles/mapbox/navigation-night-v1";
@@ -119,6 +135,7 @@ export default function LiveRideMap({
   const [etaPickup, setEtaPickup] = useState(0);
   const [etaDrop, setEtaDrop] = useState(0);
   const [bearing, setBearing] = useState(0);
+  const [showSimControls, setShowSimControls] = useState(false);
 
   const smoothDriver = useSmoothCoords(driverLocation, 1000);
   const prevDriverRef = useRef<LatLng | null>(null);
@@ -129,21 +146,57 @@ export default function LiveRideMap({
   const onStatsRef = useRef(onStats);
   onStatsRef.current = onStats;
 
+  // Active leg coordinates (geojson geometry) for simulation path
+  const activeLegCoords = useMemo(() => {
+    if (routeActive && routeActive.geometry && routeActive.geometry.type === "LineString") {
+      return routeActive.geometry.coordinates as [number, number][];
+    }
+    return undefined;
+  }, [routeActive]);
+
+  const {
+    currentPosition: simPosition,
+    bearing: simBearing,
+    speedKmh,
+    nextTurnStep,
+    nextTurnDistance,
+    distanceRemaining,
+    etaRemainingSeconds,
+    progress,
+    isActive: isSimActive,
+    isPaused: isSimPaused,
+    speedMultiplier,
+    setSpeedMultiplier,
+    voiceMuted,
+    setVoiceMuted,
+    startSimulation,
+    pauseSimulation,
+    resumeSimulation,
+    stopSimulation,
+  } = useNavigationSimulator(activeLegCoords);
+
+  // Dynamic values that switch between live GPS updates and simulator updates
+  const displayPosition = (isSimActive && simPosition) ? [simPosition[1], simPosition[0]] as LatLng : smoothDriver;
+  const displayBearing = (isSimActive && simPosition) ? simBearing : bearing;
+  const displayEta = isSimActive
+    ? Math.round(etaRemainingSeconds / 60)
+    : (status === "arriving" ? etaPickup : etaDrop);
+
   const boundsPoints = useMemo(() => {
     if (status === "arriving") {
       const pts: LatLng[] = [pickupLocation];
-      if (smoothDriver) pts.push(smoothDriver);
+      if (displayPosition) pts.push(displayPosition);
       return pts;
     } else if (status === "ongoing") {
       const pts: LatLng[] = [dropLocation];
-      if (smoothDriver) pts.push(smoothDriver);
+      if (displayPosition) pts.push(displayPosition);
       return pts;
     } else {
       const pts: LatLng[] = [pickupLocation, dropLocation];
-      if (smoothDriver) pts.push(smoothDriver);
+      if (displayPosition) pts.push(displayPosition);
       return pts;
     }
-  }, [pickupLocation, dropLocation, smoothDriver, status]);
+  }, [pickupLocation, dropLocation, displayPosition, status]);
 
   // Pickup → Drop baseline route
   useEffect(() => {
@@ -221,9 +274,55 @@ export default function LiveRideMap({
     }
   }, [status, driverLocation, refreshDriverRoutes]);
 
-  const displayEta = status === "arriving" ? etaPickup : etaDrop;
+  // Auto-pan/rotate camera to follow the simulated vehicle marker in real-time
+  useEffect(() => {
+    if (isSimActive && simPosition && mapRef.current) {
+      mapRef.current.easeTo({
+        center: [simPosition[0], simPosition[1]],
+        zoom: 16,
+        pitch: 55,
+        bearing: simBearing,
+        duration: 350,
+        essential: true,
+      });
+    }
+  }, [simPosition, isSimActive, simBearing]);
+
   const followDriver =
-    mapLoaded && !!smoothDriver && status !== "completed" && status !== "searching";
+    mapLoaded && !!displayPosition && status !== "completed" && status !== "searching";
+  
+  const followDriverEnabled = followDriver && !isSimActive;
+
+  const handleExitSimulation = () => {
+    stopSimulation();
+    setShowSimControls(false);
+  };
+
+  const handleStartSimulation = () => {
+    setShowSimControls(true);
+    startSimulation();
+  };
+
+  const getTurnIcon = (type: string) => {
+    switch (type) {
+      case "left":
+        return <ArrowUpLeft className="h-6 w-6 text-[#9eff6b]" />;
+      case "right":
+        return <ArrowUpRight className="h-6 w-6 text-[#9eff6b]" />;
+      case "destination":
+        return <CheckCircle2 className="h-6 w-6 text-emerald-400 animate-pulse" />;
+      default:
+        return <ArrowUp className="h-6 w-6 text-[#9eff6b]" />;
+    }
+  };
+
+  const formatEta = (seconds: number) => {
+    if (seconds <= 0) return "0s";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.round(seconds % 60);
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  };
 
   return (
     <div className="relative h-full w-full bg-[#0c0f14]">
@@ -250,10 +349,10 @@ export default function LiveRideMap({
       >
         <FitRouteBounds
           points={boundsPoints}
-          active={mapLoaded}
+          active={mapLoaded && !isSimActive}
           phase={status}
         />
-        <FollowDriver position={smoothDriver} enabled={followDriver} />
+        <FollowDriver position={displayPosition} enabled={followDriverEnabled} />
 
         {/* Planned route glow */}
         {routePD && (
@@ -299,11 +398,50 @@ export default function LiveRideMap({
               type="line"
               layout={{ "line-join": "round", "line-cap": "round" }}
               paint={{
+                "line-color": isSimActive ? "#4b5563" : "#9eff6b",
+                "line-width": 5,
+                "line-opacity": isSimActive ? 0.4 : 0.95,
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Completed route track overlay during simulation */}
+        {isSimActive && simPosition && activeLegCoords && (
+          <Source
+            id="sim-completed-route"
+            type="geojson"
+            data={useMemo(() => {
+              let idx = 0;
+              while (
+                idx < activeLegCoords.length - 2 &&
+                distanceMeters(
+                  [activeLegCoords[idx][1], activeLegCoords[idx][0]],
+                  [simPosition[1], simPosition[0]]
+                ) > 12
+              ) {
+                idx++;
+              }
+              const completedCoords = [...activeLegCoords.slice(0, idx), simPosition];
+              return {
+                type: "Feature" as const,
+                properties: {},
+                geometry: {
+                  type: "LineString" as const,
+                  coordinates: completedCoords,
+                },
+              };
+            }, [simPosition, activeLegCoords])}
+          >
+            <Layer
+              id="sim-completed-line"
+              type="line"
+              paint={{
                 "line-color": "#9eff6b",
                 "line-width": 5,
                 "line-opacity": 0.95,
-                "line-dasharray": status === "arriving" ? [0, 0] : [0, 0],
               }}
+              layout={{ "line-join": "round", "line-cap": "round" }}
             />
           </Source>
         )}
@@ -324,20 +462,126 @@ export default function LiveRideMap({
           <DropMarker />
         </Marker>
 
-        {smoothDriver && status !== "searching" && (
+        {displayPosition && status !== "searching" && (
           <Marker
-            longitude={smoothDriver[1]}
-            latitude={smoothDriver[0]}
+            longitude={displayPosition[1]}
+            latitude={displayPosition[0]}
             anchor="center"
           >
             <DriverMarker
-              bearing={bearing}
+              bearing={displayBearing}
               etaMinutes={displayEta}
-              label={status === "ongoing" ? "En route" : "Driver"}
+              label={isSimActive ? "Simulated" : (status === "ongoing" ? "En route" : "Driver")}
             />
           </Marker>
         )}
       </Map>
+
+      {/* Floating turn-by-turn Navigation Panel */}
+      {showSimControls && (
+        <div className="absolute top-20 left-4 right-4 md:left-6 md:right-auto md:w-[360px] bg-zinc-950/90 border border-zinc-800 text-white p-5 rounded-3xl shadow-2xl backdrop-blur-md z-50 flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl shrink-0">
+              {nextTurnStep ? getTurnIcon(nextTurnStep.type) : <ArrowUp className="h-6 w-6 text-[#9eff6b]" />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] uppercase font-bold tracking-widest text-[#9eff6b]">
+                {nextTurnDistance > 0 ? `In ${Math.round(nextTurnDistance)} meters` : "Arrived"}
+              </p>
+              <h4 className="text-sm font-black truncate text-white">
+                {nextTurnStep ? nextTurnStep.instruction : "Arrived at destination"}
+              </h4>
+            </div>
+            <button
+              onClick={handleExitSimulation}
+              className="p-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-lg transition-colors border border-zinc-800"
+            >
+              <X size={14} />
+            </button>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800">
+            <div
+              className="bg-linear-to-r from-[#9eff6b] to-emerald-400 h-full rounded-full transition-all duration-350"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-zinc-400 border-t border-zinc-900 pt-3">
+            <div className="flex items-center gap-1.5">
+              <Gauge size={13} className="text-[#9eff6b]" />
+              <span className="font-semibold text-white">{speedKmh.toFixed(0)} <span className="text-[10px] text-zinc-500 font-medium">km/h</span></span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Clock size={13} className="text-[#9eff6b]" />
+              <span className="font-semibold text-white">{formatEta(etaRemainingSeconds)}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-white">{Math.round(distanceRemaining)} <span className="text-[10px] text-zinc-500 font-medium">m left</span></span>
+            </div>
+          </div>
+
+          {/* Control Bar */}
+          <div className="flex items-center justify-between border-t border-zinc-900 pt-3">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={isSimPaused ? resumeSimulation : pauseSimulation}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white transition-colors border border-zinc-800"
+                title={isSimPaused ? "Play" : "Pause"}
+              >
+                {isSimPaused ? <Play size={14} className="fill-current" /> : <Pause size={14} />}
+              </button>
+              <button
+                onClick={() => startSimulation()}
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white transition-colors border border-zinc-800"
+                title="Restart"
+              >
+                <RotateCcw size={14} />
+              </button>
+              <button
+                onClick={() => setVoiceMuted(!voiceMuted)}
+                className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors border ${
+                  voiceMuted 
+                    ? "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300" 
+                    : "bg-emerald-950 border-emerald-900/60 text-emerald-400"
+                }`}
+                title={voiceMuted ? "Unmute Voice" : "Mute Voice"}
+              >
+                {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+              </button>
+            </div>
+
+            {/* Speed Selector */}
+            <div className="flex items-center gap-1 bg-zinc-900 p-0.5 rounded-xl border border-zinc-800">
+              {[1, 5, 15, 30].map(mult => (
+                <button
+                  key={mult}
+                  onClick={() => setSpeedMultiplier(mult)}
+                  className={`px-2.5 py-1 text-[9px] font-black rounded-lg transition-all ${
+                    speedMultiplier === mult 
+                      ? "bg-[#9eff6b] text-zinc-950" 
+                      : "text-zinc-400 hover:text-white hover:bg-zinc-850"
+                  }`}
+                >
+                  {mult}x
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Simulation Trigger Button */}
+      {!showSimControls && status !== "completed" && status !== "searching" && activeLegCoords && (
+        <button
+          onClick={handleStartSimulation}
+          className="absolute bottom-4 right-4 z-40 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold transition-all hover:scale-105"
+        >
+          <Sparkles size={14} className="text-[#9eff6b] animate-pulse" />
+          <span>Simulate Ride</span>
+        </button>
+      )}
 
       {/* Vignette for depth */}
       <div
