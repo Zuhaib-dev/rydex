@@ -32,11 +32,12 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    const user = await User.findById(session.user.id).select("activeVehicleId").lean();
+    const user = await User.findById(session.user.id).select("activeVehicleId vehicleLastActivatedAt").lean();
 
     return NextResponse.json({
       vehicles: enrichedVehicles,
       activeVehicleId: user?.activeVehicleId || null,
+      vehicleLastActivatedAt: user?.vehicleLastActivatedAt || null,
     });
   } catch (error: any) {
     console.error("Fetch partner vehicles error:", error);

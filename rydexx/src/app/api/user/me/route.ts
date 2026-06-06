@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
+import Vehicle from "@/models/vehicle.model";
 
 export const dynamic = "force-dynamic";
 
@@ -52,8 +53,14 @@ export async function GET(req: Request) {
       };
       await user.save();
     }
+    const userObj: any = user.toObject();
+    if (user.role === "partner" && user.activeVehicleId) {
+      const activeVehicle = await Vehicle.findById(user.activeVehicleId).lean();
+      userObj.activeVehicle = activeVehicle;
+    }
+
     return Response.json(
-      { user },
+      { user: userObj },
       {
         status: 200,
         headers: {
