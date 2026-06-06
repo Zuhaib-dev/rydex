@@ -158,7 +158,7 @@ export default function WeatherWidget({ lat, lng, className = "" }: WeatherWidge
               <span className="text-3xl font-black text-zinc-800 tracking-tighter">{data.temp}</span>
               <span className="text-base font-bold text-zinc-500 ml-0.5">°C</span>
             </div>
-            <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500 capitalize mt-0.5">
+            <p className="text-[11px] font-black uppercase tracking-wider text-zinc-500 mt-0.5">
               {data.description}
             </p>
           </div>
