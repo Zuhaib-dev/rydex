@@ -2,7 +2,7 @@
   "name": "socketserver",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon --exec tsx index.ts",
     "build": "tsc",
