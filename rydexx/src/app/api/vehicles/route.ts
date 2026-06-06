@@ -4,12 +4,13 @@ import Vehicle from "@/models/vehicle.model";
 import VehicleDoc from "@/models/vehicleDoc.model";
 import User from "@/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
+import { withMetrics } from "@/lib/apiMetrics";
 
 const VEHICLE_REGEX = /^[A-Za-z]{2}[\s-]?[0-9]{2}[\s-]?[A-Za-z]{0,2}[\s-]?[0-9]{4}$/;
 const VEHICLE_MODEL_REGEX = /^[a-zA-Z0-9\-_()\/+.]+(?:\s+[a-zA-Z0-9\-_()\/+.]+)*$/;
 
 // GET: List all vehicles for the logged-in partner
-export async function GET(req: NextRequest) {
+export const GET = withMetrics(async function GET(req: NextRequest) {
   try {
     await connectDb();
     const session = await auth();
@@ -46,7 +47,7 @@ export async function GET(req: NextRequest) {
 }
 
 // POST: Add a new vehicle to the driver's garage
-export async function POST(req: NextRequest) {
+export const POST = withMetrics(async function POST(req: NextRequest) {
   try {
     await connectDb();
     const session = await auth();
