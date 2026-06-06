@@ -84,7 +84,7 @@ export function GradientMesh({ className = "" }: { className?: string }) {
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       aria-hidden
     >
-      <div className="absolute -left-[20%] top-[10%] h-[50%] w-[55%] rounded-full bg-[#9eff6b]/12 blur-[100px]" />
+      <div className="absolute -left-[20%] top-[10%] h-[50%] w-[55%] rounded-full bg-landing-accent/12 blur-[100px]" />
       <div className="absolute -right-[10%] bottom-[5%] h-[45%] w-[45%] rounded-full bg-emerald-400/8 blur-[90px]" />
       <div className="absolute left-[35%] top-[45%] h-[30%] w-[35%] rounded-full bg-white/5 blur-[80px]" />
     </div>
