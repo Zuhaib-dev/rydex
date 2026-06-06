@@ -49,13 +49,14 @@ import SendNotification from "./admin/SendNotification";
 import AdminAnalyticsHub from "./AdminAnalyticsHub";
 import AdminCoupons from "./admin/AdminCoupons";
 import VehicleManagement from "./admin/VehicleManagement";
+import ObservabilityDashboard from "./admin/ObservabilityDashboard";
 
 // Import user context layouts to support client-side impersonation
 import Nav from "@/components/Nav";
 import PartnerDashboard from "@/components/PartnerDashboard";
 import PublicHome from "@/components/PublicHome";
 
-type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications" | "analytics" | "coupons" | "vehicles";
+type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications" | "analytics" | "coupons" | "vehicles" | "observability";
 type QueueSubTab = "partner" | "kyc" | "vehicle";
 
 function AdminDashboardContent() {
@@ -621,6 +622,9 @@ function AdminDashboardContent() {
 
               {/* --- VIEW: SYSTEM HEALTH --- */}
               {activeTab === "health" && <SystemHealth />}
+
+              {/* --- VIEW: OBSERVABILITY HUB --- */}
+              {activeTab === "observability" && <ObservabilityDashboard />}
             </motion.div>
           </AnimatePresence>
         </main>
