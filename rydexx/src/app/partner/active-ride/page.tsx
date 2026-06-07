@@ -438,6 +438,31 @@ export default function DriverRidePage() {
     }
   };
 
+  const handleMockGPS = () => {
+    if (!booking?._id) return;
+    const targetPos = booking.status === "started" ? dropPos : pickupPos;
+    if (!targetPos) return;
+
+    // Offset slightly (approx. 100-150m) to allow simulating the final arrival
+    const mockLat = targetPos[0] + 0.0012;
+    const mockLng = targetPos[1] + 0.0012;
+    setDriverPos([mockLat, mockLng]);
+
+    const socket = getSocket();
+    socket.emit("driver-location-update", {
+      bookingId: booking._id,
+      latitude: mockLat,
+      longitude: mockLng,
+      status: booking.status,
+    });
+
+    setRealtimeToast({
+      message: booking.status === "started" ? "GPS mocked near dropoff!" : "GPS mocked near pickup!",
+      type: "success",
+      id: Date.now(),
+    });
+  };
+
   /* ══════════════════════════════════════════════════════════════════
      RENDER LOGIC — all hooks above, early returns below
   ══════════════════════════════════════════════════════════════════ */
@@ -581,7 +606,27 @@ export default function DriverRidePage() {
             setDistanceToDrop(distanceToDrop);
             setEtaToDrop(durationToDrop);
           }}
+          onPositionUpdate={(lat, lng) => {
+            const b = bookingRef.current;
+            if (!b?._id) return;
+            setDriverPos([lat, lng]);
+            const socket = getSocket();
+            socket.emit("driver-location-update", {
+              bookingId: b._id,
+              latitude: lat,
+              longitude: lng,
+              status: b.status,
+            });
+          }}
         />
+        {/* Mock GPS button for testing */}
+        <button
+          onClick={handleMockGPS}
+          className="absolute top-20 right-4 z-40 bg-zinc-950/95 hover:bg-zinc-900 border border-zinc-850 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold transition-all hover:scale-105 active:scale-95"
+        >
+          <MapPin size={14} className="text-amber-400 animate-pulse" />
+          <span>{booking.status === "started" ? "Mock GPS near Drop" : "Mock GPS near Pickup"}</span>
+        </button>
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}

@@ -50,6 +50,7 @@ type Props = {
     distanceToDrop: number;
     durationToDrop: number;
   }) => void;
+  onPositionUpdate?: (lat: number, lng: number) => void;
 };
 
 function FitRouteBounds({
@@ -127,6 +128,7 @@ export default function LiveRideMap({
   dropLocation,
   status,
   onStats,
+  onPositionUpdate,
 }: Props) {
   const mapRef = useRef<MapRef | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -174,6 +176,20 @@ export default function LiveRideMap({
     resumeSimulation,
     stopSimulation,
   } = useNavigationSimulator(activeLegCoords);
+
+  // Synchronize simulated driver position with the server/socket
+  const lastEmitRef = useRef(0);
+  useEffect(() => {
+    if (isSimActive && simPosition && onPositionUpdate) {
+      const now = Date.now();
+      // Emit update at most once every 2 seconds to prevent overloading DB/Redis
+      if (now - lastEmitRef.current > 2000) {
+        lastEmitRef.current = now;
+        // simPosition is [longitude, latitude]
+        onPositionUpdate(simPosition[1], simPosition[0]);
+      }
+    }
+  }, [simPosition, isSimActive, onPositionUpdate]);
 
   // Dynamic values that switch between live GPS updates and simulator updates
   const displayPosition = (isSimActive && simPosition) ? [simPosition[1], simPosition[0]] as LatLng : smoothDriver;
