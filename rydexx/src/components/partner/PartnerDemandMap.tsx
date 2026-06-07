@@ -43,7 +43,39 @@ export default function PartnerDemandMap() {
   const hotspots = demandData?.hotspots || [];
   const recommendation = demandData?.recommendation;
 
-  // Set driver initial position when API loads
+  // Watch driver's real live GPS location
+  const mapCenteredRef = useRef(false);
+  useEffect(() => {
+    if (typeof window === "undefined" || !navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        // Do not override simulated position updates
+        if (isSimulating) return;
+
+        const realPos: [number, number] = [pos.coords.longitude, pos.coords.latitude];
+        setDriverPos(realPos);
+
+        // Center map on real coordinates upon initial lock
+        if (mapRef.current && !mapCenteredRef.current) {
+          mapRef.current.easeTo({
+            center: realPos,
+            zoom: 13,
+            duration: 1200,
+          });
+          mapCenteredRef.current = true;
+        }
+      },
+      (err) => {
+        console.warn("Demand map GPS tracking error:", err.message);
+      },
+      { enableHighAccuracy: true, maximumAge: 5000 }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [isSimulating]);
+
+  // Set driver initial position when API loads as a quick fallback before GPS resolves
   useEffect(() => {
     if (recommendation && !driverPos && !isSimulating && !hasArrived) {
       // API returns recommendation coordinates or fallbacks. We can locate driver near center of Srinagar
