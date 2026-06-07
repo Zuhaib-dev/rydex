@@ -18,12 +18,24 @@ export async function GET() {
 
     await dbConnect();
 
-    // 1. Fetch all online drivers (partners) with location
+    // 1. Fetch active rides (including all active ride statuses)
+    const activeRides = await Booking.find({
+      status: { $in: ["requested", "confirmed", "arriving", "arrived", "started"] }
+    }).select("pickupLocation dropLocation driver status user vehicleType sosTriggered sosTriggeredAt").lean();
+
+    const activeDriverIds = activeRides
+      .map(r => r.driver)
+      .filter(id => id != null);
+
+    // 2. Fetch all online drivers or drivers on active rides (partners) with location
     const drivers = await User.find({
       role: "partner",
-      isOnline: true,
       partnerStatus: "approved",
       location: { $exists: true },
+      $or: [
+        { isOnline: true },
+        { _id: { $in: activeDriverIds } }
+      ]
     }).select("name email mobileNumber location image socketId lastLocationAt _id activeVehicleId currentVehicleType").lean();
 
     // Fetch only active vehicles for these drivers to know their current vehicleType (car, bike, truck, etc.)
@@ -67,11 +79,6 @@ export async function GET() {
       ...d,
       vehicleType: vehicleMap.get(d._id.toString()) || d.currentVehicleType || "car" // Default to car if no vehicle found
     }));
-
-    // 2. Fetch active rides
-    const activeRides = await Booking.find({
-      status: { $in: ["requested", "arriving", "started"] }
-    }).select("pickupLocation dropLocation driver status user vehicleType sosTriggered sosTriggeredAt").lean();
 
     // 3. Fetch active surge zones (with Redis cache fallback, 2-minute TTL)
     const redis = getRedisClient();
