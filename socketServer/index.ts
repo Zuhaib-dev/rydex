@@ -246,11 +246,28 @@ redisSub.on("message", async (channel: string, message: string) => {
     // ── Dispatch timer expiration → cascade to next driver ──
     if (message.startsWith("dispatch:timer:")) {
       const bookingId = message.replace("dispatch:timer:", "");
-      // Prevent double-cascade: check if in-memory timer already handled it
-      if (activeTimers.has(bookingId)) {
-        console.log(`[RedisDispatch] Skipping cascade for ${bookingId} — in-memory timer still active.`);
+
+      // BUG-005 FIX: Acquire cascade lock — competing with in-memory setTimeout path
+      const cascadeLockKey = `cascade:lock:${bookingId}`;
+      let lockAcquired = false;
+      try {
+        const result = await redisPub.set(cascadeLockKey, "1", "EX", 30, "NX");
+        lockAcquired = result === "OK";
+      } catch {
+        lockAcquired = true; // Redis down — proceed to avoid silent failure
+      }
+
+      if (!lockAcquired) {
+        console.log(`[RedisDispatch] Cascade already handled by in-memory timer for ${bookingId}. Skipping.`);
         return;
       }
+
+      // Clear in-memory timer if it hasn't fired yet (Redis got here first)
+      if (activeTimers.has(bookingId)) {
+        clearTimeout(activeTimers.get(bookingId)!);
+        activeTimers.delete(bookingId);
+      }
+
       console.log(`[RedisDispatch] dispatch:timer:${bookingId} expired via Redis keyspace. Triggering cascade...`);
       try {
         const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
@@ -392,9 +409,19 @@ function notifyPublicAvailabilityThrottled(reason = "availability") {
   }, 1000);
 }
 
+// SEC-009: Warn loudly on startup if SOCKET_INTERNAL_SECRET is not set
+if (!process.env.SOCKET_INTERNAL_SECRET) {
+  console.warn(
+    "\n⚠️  [SECURITY WARNING] SOCKET_INTERNAL_SECRET is not set.\n" +
+    "   The /emit and /emit-admin endpoints are OPEN to the internet.\n" +
+    "   Set SOCKET_INTERNAL_SECRET in your environment to secure them.\n"
+  );
+}
+
 function requireSocketSecret(req: Request, res: Response, next: NextFunction) {
   const secret = process.env.SOCKET_INTERNAL_SECRET;
   if (!secret) {
+    // No secret configured — allow through but log that this is insecure
     next();
     return;
   }
