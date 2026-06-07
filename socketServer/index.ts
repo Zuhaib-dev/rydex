@@ -304,6 +304,8 @@ export interface ServerToClientEvents {
   "admin-driver-location": (data: { driverId: string; latitude: number; longitude: number; at: number }) => void;
   "driver-location": (data: { latitude: number; longitude: number; status: string }) => void;
   "chat-message": (msg: any) => void;
+  "chat-typing": (data: { rideId: string; sender: "user" | "driver"; isTyping: boolean }) => void;
+  "chat-read": (data: { rideId: string; sender: "user" | "driver" }) => void;
   "system-telemetry-update": (payload: any) => void;
   "new-booking": (data: any) => void;
   "booking-updated": (data: any) => void;
@@ -316,6 +318,8 @@ export interface ClientToServerEvents {
   "leave-booking": (bookingId: string) => void;
   "driver-location-update": (data: { bookingId: string; latitude: number; longitude: number; status?: string; driverId?: string }) => void;
   "chat-message": (msg: { rideId: string; text: string; sender: string }) => void;
+  "chat-typing": (data: { rideId: string; sender: "user" | "driver"; isTyping: boolean }) => void;
+  "chat-read": (data: { rideId: string; sender: "user" | "driver" }) => void;
   "update-location": (data: { latitude: number; longitude: number }) => void;
   "partner-availability": (data: { available: boolean }) => void;
 }
@@ -696,6 +700,14 @@ io.on("connection", (socket: SocketWithUser) => {
   socket.on("chat-message", (msg) => {
     console.log("chat to room:", `booking-${msg.rideId}`);
     io.to(`booking-${msg.rideId}`).emit("chat-message", msg);
+  });
+
+  socket.on("chat-typing", (data) => {
+    io.to(`booking-${data.rideId}`).emit("chat-typing", data);
+  });
+
+  socket.on("chat-read", (data) => {
+    io.to(`booking-${data.rideId}`).emit("chat-read", data);
   });
 
   socket.on("update-location", async ({ latitude, longitude }) => {
