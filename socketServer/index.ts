@@ -593,7 +593,51 @@ if (process.env.NODE_ENV !== "test") {
       console.error("[Telemetry] Failed to gather and broadcast telemetry:", err.message);
     }
   }, 2000);
+
+  // ── Stale payment expiry cron (every 60 seconds) ─────────────────────────
+  // Expires bookings stuck in `awaiting_payment` past their payment deadline.
+  setInterval(async () => {
+    try {
+      const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
+      const cascadeSecret = process.env.CASCADE_INTERNAL_SECRET;
+      await axios.post(
+        `${nextBaseUrl.replace(/\/+$/, "")}/api/booking/expire-stale`,
+        {},
+        {
+          timeout: 10000,
+          ...(cascadeSecret ? { headers: { "x-cascade-secret": cascadeSecret } } : {}),
+        }
+      );
+    } catch (err: any) {
+      // Non-fatal — log only real errors, not 404s (no stale bookings)
+      if (err?.response?.status !== 200 && err?.response?.status !== 404) {
+        console.warn("[ExpireStale] Cron call failed:", err.message);
+      }
+    }
+  }, 60000);
+
+  // ── Scheduled rides dispatch cron (every 60 seconds) ─────────────────────
+  // Dispatches bookings whose scheduledAt is within the next 10 minutes.
+  setInterval(async () => {
+    try {
+      const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
+      const cascadeSecret = process.env.CASCADE_INTERNAL_SECRET;
+      await axios.post(
+        `${nextBaseUrl.replace(/\/+$/, "")}/api/booking/dispatch-scheduled`,
+        {},
+        {
+          timeout: 15000,
+          ...(cascadeSecret ? { headers: { "x-cascade-secret": cascadeSecret } } : {}),
+        }
+      );
+    } catch (err: any) {
+      if (err?.response?.status !== 200 && err?.response?.status !== 404) {
+        console.warn("[DispatchScheduled] Cron call failed:", err.message);
+      }
+    }
+  }, 60000);
 }
+
 
 // Extend socket type definition for type-safety inside io handlers
 interface SocketWithUser extends Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> {
