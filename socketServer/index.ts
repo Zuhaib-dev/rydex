@@ -8,6 +8,7 @@ import { createAdapter } from "@socket.io/redis-adapter";
 import os from "os";
 import AuditLog from "./models/auditLog.models.js";
 import User from "./models/user.models.js";
+import Booking from "./models/booking.models.js";
 import mongoose from "mongoose";
 
 dotenv.config();
@@ -313,7 +314,7 @@ export interface ClientToServerEvents {
   "join-admin": () => void;
   "join-booking": (bookingId: string) => void;
   "leave-booking": (bookingId: string) => void;
-  "driver-location-update": (data: { bookingId: string; latitude: number; longitude: number; status?: string }) => void;
+  "driver-location-update": (data: { bookingId: string; latitude: number; longitude: number; status?: string; driverId?: string }) => void;
   "chat-message": (msg: { rideId: string; text: string; sender: string }) => void;
   "update-location": (data: { latitude: number; longitude: number }) => void;
   "partner-availability": (data: { available: boolean }) => void;
@@ -649,11 +650,26 @@ io.on("connection", (socket: SocketWithUser) => {
       status: data.status || "arriving",
     });
 
-    if (socket.userId && typeof data.latitude === "number" && typeof data.longitude === "number") {
+    const targetDriverId = data.driverId || socket.userId;
+
+    if (targetDriverId && typeof data.latitude === "number" && typeof data.longitude === "number") {
       const now = new Date();
+
+      // Throttle DB/Redis writes to once every 4 seconds per driver
+      const throttleKey = `lock:dbwrite:location:${targetDriverId}`;
+      try {
+        const isThrottled = await redisPub.get(throttleKey);
+        if (isThrottled) {
+          return;
+        }
+        await redisPub.set(throttleKey, "1", "EX", 4);
+      } catch (err) {
+        console.error("DB write throttle error:", err);
+      }
+
       try {
         await User.updateOne(
-          { _id: socket.userId },
+          { _id: targetDriverId },
           {
             location: {
               type: "Point",
@@ -663,9 +679,9 @@ io.on("connection", (socket: SocketWithUser) => {
             lastLocationUpdate: now,
           }
         );
-        await redisPub.geoadd("driver:locations:active", data.longitude, data.latitude, socket.userId);
+        await redisPub.geoadd("driver:locations:active", data.longitude, data.latitude, targetDriverId);
         io.to("admin-dashboard").emit("admin-driver-location", {
-          driverId: String(socket.userId),
+          driverId: String(targetDriverId),
           latitude: data.latitude,
           longitude: data.longitude,
           at: now.getTime(),
@@ -737,6 +753,24 @@ io.on("connection", (socket: SocketWithUser) => {
       });
       notifyAdminMapThrottled();
       notifyPublicAvailabilityThrottled("location");
+
+      // Broadcast to active booking if present
+      try {
+        const activeBooking = await Booking.findOne({
+          driver: socket.userId,
+          status: { $in: ["confirmed", "arriving", "arrived", "started"] },
+        }).select("_id status").lean();
+
+        if (activeBooking) {
+          io.to(`booking-${activeBooking._id}`).emit("driver-location", {
+            latitude,
+            longitude,
+            status: activeBooking.status,
+          });
+        }
+      } catch (err: any) {
+        console.error("Failed to fetch active booking for location update broadcast:", err.message);
+      }
     }
   });
 
