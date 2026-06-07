@@ -9,6 +9,8 @@ export type PricingSnapshot = {
   vehicleType: string;
   vehicleId: string;
   pricingVersion: typeof PRICING_VERSION;
+  /** Surge pricing multiplier at pickup point. 1.0 = no surge. */
+  surgeMultiplier?: number;
 };
 
 /** Immutable trip + price data — single source of truth after quote is created */
@@ -66,5 +68,6 @@ export function snapshotToClientPayload(snapshot: BookingSnapshot) {
     passengers: snapshot.passengers,
     notes: snapshot.notes,
     scheduledAt: snapshot.scheduledAt,
+    surgeMultiplier: snapshot.pricingSnapshot?.surgeMultiplier ?? 1,
   };
 }
