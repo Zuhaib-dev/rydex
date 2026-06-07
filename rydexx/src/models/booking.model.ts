@@ -90,8 +90,8 @@ partnerAmount: number
 const BookingSchema = new Schema<IBooking>(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    driver: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    vehicle: { type: Schema.Types.ObjectId, ref: "Vehicle", required: true },
+    driver: { type: Schema.Types.ObjectId, ref: "User" },
+    vehicle: { type: Schema.Types.ObjectId, ref: "Vehicle" },
 
     pickupAddress: { type: String, required: true },
     dropAddress: { type: String, required: true },
@@ -180,7 +180,6 @@ dropOtpExpires: {
 
         driverMobileNumber: { 
       type: String, 
-      required: true,
       trim: true,
     },
     attemptedDrivers: {
