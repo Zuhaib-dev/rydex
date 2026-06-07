@@ -20,6 +20,10 @@ vi.mock("./bookingEvents", () => ({
   emitBookingUpdated: vi.fn(),
 }));
 
+vi.mock("./socketServer", () => ({
+  emitToSocketServer: vi.fn(),
+}));
+
 // Mock Redis to fail
 vi.mock("@/lib/redis", () => ({
   getRedisClient: vi.fn().mockImplementation(() => {
