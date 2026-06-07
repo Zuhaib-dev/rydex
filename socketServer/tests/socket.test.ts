@@ -384,4 +384,90 @@ describe("WebSocket Realtime Integration Tests", () => {
       }
     });
   });
+
+  it("should relay chat-typing events within the booking room", () => {
+    return new Promise<void>(async (resolve, reject) => {
+      let clientSocket1: ClientSocket, clientSocket2: ClientSocket;
+      try {
+        const bookingId = new mongoose.Types.ObjectId().toString();
+
+        clientSocket1 = Client(`http://localhost:${testPort}`);
+        clientSocket1.on("connect", () => {
+          clientSocket2 = Client(`http://localhost:${testPort}`);
+          clientSocket2.on("connect", () => {
+            clientSocket1.emit("join-booking", bookingId);
+            clientSocket2.emit("join-booking", bookingId);
+
+            setTimeout(() => {
+              clientSocket2.on("chat-typing", (data: any) => {
+                try {
+                  expect(data.rideId).toBe(bookingId);
+                  expect(data.sender).toBe("user");
+                  expect(data.isTyping).toBe(true);
+                  
+                  clientSocket1.disconnect();
+                  clientSocket2.disconnect();
+                  resolve();
+                } catch (err) {
+                  clientSocket1.disconnect();
+                  clientSocket2.disconnect();
+                  reject(err);
+                }
+              });
+
+              clientSocket1.emit("chat-typing", {
+                rideId: bookingId,
+                sender: "user",
+                isTyping: true,
+              });
+            }, 100);
+          });
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
+
+  it("should relay chat-read events within the booking room", () => {
+    return new Promise<void>(async (resolve, reject) => {
+      let clientSocket1: ClientSocket, clientSocket2: ClientSocket;
+      try {
+        const bookingId = new mongoose.Types.ObjectId().toString();
+
+        clientSocket1 = Client(`http://localhost:${testPort}`);
+        clientSocket1.on("connect", () => {
+          clientSocket2 = Client(`http://localhost:${testPort}`);
+          clientSocket2.on("connect", () => {
+            clientSocket1.emit("join-booking", bookingId);
+            clientSocket2.emit("join-booking", bookingId);
+
+            setTimeout(() => {
+              clientSocket2.on("chat-read", (data: any) => {
+                try {
+                  expect(data.rideId).toBe(bookingId);
+                  expect(data.sender).toBe("user");
+                  
+                  clientSocket1.disconnect();
+                  clientSocket2.disconnect();
+                  resolve();
+                } catch (err) {
+                  clientSocket1.disconnect();
+                  clientSocket2.disconnect();
+                  reject(err);
+                }
+              });
+
+              clientSocket1.emit("chat-read", {
+                rideId: bookingId,
+                sender: "user",
+              });
+            }, 100);
+          });
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+  });
 });

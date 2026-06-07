@@ -34,14 +34,6 @@ export function isInKashmir(lat: number, lng: number): boolean {
   );
 }
 
-const routeTouchesKashmir = (coords: LatLng[]): boolean => {
-  return coords.some(([lat, lng]) => isInKashmir(lat, lng));
-};
-
-function toCoordString(coords: LatLng[]): string {
-  return coords.map(([lat, lng]) => `${lng},${lat}`).join(";");
-}
-
 /** Haversine distance in meters */
 export function distanceMeters(a: LatLng, b: LatLng): number {
   const R = 6371000;
