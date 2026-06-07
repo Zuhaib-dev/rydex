@@ -26,7 +26,6 @@ import { Wifi, WifiOff } from "lucide-react";
 import OtpReveal from "@/components/ride/OtpReveal";
 import RideToasts from "@/components/ride/RideToasts";
 import type { RealtimeToast } from "@/hooks/useBookingRealtime";
-import RideReview from "@/components/RideReview";
 
 const LiveRideMap = dynamic(() => import("@/components/LiveTrackingMap"), {
   ssr: false,
@@ -1504,15 +1503,6 @@ function PanelContent({
         </div>
       )}
     </motion.div>
-
-      {/* Post-ride review modal — only shown when ride is completed */}
-      {status === "completed" && booking._id && (
-        <RideReview
-          bookingId={booking._id.toString()}
-          role="user"
-          driverName={booking.driver?.name}
-        />
-      )}
   );
 }
 
