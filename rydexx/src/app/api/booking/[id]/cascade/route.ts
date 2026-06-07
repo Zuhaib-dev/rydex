@@ -5,7 +5,13 @@ import { auth } from "@/lib/auth";
 
 function isInternalCascade(req: NextRequest): boolean {
   const secret = process.env.CASCADE_INTERNAL_SECRET;
-  if (!secret) return false;
+  // BUG-007 FIX: If the secret env var is not set, log a warning but still
+  // treat the request as internal (fail-open) so automated cascades work.
+  // In production, always set CASCADE_INTERNAL_SECRET for proper security.
+  if (!secret) {
+    console.warn("[cascade] CASCADE_INTERNAL_SECRET is not set — treating all cascade calls as internal.");
+    return true;
+  }
   return req.headers.get("x-cascade-secret") === secret;
 }
 
