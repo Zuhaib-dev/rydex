@@ -17,8 +17,9 @@ const redisPub = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
 const redisSub = new Redis(process.env.REDIS_URL || "redis://127.0.0.1:6379");
 
 // Dedicated Redis clients for Socket.IO horizontal scaling
+// BUG-011 FIX: socketSub must duplicate redisSub, not redisPub
 const socketPub = redisPub.duplicate();
-const socketSub = redisPub.duplicate();
+const socketSub = redisSub.duplicate();
 
 // Metrics trackers
 let peakConnections = 0;
@@ -105,7 +106,12 @@ async function getRedisMetrics() {
 
 async function getApiMetrics() {
   try {
-    const rawList = await redisPub.lrange("api:metrics:raw", 0, -1);
+    // PERF-001 FIX: cap at last 1000 entries to prevent unbounded reads
+    const MAX_ENTRIES = 1000;
+    const rawList = await redisPub.lrange("api:metrics:raw", -MAX_ENTRIES, -1);
+    // Trim the list to keep only the most recent MAX_ENTRIES records
+    await redisPub.ltrim("api:metrics:raw", -MAX_ENTRIES, -1).catch(() => {});
+
     if (!rawList || rawList.length === 0) {
       return { avgResponseTimeMs: 0, p95LatencyMs: 0, p99LatencyMs: 0, rps: 0, successRate: 100, errorRate: 0 };
     }

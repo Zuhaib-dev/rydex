@@ -3,6 +3,7 @@ import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { emitBookingUpdated } from "@/lib/bookingEvents";
 import { getRedisClient } from "@/lib/redis";
+import { auth } from "@/lib/auth";
 
 export async function POST(
   req: NextRequest,
@@ -10,14 +11,26 @@ export async function POST(
 ) {
   const { id } = await context.params;
   await connectDb();
-  const booking =await Booking.findOneAndUpdate(
-  { _id: id, status: "requested" },
-  { status: "cancelled" }
-);
 
-  if (!booking)
-    return NextResponse.json({ message: "Not found" }, { status: 404 });
-  booking.status = "cancelled";
+  // ── Auth guard ───────────────────────────────────────────────
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  // Atomically cancel — only if the booking belongs to this user AND is still "requested"
+  const booking = await Booking.findOneAndUpdate(
+    { _id: id, user: session.user.id, status: "requested" },
+    { status: "cancelled" },
+    { new: true }
+  );
+
+  if (!booking) {
+    return NextResponse.json(
+      { message: "Booking not found or cannot be cancelled" },
+      { status: 404 }
+    );
+  }
 
   // Release Redis driver lock if there was a driver assigned
   if (booking.driver) {
@@ -29,7 +42,7 @@ export async function POST(
     }
   }
 
-  await booking.save();
+  // No second save — findOneAndUpdate already persisted the status change atomically
 
   await emitBookingUpdated(booking, {
     bookingId: booking._id,
@@ -38,3 +51,4 @@ export async function POST(
 
   return NextResponse.json({ success: true });
 }
+

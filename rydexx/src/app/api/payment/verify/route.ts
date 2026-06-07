@@ -3,6 +3,7 @@ import Booking from "@/models/booking.model"
 import crypto from "crypto"
 import { emitBookingUpdated } from "@/lib/bookingEvents"
 import { auth } from "@/lib/auth"
+import { applyCommissionSplit } from "@/lib/commissionSplit"
 
 
 
@@ -54,17 +55,14 @@ export async function POST(req: Request) {
     )
   }
 
-  /* SPLIT CALCULATION */
-
-  const origFare = booking.originalFare || booking.fare;
-  const partnerAmount = origFare * 0.90;
-  const adminCommission = booking.fare - partnerAmount;
+  /* SPLIT CALCULATION — always use the actual paid fare (post-discount) */
+  const { partnerAmount, adminCommission } = applyCommissionSplit(booking.fare);
 
   booking.paymentStatus = "paid"
   booking.status = "confirmed"
 
-  booking.adminCommission = Math.round(adminCommission * 100) / 100
-  booking.partnerAmount = Math.round(partnerAmount * 100) / 100
+  booking.adminCommission = adminCommission
+  booking.partnerAmount = partnerAmount
 
   await booking.save()
 
@@ -75,8 +73,8 @@ export async function POST(req: Request) {
   })
 
   return Response.json({
-    success:true,
+    success: true,
     adminCommission,
-    partnerAmount
+    partnerAmount,
   })
 }
