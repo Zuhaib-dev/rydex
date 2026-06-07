@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, CheckCheck, Clock, ChevronDown, Sparkles, X } from "lucide-react";
 import axios from "axios";
 import { getSocket } from "@/lib/socket";
+import { playNotificationSound, triggerHapticFeedback } from "@/lib/chatEffects";
 
 interface Message {
   _id?: string;
@@ -20,6 +21,8 @@ interface RideChatProps {
   driverName?: string;
   userName?: string;
   rideId: string;
+  chatOpen?: boolean;
+  onNewMessage?: (msg: Message) => void;
 }
 
 const AI_SUGGESTIONS = [
@@ -34,6 +37,8 @@ export default function RideChat({
   rideId,
   driverName = "Driver",
   userName = "Passenger",
+  chatOpen = false,
+  onNewMessage,
 }: RideChatProps) {
   const [messages, setMessages]       = useState<Message[]>([]);
   const [input, setInput]             = useState("");
@@ -80,16 +85,25 @@ export default function RideChat({
     socket.on("connect", joinRoom);
     
     socket.on("chat-message", (message: Message) => {
+      let wasAdded = false;
       setMessages(prev => {
         // Prevent duplicate messages on the sender's UI
         const isDuplicate = prev.some(
           m => (message._id && m._id === message._id) || (message.id && m.id === message.id)
         );
         if (isDuplicate) return prev;
+        wasAdded = true;
         return [...prev, message];
       });
 
       if (message.sender !== currentRole) {
+        setTimeout(() => {
+          if (wasAdded) {
+            playNotificationSound("receive");
+            triggerHapticFeedback();
+            onNewMessage?.(message);
+          }
+        }, 0);
         // Since chat is active/open, immediately mark incoming message as read
         socket.emit("chat-read", { rideId, sender: currentRole });
         void axios.post(`/api/chat/read`, { rideId });
@@ -119,6 +133,14 @@ export default function RideChat({
       socket.off("chat-typing");
     };
   }, [rideId, currentRole]);
+
+  useEffect(() => {
+    if (chatOpen) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 80);
+    }
+  }, [chatOpen]);
 
   const handleInputChange = (val: string) => {
     setInput(val);
@@ -156,6 +178,7 @@ export default function RideChat({
     setMessages(prev => [...prev, tempMessage]);
     setInput("");
     setShowAI(false);
+    playNotificationSound("send");
 
     try {
       const res = await axios.post("/api/chat/send", {
