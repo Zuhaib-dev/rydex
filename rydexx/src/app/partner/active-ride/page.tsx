@@ -179,6 +179,24 @@ export default function DriverRidePage() {
 
   /* Chat & Sheet */
   const [chatOpen, setChatOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const originalTitle = document.title || "Active Ride | Rydex";
+    const updateTitle = () => {
+      if (document.visibilityState === "hidden" && unreadCount > 0) {
+        document.title = `(${unreadCount}) New Message | Rydex`;
+      } else {
+        document.title = originalTitle;
+      }
+    };
+    updateTitle();
+    document.addEventListener("visibilitychange", updateTitle);
+    return () => {
+      document.title = originalTitle;
+      document.removeEventListener("visibilitychange", updateTitle);
+    };
+  }, [unreadCount]);
   const [expanded, setExpanded] = useState(false);
   const [realtimeToast, setRealtimeToast] = useState<
     (RealtimeToast & { id: number }) | null
@@ -583,7 +601,17 @@ export default function DriverRidePage() {
     sendingPickupOtp,
     sendingDropOtp,
     chatOpen,
-    onChatToggle: () => canChat && setChatOpen((v) => !v),
+    unreadCount,
+    setUnreadCount,
+    setRealtimeToast,
+    onChatToggle: () => {
+      if (!canChat) return;
+      setChatOpen((v) => {
+        const next = !v;
+        if (next) setUnreadCount(0);
+        return next;
+      });
+    },
   };
 
   return (
@@ -1008,6 +1036,9 @@ function PanelContent({
   canChat,
   displayEta,
   chatOpen,
+  unreadCount,
+  setUnreadCount,
+  setRealtimeToast,
   onChatToggle,
 }: any) {
   return (
@@ -1100,10 +1131,15 @@ function PanelContent({
               {canChat && (
                 <button
                   onClick={onChatToggle}
-                  className={`flex-1 flex items-center justify-center gap-2 active:scale-[0.97] transition-all py-3 rounded-xl text-sm font-semibold ${chatOpen ? "bg-zinc-200 text-zinc-900" : "bg-zinc-900 hover:bg-zinc-800 text-white"}`}
+                  className={`relative flex-1 flex items-center justify-center gap-2 active:scale-[0.97] transition-all py-3 rounded-xl text-sm font-semibold ${chatOpen ? "bg-zinc-200 text-zinc-900" : "bg-zinc-900 hover:bg-zinc-800 text-white"}`}
                 >
                   <MessageCircle size={15} />
                   {chatOpen ? "Close Chat" : "Message"}
+                  {!chatOpen && unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white shadow-md">
+                      {unreadCount}
+                    </span>
+                  )}
                 </button>
               )}
             </div>
@@ -1112,26 +1148,36 @@ function PanelContent({
       )}
 
       {/* CHAT — confirmed only */}
-      <AnimatePresence>
-        {chatOpen && canChat && (
-          <motion.div
-            key="chat"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            className="mx-5 lg:mx-6 overflow-hidden"
-          >
-            <div className="rounded-2xl overflow-hidden border border-zinc-100 h-115">
-              <RideChat
-                currentRole="driver"
-                rideId={booking._id}
-                userName={(booking?.user as any)?.name}
-              />
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {canChat && (
+        <motion.div
+          animate={{
+            height: chatOpen ? "auto" : 0,
+            opacity: chatOpen ? 1 : 0,
+            marginBottom: chatOpen ? 12 : 0,
+          }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="mx-5 lg:mx-6 overflow-hidden"
+        >
+          <div className="rounded-2xl overflow-hidden border border-zinc-100 h-115">
+            <RideChat
+              currentRole="driver"
+              rideId={booking._id}
+              userName={(booking?.user as any)?.name}
+              chatOpen={chatOpen}
+              onNewMessage={(msg) => {
+                if (!chatOpen) {
+                  setUnreadCount((prev: number) => prev + 1);
+                  setRealtimeToast({
+                    message: `New message: "${msg.text}"`,
+                    type: "info",
+                    id: Date.now(),
+                  });
+                }
+              }}
+            />
+          </div>
+        </motion.div>
+      )}
 
       {/* VEHICLE CARD */}
       {booking?.vehicle && (
