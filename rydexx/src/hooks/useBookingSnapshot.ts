@@ -21,10 +21,12 @@ export type ClientBookingSnapshot = {
     vehicleType: string;
     vehicleId: string;
     pricingVersion: string;
+    surgeMultiplier?: number;
   };
   passengers?: number;
   notes?: string;
   scheduledAt?: string;
+  surgeMultiplier?: number;
 };
 
 export function useBookingSnapshot(quoteId: string | null) {
