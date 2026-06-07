@@ -3,6 +3,11 @@ import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import { NextRequest, NextResponse } from "next/server";
 
+/** Escape special regex characters to prevent ReDoS (SEC-010) */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 export async function GET(request: NextRequest) {
   try {
     await connectDb();
@@ -16,16 +21,18 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get("role") || "";
     const status = searchParams.get("status") || ""; // 'blocked' or 'active'
     const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "10", 10), 100); // cap at 100
     const skip = (page - 1) * limit;
 
-    const query: any = {};
+    const query: Record<string, unknown> = {};
 
     if (search) {
+      // SEC-010 FIX: Escape user input before building a regex to prevent ReDoS
+      const safeSearch = escapeRegex(search.slice(0, 100)); // also cap length
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { mobileNumber: { $regex: search, $options: "i" } },
+        { name: { $regex: safeSearch, $options: "i" } },
+        { email: { $regex: safeSearch, $options: "i" } },
+        { mobileNumber: { $regex: safeSearch, $options: "i" } },
       ];
     }
 
@@ -44,7 +51,8 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .select("-password -otp -otpExpiryAt -otpAttempts") // Exclude sensitive fields
+      // SEC-012 FIX: Also exclude socketId — it can be used to target users via /emit
+      .select("-password -otp -otpExpiryAt -otpAttempts -socketId")
       .lean();
 
     return NextResponse.json({
@@ -64,3 +72,4 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
