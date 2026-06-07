@@ -897,34 +897,48 @@ io.on("connection", (socket: SocketWithUser) => {
   socket.on("disconnect", async () => {
     if (!socket.userId) return;
 
-    const user = await User.findById(socket.userId).select("role").lean();
-    const update: Record<string, any> = {
-      socketId: null,
-      isPartnerAvailable: false,
-    };
+    try {
+      if (mongoose.connection.readyState !== 1) {
+        return;
+      }
 
-    if (user?.role === "partner") {
-      update.isOnline = false;
-      // Remove presence key on clean disconnect
-      await redisPub.del(`presence:driver:${socket.userId}`);
-      await redisPub.zrem("driver:locations:active", socket.userId);
-    }
+      const user = await User.findById(socket.userId).select("role").lean();
+      const update: Record<string, any> = {
+        socketId: null,
+        isPartnerAvailable: false,
+      };
 
-    await User.updateOne({ _id: socket.userId }, update);
+      if (user?.role === "partner") {
+        update.isOnline = false;
+        // Remove presence key on clean disconnect
+        try {
+          await redisPub.del(`presence:driver:${socket.userId}`);
+          await redisPub.zrem("driver:locations:active", socket.userId);
+        } catch {}
+      }
 
-    await logSocketEvent(
-      "user_disconnected",
-      `User identified socket disconnected: ${socket.userId}`,
-      "info",
-      "auth",
-      socket.userId,
-      socket.userId,
-      "User"
-    );
+      if (mongoose.connection.readyState === 1) {
+        await User.updateOne({ _id: socket.userId }, update);
 
-    if (user?.role === "partner") {
-      notifyAdminMapThrottled();
-      notifyPublicAvailabilityThrottled("disconnect");
+        await logSocketEvent(
+          "user_disconnected",
+          `User identified socket disconnected: ${socket.userId}`,
+          "info",
+          "auth",
+          socket.userId,
+          socket.userId,
+          "User"
+        );
+      }
+
+      if (user?.role === "partner") {
+        notifyAdminMapThrottled();
+        notifyPublicAvailabilityThrottled("disconnect");
+      }
+    } catch (err: any) {
+      if (err.message !== "Client must be connected before running operations") {
+        console.error("[disconnect] Error during user socket cleanup:", err);
+      }
     }
   });
 });
