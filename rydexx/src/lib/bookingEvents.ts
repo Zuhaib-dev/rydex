@@ -80,7 +80,10 @@ async function dispatchBookingEvent(
   ]);
 
   const status = data.status ? String(data.status) : undefined;
-  const scope = status || data.sosTriggered ? "all" : "map";
+  // REFACTOR-002 FIX: Add explicit parentheses to fix operator precedence.
+  // Without them: `status || data.sosTriggered ? "all" : "map"` is parsed as
+  // `status || (data.sosTriggered ? "all" : "map")` — always "map" when status is set.
+  const scope = (status || data.sosTriggered) ? "all" : "map";
 
   await notifyAdminDashboard({
     scope,
