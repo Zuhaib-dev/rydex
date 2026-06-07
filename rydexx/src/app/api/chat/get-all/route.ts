@@ -61,6 +61,7 @@ export async function POST(req: Request) {
           rideId: String(msg.rideId),
           text: msg.text,
           sender: msg.sender,
+          status: msg.status || "sent",
           createdAt: msg.createdAt,
         }));
       }
