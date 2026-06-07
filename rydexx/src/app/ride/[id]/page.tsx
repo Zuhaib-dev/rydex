@@ -318,6 +318,8 @@ export default function RidePage() {
     bookingId: id as string | undefined,
     enabled: Boolean(id && booking),
     initialDriverLocation: driverInitialLoc,
+    driverId: booking?.driver?._id,
+    status: booking?.status,
   });
 
   useBookingRealtime<BookingDetails>({
