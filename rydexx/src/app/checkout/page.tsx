@@ -59,6 +59,7 @@ function CheckoutContent() {
   const fare = snapshot?.fare ?? 0;
   const tripDistanceKm = snapshot?.tripDistanceKm ?? 0;
   const durationMinutes = snapshot?.durationMinutes ?? 0;
+  const surgeMultiplier = snapshot?.surgeMultiplier ?? 1;
 
   const VehicleIcon = VEHICLE_ICONS[vehicle.toLowerCase()] || Car;
 
@@ -368,6 +369,19 @@ function CheckoutContent() {
                   <VehicleIcon size={28} className="text-white" />
                 </div>
               </div>
+
+              {/* Surge Pricing Banner */}
+              {surgeMultiplier > 1 && (
+                <div className="mb-8 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center text-white shrink-0 animate-pulse">
+                    <span className="font-bold text-sm">⚡</span>
+                  </div>
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-wider text-amber-600">Surge Pricing Active</p>
+                    <p className="text-[11px] font-semibold text-amber-500/80">Fares are slightly higher due to high demand in your area ({surgeMultiplier}x multiplier).</p>
+                  </div>
+                </div>
+              )}
 
               {/* Route */}
               <div className="bg-zinc-50 border border-zinc-100 rounded-2xl overflow-hidden mb-8">
