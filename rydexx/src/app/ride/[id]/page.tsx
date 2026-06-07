@@ -152,6 +152,12 @@ const STATUS_CONFIG: Record<
     dot: "bg-orange-400",
     mapStatus: "completed",
   },
+  scheduled: {
+    label: "Scheduled",
+    sublabel: "Your ride is scheduled for later",
+    dot: "bg-blue-400",
+    mapStatus: "arriving",
+  },
 };
 
 const PAYMENT_LABEL: Record<PaymentStatus, { label: string; cls: string }> = {
