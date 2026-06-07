@@ -51,6 +51,7 @@ beforeAll(async () => {
   const uri = mongoServer.getUri();
   process.env.MONGODB_URL = uri;
   process.env.NODE_ENV = "test";
+  process.env.SOCKET_INTERNAL_SECRET = "test-socket-secret-key-123456";
   
   // 2. Dynamically import server and models after environment setup
   const indexMod = await import("../index.js");
