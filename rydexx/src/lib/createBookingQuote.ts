@@ -13,6 +13,7 @@ import {
 } from "@/lib/bookingSnapshot";
 import type { LngLat } from "@/lib/matching/geo";
 import { tripDistanceKmFromCoords } from "@/lib/fare";
+import { getSurgeMultiplier } from "@/lib/surgeCheck";
 
 type CreateQuoteInput = {
   userId: string;
@@ -84,7 +85,15 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
   );
 
   const baseFareValue = calculateTripFare(vehicle, tripDistanceKm);
-  let fare = baseFareValue;
+
+  // ── Surge pricing check ───────────────────────────────────────
+  // Query active surge zones at the pickup point. Returns 1.0 if no zone matches.
+  const surgeMultiplier = await getSurgeMultiplier(input.pickupLat, input.pickupLng);
+  const surgedFareValue = surgeMultiplier > 1
+    ? Math.round(baseFareValue * surgeMultiplier)
+    : baseFareValue;
+
+  let fare = surgedFareValue;
   let discount = 0;
   let appliedPromo: string | undefined = undefined;
 
@@ -96,22 +105,22 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
         (id: any) => id.toString() === input.userId
       );
       const underLimit = coupon.usageLimit === undefined || coupon.usedCount < coupon.usageLimit;
-      const minAmountMet = !coupon.minBookingAmount || baseFareValue >= coupon.minBookingAmount;
+      const minAmountMet = !coupon.minBookingAmount || surgedFareValue >= coupon.minBookingAmount;
 
       if (!hasUsed && underLimit && minAmountMet) {
         appliedPromo = coupon.code;
         if (coupon.discountType === "flat") {
           discount = coupon.discountValue;
         } else if (coupon.discountType === "percentage") {
-          discount = (baseFareValue * coupon.discountValue) / 100;
+          discount = (surgedFareValue * coupon.discountValue) / 100;
           if (coupon.maxDiscount && discount > coupon.maxDiscount) {
             discount = coupon.maxDiscount;
           }
         }
-        if (discount > baseFareValue) {
-          discount = baseFareValue;
+        if (discount > surgedFareValue) {
+          discount = surgedFareValue;
         }
-        fare = baseFareValue - discount;
+        fare = surgedFareValue - discount;
         fare = Math.round(fare * 100) / 100;
         discount = Math.round(discount * 100) / 100;
       }
@@ -124,6 +133,7 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
     vehicleType: String(vehicle.type),
     vehicleId: String(vehicle._id),
     pricingVersion: PRICING_VERSION,
+    surgeMultiplier,
   };
 
   const snapshot: BookingSnapshot = {
