@@ -31,6 +31,7 @@ export interface IUser extends Document {
   activeVehicle?: any;
   vehicleLastActivatedAt?: Date;
   lastLocationAt?: Date;
+  lastLocationUpdate?: Date;
   currentVehicleType?: string;
   partnerStatus:"pending" | "approved" | "rejected";
   ratingAverage: number;
@@ -142,6 +143,10 @@ const userSchema = new mongoose.Schema<IUser>(
       default:null
     },
     lastLocationAt:{
+      type:Date,
+      index:true,
+    },
+    lastLocationUpdate:{
       type:Date,
       index:true,
     },
