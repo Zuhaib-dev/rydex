@@ -51,6 +51,7 @@ export async function POST(req: Request) {
       rideId,
       text: msg.text,
       sender: msg.sender,
+      status: msg.status || "sent",
       createdAt: msg.createdAt,
     }));
     // Refresh TTL on every new message — 24h from last activity

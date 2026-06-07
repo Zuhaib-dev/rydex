@@ -16,6 +16,13 @@ const ChatMessageSchema = new mongoose.Schema(
  text:{
   type:String,
   required:true
+ },
+
+ status:{
+  type:String,
+  enum:["sent","delivered","read"],
+  default:"sent",
+  required:true
  }
 
 },
