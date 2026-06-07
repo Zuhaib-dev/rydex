@@ -23,15 +23,24 @@ export async function POST(req: Request) {
     razorpay_signature
   } = await req.json()
 
-  const body = razorpay_order_id + "|" + razorpay_payment_id
+  const secretKey = process.env.RAZORPAY_KEY_SECRET;
+  if (!secretKey) {
+    console.error("[verify-payment] RAZORPAY_KEY_SECRET is not configured in the environment.");
+    return Response.json(
+      { success: false, message: "Payment verification service is misconfigured." },
+      { status: 500 }
+    );
+  }
+
+  const body = razorpay_order_id + "|" + razorpay_payment_id;
 
   const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
+    .createHmac("sha256", secretKey)
     .update(body)
-    .digest("hex")
+    .digest("hex");
 
   if (expectedSignature !== razorpay_signature) {
-    return Response.json({ success:false, message:"Invalid signature" })
+    return Response.json({ success: false, message: "Invalid signature" });
   }
 
   const booking = await Booking.findById(bookingId).populate("driver vehicle")

@@ -208,6 +208,8 @@ describe("WebSocket Realtime Integration Tests", () => {
           _id: bookingId,
           driver: driverId,
         },
+      }, {
+        headers: { "x-socket-secret": process.env.SOCKET_INTERNAL_SECRET || "" }
       });
 
       expect(response.data.success).toBe(true);
@@ -359,6 +361,8 @@ describe("WebSocket Realtime Integration Tests", () => {
               userId: testUser._id.toString(),
               event: "blocked",
               data: { message: "Your account is suspended." }
+            }, {
+              headers: { "x-socket-secret": process.env.SOCKET_INTERNAL_SECRET || "" }
             });
 
             // Verify client was disconnected

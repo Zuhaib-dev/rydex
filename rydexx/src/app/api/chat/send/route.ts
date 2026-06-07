@@ -18,7 +18,10 @@ export async function POST(req: Request) {
 
   const { rideId, text } = await req.json();
   const normalizedText = typeof text === "string" ? text.trim() : "";
-  if (!rideId || !normalizedText) {
+  // Sanitize message by stripping HTML tags to prevent XSS (SEC-006)
+  const sanitizedText = normalizedText.replace(/<\/?[^>]+(>|$)/g, "");
+
+  if (!rideId || !sanitizedText) {
     return NextResponse.json(
       { message: "rideId and text are required" },
       { status: 400 },
@@ -39,7 +42,7 @@ export async function POST(req: Request) {
   const sender = isDriver ? "driver" : "user";
   const msg = await ChatMessage.create({
     rideId,
-    text: normalizedText,
+    text: sanitizedText,
     sender,
   });
 

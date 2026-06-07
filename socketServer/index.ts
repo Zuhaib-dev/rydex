@@ -421,8 +421,8 @@ if (!process.env.SOCKET_INTERNAL_SECRET) {
 function requireSocketSecret(req: Request, res: Response, next: NextFunction) {
   const secret = process.env.SOCKET_INTERNAL_SECRET;
   if (!secret) {
-    // No secret configured — allow through but log that this is insecure
-    next();
+    console.error("[socket] SOCKET_INTERNAL_SECRET is not configured in the environment! Access denied.");
+    res.status(500).json({ success: false, message: "Server misconfigured" });
     return;
   }
 
@@ -723,13 +723,13 @@ io.on("connection", (socket: SocketWithUser) => {
   });
 
   socket.on("join-booking", (bookingId: string) => {
-    if (!bookingId) return;
+    if (!bookingId || typeof bookingId !== "string" || !/^[0-9a-fA-F]{24}$/.test(bookingId)) return;
     console.log("joining room:", `booking-${bookingId}`);
     socket.join(`booking-${bookingId}`);
   });
 
   socket.on("leave-booking", (bookingId: string) => {
-    if (!bookingId) return;
+    if (!bookingId || typeof bookingId !== "string" || !/^[0-9a-fA-F]{24}$/.test(bookingId)) return;
     socket.leave(`booking-${bookingId}`);
   });
 
