@@ -68,12 +68,27 @@ export default function RideChat({
   useEffect(() => {
     const socket = getSocket();
     
-    // Join the booking room for this specific ride and notify we read it
-    socket.emit("join-booking", rideId);
-    socket.emit("chat-read", { rideId, sender: currentRole });
+    const joinRoom = () => {
+      socket.emit("join-booking", rideId);
+      socket.emit("chat-read", { rideId, sender: currentRole });
+    };
+
+    if (socket.connected) {
+      joinRoom();
+    }
+    
+    socket.on("connect", joinRoom);
     
     socket.on("chat-message", (message: Message) => {
-      setMessages(prev => [...prev, message]);
+      setMessages(prev => {
+        // Prevent duplicate messages on the sender's UI
+        const isDuplicate = prev.some(
+          m => (message._id && m._id === message._id) || (message.id && m.id === message.id)
+        );
+        if (isDuplicate) return prev;
+        return [...prev, message];
+      });
+
       if (message.sender !== currentRole) {
         // Since chat is active/open, immediately mark incoming message as read
         socket.emit("chat-read", { rideId, sender: currentRole });
@@ -98,6 +113,7 @@ export default function RideChat({
     });
 
     return () => { 
+      socket.off("connect", joinRoom);
       socket.off("chat-message"); 
       socket.off("chat-read");
       socket.off("chat-typing");
@@ -128,17 +144,39 @@ export default function RideChat({
     setIsMeTyping(false);
     socket.emit("chat-typing", { rideId, sender: currentRole, isTyping: false });
 
-    const res = await axios.post("/api/chat/send", {
-      rideId,
-      text,
+    // Append temporary message for instant local UI rendering
+    const tempId = `temp-${Date.now()}`;
+    const tempMessage: Message = {
+      id: tempId,
+      text: text.trim(),
       sender: currentRole,
-    });
-
-    const message = res.data.message;
-    socket.emit("chat-message", message);
-   
+      createdAt: new Date().toISOString(),
+      status: "sent",
+    };
+    setMessages(prev => [...prev, tempMessage]);
     setInput("");
     setShowAI(false);
+
+    try {
+      const res = await axios.post("/api/chat/send", {
+        rideId,
+        text,
+        sender: currentRole,
+      });
+
+      const message = res.data.message;
+      
+      // Replace temporary message with the actual database-persisted message
+      setMessages(prev =>
+        prev.map(m => (m.id === tempId ? message : m))
+      );
+
+      socket.emit("chat-message", message);
+    } catch (err) {
+      console.error("Failed to send message:", err);
+      // Remove temporary message on failure
+      setMessages(prev => prev.filter(m => m.id !== tempId));
+    }
   };
 
   const handleScroll = () => {
