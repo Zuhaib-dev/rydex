@@ -63,8 +63,9 @@ export function useRideSocket({
       }
     };
 
-    if (socket.connected) handleConnect();
-    else setConnectionStatus("connecting");
+    if (socket.connected) {
+      handleConnect();
+    }
 
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
