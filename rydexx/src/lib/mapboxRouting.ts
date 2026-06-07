@@ -4,6 +4,8 @@
  */
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+const ORS_TOKEN = process.env.NEXT_PUBLIC_OPENROUTE_TOKEN;
+const USE_ORS = process.env.NEXT_PUBLIC_USE_OPENROUTE === "true";
 
 /** Approximate J&K / Kashmir operational bounds */
 export const KASHMIR_BOUNDS = {
@@ -36,9 +38,9 @@ export function isInKashmir(lat: number, lng: number): boolean {
   );
 }
 
-function routeTouchesKashmir(coords: LatLng[]): boolean {
+const routeTouchesKashmir = (coords: LatLng[]): boolean => {
   return coords.some(([lat, lng]) => isInKashmir(lat, lng));
-}
+};
 
 function toCoordString(coords: LatLng[]): string {
   return coords.map(([lat, lng]) => `${lng},${lat}`).join(";");
@@ -61,9 +63,53 @@ export async function fetchDrivingRoute(
   waypoints: LatLng[],
   options?: { signal?: AbortSignal },
 ): Promise<RouteResult | null> {
-  if (!MAPBOX_TOKEN || waypoints.length < 2) return null;
+  if (waypoints.length < 2) return null;
 
   const kashmirAdjusted = routeTouchesKashmir(waypoints);
+
+  // 1. Try OpenRouteService if enabled
+  if (USE_ORS && ORS_TOKEN) {
+    const start = waypoints[0];
+    const end = waypoints[waypoints.length - 1];
+
+    // ORS takes coordinates in [longitude, latitude] format
+    const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_TOKEN}&start=${start[1]},${start[0]}&end=${end[1]},${end[0]}`;
+
+    try {
+      const res = await fetch(url, { signal: options?.signal });
+      if (res.ok) {
+        const data = await res.json();
+        const feature = data?.features?.[0];
+        if (feature) {
+          const rawDuration = feature.properties.summary.duration as number;
+          const distanceMeters = feature.properties.summary.distance as number;
+          const adjustedDuration = kashmirAdjusted
+            ? rawDuration * KASHMIR_DURATION_FACTOR
+            : rawDuration;
+
+          return {
+            geometry: feature.geometry,
+            distanceMeters,
+            durationSeconds: adjustedDuration,
+            durationMinutes: adjustedDuration / 60,
+            distanceKm: distanceMeters / 1000,
+            kashmirAdjusted,
+          };
+        }
+      } else {
+        console.warn("OpenRouteService request failed with status:", res.status);
+      }
+    } catch (err) {
+      if ((err as Error).name !== "AbortError") {
+        console.warn("OpenRouteService routing failed, falling back to Mapbox:", err);
+      } else {
+        return null;
+      }
+    }
+  }
+
+  // 2. Mapbox Fallback (Default)
+  if (!MAPBOX_TOKEN) return null;
   const coordStr = toCoordString(waypoints);
 
   const params = new URLSearchParams({
