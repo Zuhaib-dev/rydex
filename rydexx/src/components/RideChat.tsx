@@ -22,8 +22,6 @@ interface RideChatProps {
   rideId: string;
 }
 
-const QUICK_REPLIES = ["On my way!", "5 mins away", "At the gate", "Please wait", "Almost there"];
-
 const AI_SUGGESTIONS = [
   "I'm stuck in traffic, will be 10 mins late.",
   "Please share your exact location.",
@@ -43,8 +41,15 @@ export default function RideChat({
   const [showScrollBtn, setShowScrollBtn] = useState(false);
   const [showAI, setShowAI]           = useState(false);
 
+  const [isMeTyping, setIsMeTyping]   = useState(false);
+  const typingTimeoutRef              = useRef<NodeJS.Timeout | null>(null);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const containerRef   = useRef<HTMLDivElement>(null);
+
+  const QUICK_REPLIES = currentRole === "driver"
+    ? ["I have arrived", "Traffic is heavy, be there in 5m", "I'm waiting at the pickup point", "Almost there", "Please come outside"]
+    : ["I'm coming", "Please wait, 2 mins", "Where exactly are you?", "Ok, noted!", "At the gate"];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -53,24 +58,75 @@ export default function RideChat({
   useEffect(() => {
     axios
       .post(`/api/chat/get-all`, { rideId })
-      .then(res => setMessages(res.data.messages));
-  }, []);
+      .then(res => {
+        setMessages(res.data.messages);
+        // Mark all loaded opposite-sender messages as read in database
+        void axios.post(`/api/chat/read`, { rideId });
+      });
+  }, [rideId]);
 
   useEffect(() => {
     const socket = getSocket();
     
-    // Join the booking room for this specific ride
+    // Join the booking room for this specific ride and notify we read it
     socket.emit("join-booking", rideId);
+    socket.emit("chat-read", { rideId, sender: currentRole });
     
     socket.on("chat-message", (message: Message) => {
       setMessages(prev => [...prev, message]);
+      if (message.sender !== currentRole) {
+        // Since chat is active/open, immediately mark incoming message as read
+        socket.emit("chat-read", { rideId, sender: currentRole });
+        void axios.post(`/api/chat/read`, { rideId });
+      }
     });
-    return () => { socket.off("chat-message"); };
-  }, [rideId]);
+
+    socket.on("chat-read", (data: { sender: string }) => {
+      if (data.sender !== currentRole) {
+        setMessages(prev =>
+          prev.map(msg =>
+            msg.sender === currentRole ? { ...msg, status: "read" } : msg
+          )
+        );
+      }
+    });
+
+    socket.on("chat-typing", (data: { sender: string; isTyping: boolean }) => {
+      if (data.sender !== currentRole) {
+        setIsTyping(data.isTyping);
+      }
+    });
+
+    return () => { 
+      socket.off("chat-message"); 
+      socket.off("chat-read");
+      socket.off("chat-typing");
+    };
+  }, [rideId, currentRole]);
+
+  const handleInputChange = (val: string) => {
+    setInput(val);
+    const socket = getSocket();
+
+    if (!isMeTyping && val.trim().length > 0) {
+      setIsMeTyping(true);
+      socket.emit("chat-typing", { rideId, sender: currentRole, isTyping: true });
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsMeTyping(false);
+      socket.emit("chat-typing", { rideId, sender: currentRole, isTyping: false });
+    }, 2000);
+  };
 
   const sendMessage = async (text: string) => {
     const socket = getSocket();
     if (!text.trim()) return;
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    setIsMeTyping(false);
+    socket.emit("chat-typing", { rideId, sender: currentRole, isTyping: false });
 
     const res = await axios.post("/api/chat/send", {
       rideId,
@@ -205,9 +261,17 @@ export default function RideChat({
                       <span>{formatTime(msg.createdAt)}</span>
                       {isMine && (
                         <>
-                          {msg.status === "sent"      && <Clock size={9} />}
+                          {(msg.status === "sent" || !msg.status) && <Clock size={9} />}
                           {msg.status === "delivered" && <CheckCheck size={10} className="text-zinc-500" />}
-                          {msg.status === "read"      && <CheckCheck size={10} className="text-emerald-400" />}
+                          {msg.status === "read" && (
+                            <motion.span
+                              initial={{ scale: 0.7, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ duration: 0.25, type: "spring", stiffness: 200 }}
+                            >
+                              <CheckCheck size={10} className="text-emerald-400" />
+                            </motion.span>
+                          )}
                         </>
                       )}
                     </div>
@@ -348,7 +412,7 @@ export default function RideChat({
           <input
             type="text"
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => handleInputChange(e.target.value)}
             onKeyDown={e => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
             placeholder="Message…"
             className="flex-1 bg-transparent text-sm text-zinc-900 placeholder:text-zinc-400 focus:outline-none py-1.5 min-w-0"
