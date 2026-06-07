@@ -56,7 +56,80 @@ export async function fetchDrivingRoute(
   const start = waypoints[0];
   const end = waypoints[waypoints.length - 1];
 
-  // Request the Next.js API route proxy to resolve client-side CORS issues and limit API rate hit storms
+  // Server-side environment check to prevent relative URL fetch errors
+  if (typeof window === "undefined") {
+    try {
+      const startLat = start[0];
+      const startLng = start[1];
+      const endLat = end[0];
+      const endLng = end[1];
+
+      const kashmirAdjusted = isInKashmir(startLat, startLng) || isInKashmir(endLat, endLng);
+      
+      const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+      const ORS_TOKEN = process.env.NEXT_PUBLIC_OPENROUTE_TOKEN;
+      const USE_ORS = process.env.NEXT_PUBLIC_USE_OPENROUTE === "true";
+
+      // 1. Try OpenRouteService if enabled
+      if (USE_ORS && ORS_TOKEN) {
+        const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_TOKEN}&start=${startLng},${startLat}&end=${endLng},${endLat}`;
+        const res = await fetch(url, { signal: options?.signal });
+        if (res.ok) {
+          const data = await res.json();
+          const feature = data?.features?.[0];
+          if (feature) {
+            const rawDuration = feature.properties.summary.duration as number;
+            const distanceMeters = feature.properties.summary.distance as number;
+            const adjustedDuration = kashmirAdjusted ? rawDuration * KASHMIR_DURATION_FACTOR : rawDuration;
+
+            return {
+              geometry: feature.geometry,
+              distanceMeters,
+              durationSeconds: adjustedDuration,
+              durationMinutes: adjustedDuration / 60,
+              distanceKm: distanceMeters / 1000,
+              kashmirAdjusted,
+            };
+          }
+        }
+      }
+
+      // 2. Fall back to Mapbox
+      if (MAPBOX_TOKEN) {
+        const coordStr = `${startLng},${startLat};${endLng},${endLat}`;
+        const params = new URLSearchParams({
+          geometries: "geojson",
+          overview: "full",
+          steps: "false",
+          access_token: MAPBOX_TOKEN,
+        });
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordStr}?${params}`;
+        const res = await fetch(url, { signal: options?.signal });
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.routes?.length) {
+            const route = data.routes[0];
+            const rawDuration = route.duration as number;
+            const adjustedDuration = kashmirAdjusted ? rawDuration * KASHMIR_DURATION_FACTOR : rawDuration;
+
+            return {
+              geometry: route.geometry,
+              distanceMeters: route.distance,
+              durationSeconds: adjustedDuration,
+              durationMinutes: adjustedDuration / 60,
+              distanceKm: route.distance / 1000,
+              kashmirAdjusted,
+            };
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("[fetchDrivingRoute] Direct server-side routing query failed:", err);
+    }
+    return null;
+  }
+
+  // Client-side calls the API proxy to avoid CORS problems
   const url = `/api/routing/directions?start=${start[0]},${start[1]}&end=${end[0]},${end[1]}`;
 
   try {

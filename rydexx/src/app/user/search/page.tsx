@@ -69,6 +69,12 @@ function estimateRoadKm(
     return null;
   }
 
+  // Kashmir bounding box coordinates alignment
+  const isInKashmir = (lat: number, lng: number) =>
+    lat >= 32.15 && lat <= 35.55 && lng >= 73.05 && lng <= 80.15;
+
+  const factor = isInKashmir(pickupLat, pickupLng) || isInKashmir(dropLat, dropLng) ? 1.35 : 1.15;
+
   const toRad = (value: number) => (value * Math.PI) / 180;
   const earthMeters = 6371000;
   const dLat = toRad(dropLat - pickupLat);
@@ -79,7 +85,7 @@ function estimateRoadKm(
       Math.cos(toRad(dropLat)) *
       Math.sin(dLng / 2) ** 2;
   const straightMeters = 2 * earthMeters * Math.asin(Math.sqrt(a));
-  return Math.round(((straightMeters * 1.15) / 1000) * 100) / 100;
+  return Math.round(((straightMeters * factor) / 1000) * 100) / 100;
 }
 
 function SearchContent() {
