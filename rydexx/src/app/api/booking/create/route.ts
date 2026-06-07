@@ -31,7 +31,20 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { quoteId, mobileNumber, driverId: overrideDriverId } = body;
+  const { quoteId, mobileNumber: rawMobile, driverId: overrideDriverId } = body;
+
+  // BUG-015 FIX: Validate and sanitise mobileNumber before storing
+  let mobileNumber: string | undefined;
+  if (rawMobile !== undefined) {
+    const digits = String(rawMobile).replace(/\D/g, "").slice(0, 15);
+    if (digits.length < 7 || digits.length > 15) {
+      return NextResponse.json(
+        { message: "Invalid mobile number format" },
+        { status: 400 },
+      );
+    }
+    mobileNumber = digits;
+  }
 
   if (!quoteId) {
     return NextResponse.json(
