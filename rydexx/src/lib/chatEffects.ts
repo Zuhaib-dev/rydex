@@ -1,4 +1,4 @@
-export function playNotificationSound(type: "send" | "receive") {
+export function playNotificationSound(type: "send" | "receive" | "request") {
   if (typeof window === "undefined") return;
   try {
     const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
@@ -20,7 +20,7 @@ export function playNotificationSound(type: "send" | "receive") {
       gain.connect(audioCtx.destination);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.08);
-    } else {
+    } else if (type === "receive") {
       // Double ping (receive sound)
       // First ping
       const osc1 = audioCtx.createOscillator();
@@ -45,6 +45,24 @@ export function playNotificationSound(type: "send" | "receive") {
       gain2.connect(audioCtx.destination);
       osc2.start(audioCtx.currentTime + 0.06);
       osc2.stop(audioCtx.currentTime + 0.2);
+    } else if (type === "request") {
+      // Pleasant triple-ping for ride requests (higher urgency but premium feel)
+      const playPing = (freq: number, delay: number, duration: number) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + delay);
+        osc.stop(audioCtx.currentTime + delay + duration);
+      };
+
+      playPing(520, 0, 0.12);
+      playPing(650, 0.08, 0.12);
+      playPing(780, 0.16, 0.25);
     }
   } catch (e) {
     console.warn("[chatEffects] Sound playback failed:", e);

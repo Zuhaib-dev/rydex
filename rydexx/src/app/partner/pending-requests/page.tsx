@@ -22,6 +22,7 @@ import { getSocket } from "@/lib/socket";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { MATCH_ACCEPT_TIMEOUT_MS } from "@/lib/matching/config";
+import { playNotificationSound, triggerHapticFeedback } from "@/lib/chatEffects";
 
 type DispatchMeta = {
   distanceLabel?: string;
@@ -126,11 +127,17 @@ export default function VendorPendingPage() {
     const socket = getSocket();
 
     const handleNewBooking = (booking: Booking & { dispatch?: DispatchMeta }) => {
-      setBookings((prev) =>
-        prev.some((existing) => existing._id === booking._id)
-          ? prev
-          : [{ ...booking, dispatch: booking.dispatch }, ...prev],
-      );
+      let isNew = false;
+      setBookings((prev) => {
+        const alreadyExists = prev.some((existing) => existing._id === booking._id);
+        if (alreadyExists) return prev;
+        isNew = true;
+        return [{ ...booking, dispatch: booking.dispatch }, ...prev];
+      });
+      if (isNew) {
+        playNotificationSound("request");
+        triggerHapticFeedback();
+      }
     };
 
     const handleBookingUpdated = (data: {

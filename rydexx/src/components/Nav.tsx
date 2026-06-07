@@ -30,6 +30,7 @@ import { setUserData } from "@/redux/userSlice";
 import axios from "axios";
 import { getSocket } from "@/lib/socket";
 import NotificationBell from "./NotificationBell";
+import { playNotificationSound, triggerHapticFeedback } from "@/lib/chatEffects";
 
 const NAV_ITEMS = ["Home", "Bookings", "Fleet", "FAQ", "Contact"];
 const subscribeHydration = () => () => {};
@@ -129,6 +130,10 @@ export default function Nav() {
 
     const handleNewBooking = () => {
       setTimeout(fetchCounts, 500);
+      if (pathname !== "/partner/pending-requests") {
+        playNotificationSound("request");
+        triggerHapticFeedback();
+      }
     };
 
     const handleBookingUpdated = () => {
