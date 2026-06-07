@@ -226,6 +226,41 @@ export default function DriverRidePage() {
       .finally(() => setFetchDone(true));
   }, []);
 
+  /* ── WAKE LOCK to keep screen awake ── */
+  useEffect(() => {
+    if (typeof window === "undefined" || !("wakeLock" in navigator)) return;
+    let wakeLock: any = null;
+
+    const requestWakeLock = async () => {
+      try {
+        wakeLock = await (navigator as any).wakeLock.request("screen");
+        console.log("Wake Lock active.");
+      } catch (err: any) {
+        console.warn(`Wake Lock failed: ${err.message}`);
+      }
+    };
+
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (wakeLock !== null && document.visibilityState === "visible") {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (wakeLock) {
+        wakeLock.release().then(() => {
+          wakeLock = null;
+          console.log("Wake Lock released.");
+        });
+      }
+    };
+  }, []);
+
   /* ── GPS — only for active rides, uses ref to avoid stale closure ── */
   useEffect(() => {
     if (!booking?._id) return;
@@ -233,28 +268,46 @@ export default function DriverRidePage() {
     if (!navigator.geolocation) return;
 
     const socket = getSocket();
+
+    const handlePositionUpdate = (pos: GeolocationPosition) => {
+      const b = bookingRef.current;
+      if (!b?._id || TERMINAL.includes(b.status)) return;
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      setDriverPos([lat, lng]);
+      socket.emit("driver-location-update", {
+        bookingId: b._id,
+        latitude: lat,
+        longitude: lng,
+        status: b.status,
+      });
+    };
+
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const b = bookingRef.current;
-        if (!b?._id || TERMINAL.includes(b.status)) return;
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setDriverPos([lat, lng]);
-        socket.emit("driver-location-update", {
-          bookingId: b._id,
-          latitude: lat,
-          longitude: lng,
-          status: b.status,
-        });
-      },
+      handlePositionUpdate,
       (err) => {
-        if (err.code !== err.POSITION_UNAVAILABLE) {
-          console.warn("GPS tracking unavailable:", err.message);
-        }
+        console.warn("GPS watch position error:", err.code, err.message);
       },
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 },
+      { enableHighAccuracy: true, maximumAge: 5000 },
     );
-    return () => navigator.geolocation.clearWatch(watchId);
+
+    // Fallback interval (getCurrentPosition) every 8 seconds to bypass OS suspension/throttling
+    const fallbackInterval = setInterval(() => {
+      const b = bookingRef.current;
+      if (!b?._id || TERMINAL.includes(b.status)) return;
+      navigator.geolocation.getCurrentPosition(
+        handlePositionUpdate,
+        (err) => {
+          console.warn("GPS fallback getCurrentPosition error:", err.code, err.message);
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 5000 }
+      );
+    }, 8000);
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+      clearInterval(fallbackInterval);
+    };
   }, [booking?._id, booking?.status]);
 
   useBookingRealtime<IBooking>({
