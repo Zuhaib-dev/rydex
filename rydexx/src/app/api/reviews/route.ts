@@ -7,6 +7,35 @@ import Review from "@/models/review.model";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * GET /api/reviews?bookingId=xxx
+ * Returns whether the current user has already reviewed this booking.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    await connectDb();
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
+
+    const bookingId = req.nextUrl.searchParams.get("bookingId");
+    if (!bookingId) {
+      return NextResponse.json({ message: "bookingId is required" }, { status: 400 });
+    }
+
+    const review = await Review.findOne({
+      booking: bookingId,
+      reviewer: session.user.id,
+    }).lean();
+
+    return NextResponse.json({ hasReviewed: !!review, review: review ?? null });
+  } catch (error: any) {
+    console.error("GET /api/reviews error:", error);
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     await connectDb();
@@ -108,3 +137,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Internal server error" }, { status: 500 });
   }
 }
+
