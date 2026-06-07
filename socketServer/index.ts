@@ -475,12 +475,21 @@ app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
       // ── Fallback: in-memory setTimeout (works when Redis keyspace events unavailable) ──
       const timer = setTimeout(async () => {
         try {
-          // If Redis timer is handling it, skip (prevents double-cascade)
-          const timerStillExists = redisTimerSet
-            ? await redisPub.exists(`dispatch:timer:${bookingId}`).catch(() => 0)
-            : 0;
-          if (timerStillExists) {
-            console.log(`[InMemoryTimer] Redis timer still active for ${bookingId}, deferring to Redis.`);
+          // BUG-005 FIX: Use a Redis SETNX cascade-lock to prevent double-cascade.
+          // Both the Redis expiry path and this in-memory path compete for this lock.
+          // Only one will acquire it (NX = set only if Not eXists).
+          const cascadeLockKey = `cascade:lock:${bookingId}`;
+          let lockAcquired = false;
+          try {
+            const result = await redisPub.set(cascadeLockKey, "1", "EX", 30, "NX");
+            lockAcquired = result === "OK";
+          } catch {
+            // Redis unavailable — assume lock acquired to avoid silent failure
+            lockAcquired = true;
+          }
+
+          if (!lockAcquired) {
+            console.log(`[InMemoryTimer] Cascade already handled by Redis path for ${bookingId}. Skipping.`);
             return;
           }
 
