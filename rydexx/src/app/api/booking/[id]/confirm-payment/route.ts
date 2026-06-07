@@ -33,15 +33,23 @@ export async function POST(
     );
   }
 
-  // ── Only the assigned driver may confirm a cash payment ──────
+  // ── Only the booking's user (rider) or assigned driver may call this ──
+  // The rider calls it to select cash payment; the driver calls it to confirm cash received.
   const driverDocId =
     typeof booking.driver === "object" && "_id" in booking.driver
-      ? String(booking.driver._id)
+      ? String((booking.driver as any)._id)
       : String(booking.driver);
 
-  if (driverDocId !== String(session.user.id)) {
+  const userDocId = String(booking.user);
+  const callerId = String(session.user.id);
+
+  const isRider = callerId === userDocId;
+  const isDriver = callerId === driverDocId;
+
+  if (!isRider && !isDriver) {
     return NextResponse.json({ message: "Forbidden" }, { status: 403 });
   }
+
 
   booking.status = "confirmed";
   booking.paymentStatus = method === "cash" ? "cash" : "paid";
