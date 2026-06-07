@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import Booking from "@/models/booking.model";
 import ChatMessage from "@/models/chatMessage.model";
 import { getRedisClient } from "@/lib/redis";
+import { emitToSocketServer } from "@/lib/socketServer";
 
 const CHAT_TTL_SECONDS = 86400; // 24 hours
 
@@ -42,18 +43,20 @@ export async function POST(req: Request) {
     sender,
   });
 
+  const msgPayload = {
+    _id: String(msg._id),
+    rideId,
+    text: msg.text,
+    sender: msg.sender,
+    status: msg.status || "sent",
+    createdAt: msg.createdAt,
+  };
+
   // Write-through cache: push message to Redis List for instant history retrieval
   try {
     const redis = getRedisClient();
     const cacheKey = `chat:booking:${rideId}`;
-    await redis.rpush(cacheKey, JSON.stringify({
-      _id: String(msg._id),
-      rideId,
-      text: msg.text,
-      sender: msg.sender,
-      status: msg.status || "sent",
-      createdAt: msg.createdAt,
-    }));
+    await redis.rpush(cacheKey, JSON.stringify(msgPayload));
     // Refresh TTL on every new message — 24h from last activity
     await redis.expire(cacheKey, CHAT_TTL_SECONDS);
   } catch (err) {
@@ -61,5 +64,20 @@ export async function POST(req: Request) {
     console.warn("[chat/send] Redis cache write failed (non-critical):", err);
   }
 
+  // BUG-013 FIX: Relay via socket server so the other party receives the message
+  // in real-time even if the sender's socket dropped after sending the HTTP request.
+  try {
+    await emitToSocketServer({
+      userId: String(isDriver ? booking.user : booking.driver),
+      event: "chat-message",
+      data: msgPayload,
+      bookingId: rideId,
+    });
+  } catch (err) {
+    // Non-fatal — WebSocket delivery is best-effort; message is already persisted
+    console.warn("[chat/send] Socket relay failed (non-critical):", err);
+  }
+
   return NextResponse.json({ success: true, message: msg });
 }
+
