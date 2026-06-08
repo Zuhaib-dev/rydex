@@ -55,6 +55,7 @@ beforeAll(async () => {
   process.env.NODE_ENV = "test";
   process.env.SOCKET_INTERNAL_SECRET = "test-socket-secret-key-123456";
   process.env.REDIS_URL = "redis://127.0.0.1:6379";
+  await mongoose.connect(uri);
   
   // 2. Dynamically import server and models after environment setup
   const indexMod = await import("../index.js");
