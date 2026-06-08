@@ -23,6 +23,8 @@ type UseBookingRealtimeOptions<T extends object> = {
   role?: "user" | "partner";
   /** Any booking patch (match radius, search message, etc.) */
   onPatch?: (patch: BookingClientPayload) => void;
+  /** Callback triggered on socket connection or window focus to fetch fresh state */
+  onReconnect?: () => void;
 };
 
 export function useBookingRealtime<T extends object>({
@@ -33,6 +35,7 @@ export function useBookingRealtime<T extends object>({
   onToast,
   onPatch,
   role = "user",
+  onReconnect,
 }: UseBookingRealtimeOptions<T>) {
   const lastEventIdRef = useRef<string | null>(null);
   const prevStatusRef = useRef<string | undefined>(undefined);
@@ -42,9 +45,11 @@ export function useBookingRealtime<T extends object>({
   const onStatusRef = useRef(onStatusChange);
   const onToastRef = useRef(onToast);
   const onPatchRef = useRef(onPatch);
+  const onReconnectRef = useRef(onReconnect);
   onStatusRef.current = onStatusChange;
   onToastRef.current = onToast;
   onPatchRef.current = onPatch;
+  onReconnectRef.current = onReconnect;
 
   useEffect(() => {
     if (!bookingId || !enabled) return;
@@ -109,19 +114,31 @@ export function useBookingRealtime<T extends object>({
     const onUpdated = (data: BookingClientPayload) => applyPatch(data);
     const onSync = (data: BookingClientPayload) => applyPatch(data);
 
-    if (socket.connected) {
+    const handleConnect = () => {
       joinRoom();
+      onReconnectRef.current?.();
+    };
+
+    const handleFocus = () => {
+      onReconnectRef.current?.();
+    };
+
+    if (socket.connected) {
+      handleConnect();
     }
 
-    socket.on("connect", joinRoom);
+    socket.on("connect", handleConnect);
     socket.on("booking-updated", onUpdated);
     socket.on("booking-sync", onSync);
 
+    window.addEventListener("focus", handleFocus);
+
     return () => {
       socket.emit("leave-booking", bookingId);
-      socket.off("connect", joinRoom);
+      socket.off("connect", handleConnect);
       socket.off("booking-updated", onUpdated);
       socket.off("booking-sync", onSync);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [bookingId, enabled, role, setBooking]);
 }

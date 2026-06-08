@@ -126,6 +126,14 @@ export default function VendorPendingPage() {
   useEffect(() => {
     const socket = getSocket();
 
+    const handleConnect = () => {
+      fetchPendingBookings();
+    };
+
+    const handleFocus = () => {
+      fetchPendingBookings();
+    };
+
     const handleNewBooking = (booking: Booking & { dispatch?: DispatchMeta }) => {
       let isNew = false;
       setBookings((prev) => {
@@ -152,13 +160,18 @@ export default function VendorPendingPage() {
       }
     };
 
+    socket.on("connect", handleConnect);
     socket.on("new-booking", handleNewBooking);
     socket.on("booking-updated", handleBookingUpdated);
+    window.addEventListener("focus", handleFocus);
+
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("new-booking", handleNewBooking);
       socket.off("booking-updated", handleBookingUpdated);
+      window.removeEventListener("focus", handleFocus);
     };
-  }, []);
+  }, [fetchPendingBookings]);
 
   const handleAction = async (
     bookingId: string,

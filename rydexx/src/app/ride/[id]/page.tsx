@@ -235,9 +235,9 @@ export default function RidePage() {
     }
   };
 
-  const fetchBooking = async () => {
+  const fetchBooking = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const res = await fetch(`/api/booking/${id}`);
       
       if (res.status === 401) {
@@ -266,9 +266,9 @@ export default function RidePage() {
         data.dropLocation.coordinates[0],
       ]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      if (!silent) setError(e instanceof Error ? e.message : "Something went wrong");
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -353,6 +353,7 @@ export default function RidePage() {
     setBooking,
     role: "user",
     onToast: (t) => setRealtimeToast({ ...t, id: Date.now() }),
+    onReconnect: () => fetchBooking(true),
     onStatusChange: (nextStatus, bid) => {
       if (nextStatus === "awaiting_payment") {
         router.push(`/checkout?bookingId=${bid}`);

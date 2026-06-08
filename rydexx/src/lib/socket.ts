@@ -9,8 +9,10 @@ if(!socket){
     socket=io(SOCKET_SERVER.replace(/\/+$/, ""), {
         transports: ["websocket", "polling"],
         reconnection: true,
-        reconnectionAttempts: 8,
-        reconnectionDelay: 800,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 20000,
     })
 }
 return socket

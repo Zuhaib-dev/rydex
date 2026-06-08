@@ -46,7 +46,14 @@ export function useRideSocket({
 
     const socket = getSocket();
 
-    const handleConnect = () => setConnectionStatus("connected");
+    const joinRoom = () => {
+      socket.emit("join-booking", bookingId);
+    };
+
+    const handleConnect = () => {
+      setConnectionStatus("connected");
+      joinRoom();
+    };
     const handleDisconnect = () => setConnectionStatus("disconnected");
     const handleReconnect = () => setConnectionStatus("reconnecting");
 
