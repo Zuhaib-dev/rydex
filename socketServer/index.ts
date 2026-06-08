@@ -199,7 +199,7 @@ try {
   console.log("Redis keyspace events notifications configured successfully.");
 } catch (error: any) {
   console.error("Failed to configure Redis keyspace events:", error.message);
-}
+} 
 
 // Listen to expired keyspace events for auto-offline
 redisSub.subscribe("__keyevent@0__:expired", (err: Error | null | undefined) => {
