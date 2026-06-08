@@ -6,17 +6,30 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+function getServiceAccountPath() {
+  const candidates = [
+    process.env.FIREBASE_ADMIN_JSON_PATH,
+    "/etc/secrets/firebase-admin.json",
+    path.resolve(process.cwd(), "firebase-admin.json"),
+    path.resolve(__dirname, "../../firebase-admin.json"),
+  ].filter(Boolean) as string[];
+
+  return candidates.find((candidate) => fs.existsSync(candidate));
+}
+
 // Initialize Firebase Admin SDK
 try {
-  const serviceAccountPath = path.resolve(__dirname, "../../firebase-admin.json");
-  if (fs.existsSync(serviceAccountPath)) {
+  const serviceAccountPath = getServiceAccountPath();
+  if (serviceAccountPath) {
     const serviceAccount = JSON.parse(fs.readFileSync(serviceAccountPath, "utf-8"));
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-    });
-    console.log("[FCM] Firebase Admin initialized successfully.");
+    if (!admin.apps.length) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    }
+    console.log(`[FCM] Firebase Admin initialized successfully from ${serviceAccountPath}.`);
   } else {
-    console.warn("[FCM] Warning: firebase-admin.json not found. Push notifications will be disabled.");
+    console.warn("[FCM] Warning: firebase-admin.json not found in known locations. Push notifications will be disabled.");
   }
 } catch (error) {
   console.error("[FCM] Failed to initialize Firebase Admin:", error);
@@ -32,7 +45,14 @@ export async function sendPushNotification(
   data?: Record<string, string>
 ) {
   const result = { sentCount: 0, failedCount: 0, invalidTokens: [] as string[] };
-  if (!admin.apps.length || !tokens || tokens.length === 0) return result;
+  if (!admin.apps.length) {
+    console.warn("[FCM] Push skipped because Firebase Admin is not initialized.");
+    return result;
+  }
+  if (!tokens || tokens.length === 0) {
+    console.warn("[FCM] Push skipped because target user has no FCM tokens.");
+    return result;
+  }
 
   try {
     const uniqueTokens = [...new Set(tokens.filter(Boolean))];
@@ -48,6 +68,7 @@ export async function sendPushNotification(
     const response = await admin.messaging().sendEachForMulticast(message);
     result.sentCount = response.successCount;
     result.failedCount = response.failureCount;
+    console.log(`[FCM] Push result: sent=${result.sentCount}, failed=${result.failedCount}.`);
 
     if (response.failureCount > 0) {
       console.warn(`[FCM] Failed to send ${response.failureCount} notifications.`);
