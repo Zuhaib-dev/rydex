@@ -45,6 +45,8 @@ let User: any;
 let clientSocket: any;
 let testPort: number;
 
+const socketUrl = () => `http://127.0.0.1:${testPort}`;
+
 beforeAll(async () => {
   // 1. Setup in-memory MongoDB
   mongoServer = await MongoMemoryServer.create();
@@ -63,7 +65,7 @@ beforeAll(async () => {
 
   // 3. Listen on a random free port
   await new Promise<void>((resolve) => {
-    server.listen(0, () => {
+    server.listen(0, "127.0.0.1", () => {
       const address = server.address();
       testPort = typeof address === "string" ? 8000 : address.port;
       resolve();
@@ -103,7 +105,7 @@ describe("WebSocket Realtime Integration Tests", () => {
         });
 
         // Connect socket client
-        clientSocket = Client(`http://localhost:${testPort}`);
+        clientSocket = Client(socketUrl());
 
         clientSocket.on("connect", () => {
           // Emit identity event to link socket to user
@@ -143,9 +145,9 @@ describe("WebSocket Realtime Integration Tests", () => {
       try {
         const bookingId = new mongoose.Types.ObjectId().toString();
 
-        clientSocket1 = Client(`http://localhost:${testPort}`);
+        clientSocket1 = Client(socketUrl());
         clientSocket1.on("connect", () => {
-          clientSocket2 = Client(`http://localhost:${testPort}`);
+          clientSocket2 = Client(socketUrl());
           clientSocket2.on("connect", () => {
             clientSocket1.emit("join-booking", bookingId);
             clientSocket2.emit("join-booking", bookingId);
@@ -202,7 +204,7 @@ describe("WebSocket Realtime Integration Tests", () => {
         role: "partner",
       });
 
-      const response = await axios.post(`http://localhost:${testPort}/emit`, {
+      const response = await axios.post(`${socketUrl()}/emit`, {
         userId: driverId,
         event: "new-booking",
         data: {
@@ -251,7 +253,7 @@ describe("WebSocket Realtime Integration Tests", () => {
 
         const spy = vi.spyOn(User, "findByIdAndUpdate");
 
-        tempClientSocket = Client(`http://localhost:${testPort}`);
+        tempClientSocket = Client(socketUrl());
         tempClientSocket.on("connect", () => {
           tempClientSocket.emit("identity", testDriver._id.toString());
 
@@ -300,7 +302,7 @@ describe("WebSocket Realtime Integration Tests", () => {
           isPartnerBlocked: true,
         });
 
-        blockedClientSocket = Client(`http://localhost:${testPort}`);
+        blockedClientSocket = Client(socketUrl());
         blockedClientSocket.on("connect", () => {
           blockedClientSocket.emit("identity", testUser._id.toString());
         });
@@ -337,7 +339,7 @@ describe("WebSocket Realtime Integration Tests", () => {
           role: "user",
         });
 
-        activeClientSocket = Client(`http://localhost:${testPort}`);
+        activeClientSocket = Client(socketUrl());
         activeClientSocket.on("connect", () => {
           activeClientSocket.emit("identity", testUser._id.toString());
         });
@@ -358,7 +360,7 @@ describe("WebSocket Realtime Integration Tests", () => {
             });
 
             // Post a blocked event to /emit
-            await axios.post(`http://localhost:${testPort}/emit`, {
+            await axios.post(`${socketUrl()}/emit`, {
               userId: testUser._id.toString(),
               event: "blocked",
               data: { message: "Your account is suspended." }
@@ -396,9 +398,9 @@ describe("WebSocket Realtime Integration Tests", () => {
       try {
         const bookingId = new mongoose.Types.ObjectId().toString();
 
-        clientSocket1 = Client(`http://localhost:${testPort}`);
+        clientSocket1 = Client(socketUrl());
         clientSocket1.on("connect", () => {
-          clientSocket2 = Client(`http://localhost:${testPort}`);
+          clientSocket2 = Client(socketUrl());
           clientSocket2.on("connect", () => {
             clientSocket1.emit("join-booking", bookingId);
             clientSocket2.emit("join-booking", bookingId);
@@ -440,9 +442,9 @@ describe("WebSocket Realtime Integration Tests", () => {
       try {
         const bookingId = new mongoose.Types.ObjectId().toString();
 
-        clientSocket1 = Client(`http://localhost:${testPort}`);
+        clientSocket1 = Client(socketUrl());
         clientSocket1.on("connect", () => {
-          clientSocket2 = Client(`http://localhost:${testPort}`);
+          clientSocket2 = Client(socketUrl());
           clientSocket2.on("connect", () => {
             clientSocket1.emit("join-booking", bookingId);
             clientSocket2.emit("join-booking", bookingId);
