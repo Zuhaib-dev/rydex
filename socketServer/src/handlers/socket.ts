@@ -14,7 +14,7 @@ export interface ServerToClientEvents {
   "admin-dashboard-update": (data: { scope: string; reason: string; at: number }) => void;
   "driver-availability-updated": (data: { reason: string; at: number }) => void;
   "admin-driver-location": (data: { driverId: string; latitude: number; longitude: number; at: number }) => void;
-  "driver-location": (data: { latitude: number; longitude: number; status: string }) => void;
+  "driver-location": (data: { bookingId: string; latitude: number; longitude: number; status: string }) => void;
   "chat-message": (msg: any) => void;
   "chat-typing": (data: { rideId: string; sender: "user" | "driver"; isTyping: boolean }) => void;
   "chat-read": (data: { rideId: string; sender: "user" | "driver" }) => void;
@@ -134,6 +134,7 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
 
     socket.on("driver-location-update", async (data) => {
       io.to(`booking-${data.bookingId}`).emit("driver-location", {
+        bookingId: data.bookingId,
         latitude: data.latitude,
         longitude: data.longitude,
         status: data.status || "arriving",
@@ -260,6 +261,7 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
 
           if (activeBooking) {
             io.to(`booking-${activeBooking._id}`).emit("driver-location", {
+              bookingId: String(activeBooking._id),
               latitude,
               longitude,
               status: activeBooking.status,

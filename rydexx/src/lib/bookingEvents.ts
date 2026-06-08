@@ -32,13 +32,24 @@ const toId = (value: unknown) => {
 };
 
 async function ensurePopulated(booking: BookingDoc) {
-  if (typeof booking.populate !== "function") return booking;
-  const needsDriver = booking.driver && !booking.populated?.("driver");
-  if (needsDriver) {
-    await (booking.populate as (path: string | string[]) => Promise<unknown>)(
-      ["driver", "vehicle"],
-    );
+  const bookingId = toId(booking._id);
+  if (bookingId) {
+    const fresh = await Booking.findById(bookingId).populate([
+      "user",
+      "driver",
+      "vehicle",
+    ]);
+    if (fresh) return fresh;
   }
+
+  if (typeof booking.populate === "function") {
+    await (booking.populate as (path: string | string[]) => Promise<unknown>)([
+      "user",
+      "driver",
+      "vehicle",
+    ]);
+  }
+
   return booking;
 }
 

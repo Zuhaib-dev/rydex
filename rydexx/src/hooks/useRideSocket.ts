@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getSocket } from "@/lib/socket";
 import type { LatLng } from "@/lib/mapboxRouting";
 
@@ -58,9 +58,11 @@ export function useRideSocket({
     const handleReconnect = () => setConnectionStatus("reconnecting");
 
     const handleDriverLocation = (data: {
+      bookingId?: string;
       latitude?: number;
       longitude?: number;
     }) => {
+      if (data.bookingId && String(data.bookingId) !== String(bookingId)) return;
       if (
         typeof data.latitude === "number" &&
         typeof data.longitude === "number"
@@ -80,6 +82,7 @@ export function useRideSocket({
     socket.on("driver-location", handleDriverLocation);
 
     return () => {
+      socket.emit("leave-booking", bookingId);
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("reconnect_attempt", handleReconnect);

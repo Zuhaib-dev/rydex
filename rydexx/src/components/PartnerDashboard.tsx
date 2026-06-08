@@ -1,7 +1,7 @@
 "use client";
 
 import { RootState } from "@/redux/store";
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import { motion, AnimatePresence } from "motion/react";
 import { Check, Lock, AlertCircle, RefreshCw, Bike, Car, Truck, Package, Tally3 } from "lucide-react";
@@ -12,6 +12,7 @@ import VideoKYCBanner from "./VideoKYCBanner";
 import axios from "axios";
 import PartnerAnalyticsHub from "./PartnerAnalyticsHub";
 import WeatherWidget from "./WeatherWidget";
+import { getSocket } from "@/lib/socket";
 
 function PartnerDashboard() {
   type step = {
@@ -54,39 +55,66 @@ function PartnerDashboard() {
   const partnerStatus = polledPartnerStatus ?? userData?.partnerStatus ?? "pending";
   const partnerRejectionReason = polledPartnerRejectionReason ?? userData?.rejectionReason;
 
-  // Poll /api/user/me every 8s to detect when admin starts a KYC call
-  useEffect(() => {
-    const poll = async () => {
-      try {
-        const res = await axios.get("/api/user/me");
-        const u = res.data?.user;
-        if (u) {
-          setPolledKycStatus(u.videoKycStatus);
-          setPolledKycRoomId(u.videoKycRoomId ?? null);
-          setPolledKycRejectionReason(u.videoKycRejectionReason ?? null);
-          setPolledPartnerStatus(u.partnerStatus);
-          setPolledPartnerRejectionReason(u.rejectionReason);
-          if (u.partnerOnboardingSteps !== undefined) {
-             setPolledCompletedSteps(u.partnerOnboardingSteps);
-          }
-          setActiveVehicle(u.activeVehicle || null);
+  const refreshPartnerState = useCallback(async () => {
+    try {
+      const res = await axios.get("/api/user/me");
+      const u = res.data?.user;
+      if (u) {
+        setPolledKycStatus(u.videoKycStatus);
+        setPolledKycRoomId(u.videoKycRoomId ?? null);
+        setPolledKycRejectionReason(u.videoKycRejectionReason ?? null);
+        setPolledPartnerStatus(u.partnerStatus);
+        setPolledPartnerRejectionReason(u.rejectionReason);
+        if (u.partnerOnboardingSteps !== undefined) {
+          setPolledCompletedSteps(u.partnerOnboardingSteps);
         }
-      } catch (error: any) {
-        if (error.response?.status === 404 || error.response?.status === 401) {
-          import("next-auth/react").then(({ signOut }) => {
-            signOut({ callbackUrl: "/signin" });
-          });
-        }
-        // silently ignore other poll errors
+        setActiveVehicle(u.activeVehicle || null);
       }
-    };
+    } catch (error: any) {
+      if (error.response?.status === 404 || error.response?.status === 401) {
+        import("next-auth/react").then(({ signOut }) => {
+          signOut({ callbackUrl: "/signin" });
+        });
+      }
+      // silently ignore other refresh errors
+    }
+  }, []);
 
-    poll(); // Fetch immediately on mount
-    pollRef.current = setInterval(poll, 8000);
+  // Poll /api/user/me every 8s as a fallback, with socket/focus refreshes for live UI.
+  useEffect(() => {
+    refreshPartnerState();
+    pollRef.current = setInterval(refreshPartnerState, 8000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, []);
+  }, [refreshPartnerState]);
+
+  useEffect(() => {
+    if (!userData?._id) return;
+
+    const socket = getSocket();
+    const identify = () => socket.emit("identity", userData._id);
+    const refreshSoon = () => {
+      window.setTimeout(refreshPartnerState, 250);
+    };
+
+    if (socket.connected) identify();
+    socket.on("connect", identify);
+    socket.on("connect", refreshSoon);
+    socket.on("new-booking", refreshSoon);
+    socket.on("booking-updated", refreshSoon);
+    socket.on("booking-sync", refreshSoon);
+    window.addEventListener("focus", refreshPartnerState);
+
+    return () => {
+      socket.off("connect", identify);
+      socket.off("connect", refreshSoon);
+      socket.off("new-booking", refreshSoon);
+      socket.off("booking-updated", refreshSoon);
+      socket.off("booking-sync", refreshSoon);
+      window.removeEventListener("focus", refreshPartnerState);
+    };
+  }, [refreshPartnerState, userData?._id]);
 
   const progressPercentage =
     (Math.min(completedSteps, TOTAL_STEPS - 1) / (TOTAL_STEPS - 1)) * 100;

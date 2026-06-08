@@ -362,7 +362,8 @@ export default function DriverRidePage() {
     if (!booking?._id) return;
     if (TERMINAL.includes(booking.status)) return;
     const socket = getSocket();
-    const handleDriverLocation = (d: { latitude?: number; longitude?: number }) => {
+    const handleDriverLocation = (d: { bookingId?: string; latitude?: number; longitude?: number }) => {
+      if (d.bookingId && String(d.bookingId) !== String(booking._id)) return;
       if (typeof d.latitude !== "number" || typeof d.longitude !== "number") return;
       setDriverPos([d.latitude, d.longitude]);
     };

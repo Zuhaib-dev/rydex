@@ -46,10 +46,13 @@ export function useBookingRealtime<T extends object>({
   const onToastRef = useRef(onToast);
   const onPatchRef = useRef(onPatch);
   const onReconnectRef = useRef(onReconnect);
-  onStatusRef.current = onStatusChange;
-  onToastRef.current = onToast;
-  onPatchRef.current = onPatch;
-  onReconnectRef.current = onReconnect;
+
+  useEffect(() => {
+    onStatusRef.current = onStatusChange;
+    onToastRef.current = onToast;
+    onPatchRef.current = onPatch;
+    onReconnectRef.current = onReconnect;
+  }, [onStatusChange, onToast, onPatch, onReconnect]);
 
   useEffect(() => {
     if (!bookingId || !enabled) return;
