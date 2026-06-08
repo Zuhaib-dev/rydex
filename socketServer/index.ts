@@ -458,14 +458,18 @@ app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
   const bookingRoomId = roomFromBody || data?.bookingId;
 
   try {
-    const user = await User.findById(userId).select("socketId").lean();
-
-    if (user?.socketId) {
-      io.to(user.socketId).emit(event as any, data);
+    // Emit to personal user room
+    if (userId) {
+      io.to(`user-${userId}`).emit(event as any, data);
+      
       if (event === "blocked") {
-        const socketToDisconnect = io.sockets.sockets.get(user.socketId);
-        if (socketToDisconnect) {
-          socketToDisconnect.disconnect(true);
+        // Disconnect all sockets in this user's room
+        const userRoom = io.sockets.adapter.rooms.get(`user-${userId}`);
+        if (userRoom) {
+          for (const socketId of userRoom) {
+            const socketToDisconnect = io.sockets.sockets.get(socketId);
+            if (socketToDisconnect) socketToDisconnect.disconnect(true);
+          }
         }
       }
     }
@@ -653,6 +657,7 @@ io.on("connection", (socket: SocketWithUser) => {
 
   socket.on("identity", async (userId: string) => {
     socket.userId = userId;
+    socket.join(`user-${userId}`);
 
     const user = await User.findById(userId).select("role location isPartnerBlocked").lean();
     if (!user) return;

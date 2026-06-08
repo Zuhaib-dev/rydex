@@ -114,38 +114,48 @@ export default function Nav() {
 
   /* Fetch vendor counts and listen for realtime updates */
   useEffect(() => {
-    if (userData?.role !== "partner") return;
-
-    const fetchCounts = async () => {
-      try {
-        const res = await axios.get("/api/partner/bookings/counts");
-        setPendingCount(res.data.pending || 0);
-        setActiveCount(res.data.active || 0);
-      } catch {}
-    };
-
-    fetchCounts();
+    if (!userData?._id) return;
 
     const socket = getSocket();
+    const identify = () => socket.emit("identity", userData._id);
+    
+    if (socket.connected) identify();
+    socket.on("connect", identify);
 
-    const handleNewBooking = () => {
-      setTimeout(fetchCounts, 500);
-      if (pathname !== "/partner/pending-requests") {
-        playNotificationSound("request");
-        triggerHapticFeedback();
-      }
-    };
+    let handleNewBooking: (() => void) | undefined;
+    let handleBookingUpdated: (() => void) | undefined;
 
-    const handleBookingUpdated = () => {
-      setTimeout(fetchCounts, 500);
-    };
+    if (userData.role === "partner") {
+      const fetchCounts = async () => {
+        try {
+          const res = await axios.get("/api/partner/bookings/counts");
+          setPendingCount(res.data.pending || 0);
+          setActiveCount(res.data.active || 0);
+        } catch {}
+      };
 
-    socket.on("new-booking", handleNewBooking);
-    socket.on("booking-updated", handleBookingUpdated);
+      fetchCounts();
+
+      handleNewBooking = () => {
+        setTimeout(fetchCounts, 500);
+        if (pathname !== "/partner/pending-requests") {
+          playNotificationSound("request");
+          triggerHapticFeedback();
+        }
+      };
+
+      handleBookingUpdated = () => {
+        setTimeout(fetchCounts, 500);
+      };
+
+      socket.on("new-booking", handleNewBooking);
+      socket.on("booking-updated", handleBookingUpdated);
+    }
  
     return () => {
-      socket.off("new-booking", handleNewBooking);
-      socket.off("booking-updated", handleBookingUpdated);
+      socket.off("connect", identify);
+      if (handleNewBooking) socket.off("new-booking", handleNewBooking);
+      if (handleBookingUpdated) socket.off("booking-updated", handleBookingUpdated);
     };
   }, [userData]);
 
