@@ -5,6 +5,7 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   role: "user" | "partner" | "admin";
+  fcmTokens?: string[];
   partnerStatus?: "pending" | "approved" | "rejected";
   partnerOnboardingStep: number;
   partnerProfileCompleted: boolean;
@@ -53,6 +54,11 @@ const UserSchema = new Schema<IUser>(
       enum: ["user", "partner", "admin"],
       default: "user",
       index: true,
+    },
+
+    fcmTokens: {
+      type: [String],
+      default: [],
     },
 
     /* ===== PARTNER ===== */

@@ -135,10 +135,19 @@ app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
             body = data?.message || "You have a new notification.";
           }
 
-          await sendPushNotification(targetUser.fcmTokens as string[], title, body, {
+          const pushResult = await sendPushNotification(targetUser.fcmTokens as string[], title, body, {
             bookingId: String(bookingRoomId || ""),
             event,
+            notificationId: data?._id ? String(data._id) : "",
+            url: data?.url ? String(data.url) : bookingRoomId ? `/ride/${bookingRoomId}` : "/",
           });
+
+          if (pushResult.invalidTokens.length > 0) {
+            await User.updateOne(
+              { _id: userId },
+              { $pull: { fcmTokens: { $in: pushResult.invalidTokens } } },
+            );
+          }
         }
       }
     }
