@@ -13,7 +13,7 @@ import {
   PieChart,
   Pie,
   Cell,
-  Legend,
+  Legend, 
   AreaChart,
   Area
 } from "recharts";
