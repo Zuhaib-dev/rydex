@@ -30,7 +30,7 @@ export default function NotificationBell() {
     const handleNewNotification = (data: any) => {
       setNotifications((prev) => [
         {
-          _id: Math.random().toString(36).substring(7),
+          _id: data._id || Math.random().toString(36).substring(7),
           title: data.title,
           message: data.message,
           isRead: false,

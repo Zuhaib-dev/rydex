@@ -5,6 +5,7 @@ export interface IUser extends Document {
   email: string;
   password?: string;
   role:"user" | "partner" |"admin"
+  fcmTokens?: string[];
   isEmailVerified?:boolean
   otp?:string
   otpExpiryAt?:Date
@@ -58,6 +59,10 @@ const userSchema = new mongoose.Schema<IUser>(
       type:String,
       default:"user",
       enum:['user','partner','admin']
+    },
+    fcmTokens: {
+      type: [String],
+      default: [],
     },
     isEmailVerified:{
       type:Boolean,

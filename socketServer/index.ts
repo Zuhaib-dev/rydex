@@ -10,6 +10,7 @@ import AuditLog from "./models/auditLog.models.js";
 import User from "./models/user.models.js";
 import Booking from "./models/booking.models.js";
 import mongoose from "mongoose";
+import { sendPushNotification } from "./src/services/fcm.js";
 
 dotenv.config();
 
@@ -470,6 +471,31 @@ app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
             const socketToDisconnect = io.sockets.sockets.get(socketId);
             if (socketToDisconnect) socketToDisconnect.disconnect(true);
           }
+        }
+      }
+
+      // Send Push Notification if FCM tokens exist
+      if (event === "new-booking" || event === "booking-updated" || event === "new-notification") {
+        const targetUser = await User.findById(userId).select("fcmTokens").lean();
+        if (targetUser && targetUser.fcmTokens && targetUser.fcmTokens.length > 0) {
+          let title = "Rydex Update";
+          let body = "You have a new update.";
+          
+          if (event === "new-booking") {
+            title = "New Ride Request!";
+            body = "Tap to view pickup details.";
+          } else if (event === "booking-updated") {
+            title = "Ride Status Updated";
+            body = data?.status ? `Booking is now ${data.status}` : "Your ride status was updated.";
+          } else if (event === "new-notification") {
+            title = data?.title || "New Message from Rydex";
+            body = data?.message || "You have a new notification.";
+          }
+
+          await sendPushNotification(targetUser.fcmTokens as string[], title, body, {
+            bookingId: String(bookingRoomId || ""),
+            event,
+          });
         }
       }
     }

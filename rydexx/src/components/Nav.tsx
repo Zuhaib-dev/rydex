@@ -31,6 +31,7 @@ import axios from "axios";
 import { getSocket } from "@/lib/socket";
 import NotificationBell from "./NotificationBell";
 import { playNotificationSound, triggerHapticFeedback } from "@/lib/chatEffects";
+import { useFCM } from "@/hooks/useFCM";
 
 const NAV_ITEMS = ["Home", "Bookings", "Fleet", "FAQ", "Contact"];
 const subscribeHydration = () => () => {};
@@ -60,6 +61,7 @@ type ProfileContentProps = {
 };
 
 export default function Nav() {
+  useFCM();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);

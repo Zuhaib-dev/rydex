@@ -57,18 +57,19 @@ export async function POST(req: Request) {
       isRead: false,
     }));
 
-    await Notification.insertMany(notifications);
+    const insertedNotifications = await Notification.insertMany(notifications);
 
     // Emit socket event to each recipient asynchronously
-    recipients.forEach((r) => {
+    insertedNotifications.forEach((n) => {
       emitToSocketServer({
-        userId: r._id.toString(),
+        userId: n.recipientId.toString(),
         event: "new-notification",
         data: {
-          title,
-          message,
-          type,
-          createdAt: new Date().toISOString(),
+          _id: n._id.toString(),
+          title: n.title,
+          message: n.message,
+          type: n.type,
+          createdAt: n.createdAt.toISOString(),
         },
       }).catch((e) => console.error("Failed to emit notification socket:", e));
     });
