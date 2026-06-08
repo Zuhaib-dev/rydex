@@ -228,10 +228,46 @@ function CheckoutContent() {
     if (bookingId) setLiveBooking({ _id: bookingId, status });
   }, [bookingId, status]);
 
+  const syncActiveBooking = async () => {
+    try {
+      const res = await fetch("/api/booking/my-active");
+      const data = await res.json();
+      if (data.booking) {
+        setBookingId(data.booking._id);
+        setStatus(data.booking.status);
+        if (
+          data.booking.status === "confirmed" ||
+          data.booking.status === "arriving" ||
+          data.booking.status === "started"
+        ) {
+          router.push(`/ride/${data.booking._id}`);
+        }
+      } else if (bookingId) {
+        const checkRes = await fetch(`/api/booking/${bookingId}`);
+        if (checkRes.ok) {
+          const checkData = await checkRes.json();
+          if (checkData) {
+            setStatus(checkData.status);
+            if (
+              checkData.status === "confirmed" ||
+              checkData.status === "arriving" ||
+              checkData.status === "started"
+            ) {
+              router.push(`/ride/${bookingId}`);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Checkout sync failed:", err);
+    }
+  };
+
   useBookingRealtime<{ _id: string; status: Status }>({
     bookingId: bookingId ?? undefined,
     enabled: Boolean(bookingId),
     setBooking: setLiveBooking,
+    onReconnect: syncActiveBooking,
     onPatch: (patch) => {
       setMatchSearch({
         message: patch.searchingMessage as string | undefined,

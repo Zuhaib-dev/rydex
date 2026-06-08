@@ -23,7 +23,7 @@ import { getSocket } from "@/lib/socket";
 import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 import type { RealtimeToast } from "@/hooks/useBookingRealtime";
 import RideToasts from "@/components/ride/RideToasts";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IUser } from "@/models/user.model";
 import { IVehicle } from "@/models/vehicle.model";
@@ -207,7 +207,8 @@ export default function DriverRidePage() {
   bookingRef.current = booking;
 
   /* ── FETCH ── */
-  useEffect(() => {
+  const fetchActiveBooking = useCallback((silent = false) => {
+    if (!silent) setFetchDone(false);
     fetch("/api/partner/bookings/active")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
@@ -238,11 +239,19 @@ export default function DriverRidePage() {
           if (data.status === "completed") {
             setOtpVerified(true);
           }
+        } else {
+          setBooking(null);
         }
       })
       .catch((err) => console.error("Fetch error:", err))
-      .finally(() => setFetchDone(true));
+      .finally(() => {
+        if (!silent) setFetchDone(true);
+      });
   }, []);
+
+  useEffect(() => {
+    fetchActiveBooking();
+  }, [fetchActiveBooking]);
 
   /* ── WAKE LOCK to keep screen awake ── */
   useEffect(() => {
@@ -334,6 +343,7 @@ export default function DriverRidePage() {
     setBooking,
     role: "partner",
     onToast: (t) => setRealtimeToast({ ...t, id: Date.now() }),
+    onReconnect: () => fetchActiveBooking(true),
     onStatusChange: (nextStatus) => {
       if (nextStatus === "started") {
         setOtpVerified(true);

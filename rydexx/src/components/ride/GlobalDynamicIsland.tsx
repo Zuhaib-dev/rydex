@@ -86,19 +86,20 @@ export default function GlobalDynamicIsland() {
     pathname.startsWith("/admin") ||
     pathname.startsWith("/partner");
 
-  useEffect(() => {
-    const fetchActiveRide = async () => {
-      try {
-        const res = await fetch("/api/booking/my-active");
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.booking) {
-          setBooking(data.booking);
-        }
-      } catch (err) {
-        // silently ignore
+  const fetchActiveRide = async () => {
+    try {
+      const res = await fetch("/api/booking/my-active");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.booking) {
+        setBooking(data.booking);
       }
-    };
+    } catch (err) {
+      // silently ignore
+    }
+  };
+
+  useEffect(() => {
     if (!isHiddenPage) {
       fetchActiveRide();
     }
@@ -108,6 +109,7 @@ export default function GlobalDynamicIsland() {
     bookingId: booking?._id,
     enabled: Boolean(booking?._id && !isHiddenPage),
     setBooking: (val) => setBooking(val),
+    onReconnect: fetchActiveRide,
     onStatusChange: (nextStatus) => {
       if (["completed", "cancelled", "rejected", "expired"].includes(nextStatus as string)) {
         setTimeout(() => {
