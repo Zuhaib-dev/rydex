@@ -118,6 +118,40 @@ socketServer/
 
 ---
 
+## Services Architecture
+
+The socket server is modularized into specialized services for horizontal scaling and maintainability:
+
+### Core Services
+
+| Service | File | Responsibility |
+|---|---|---|
+| **Database** | `src/services/db.ts` | MongoDB connection & pooling |
+| **Redis** | `src/services/redis.ts` | Pub/Sub for multi-instance scaling + caching |
+| **Firebase** | `src/services/fcm.ts` | Push notifications via Cloud Messaging |
+| **Notifications** | `src/services/notifications.ts` | Real-time event routing to clients |
+| **Logger** | `src/services/logger.ts` | Event logging for debugging |
+| **Timers** | `src/services/timers.ts` | Matchmaker cascade timers (in-memory + Redis) |
+| **Cron** | `src/services/cron.ts` | Scheduled booking dispatch jobs |
+
+### Handlers & Middleware
+
+| Handler | File | Responsibility |
+|---|---|---|
+| **Socket Events** | `src/handlers/socket.ts` | Incoming socket event handlers (identity, chat, location) |
+| **Redis Sub** | `src/handlers/redisSub.ts` | Redis subscription handler for multi-instance pub/sub |
+| **Auth** | `src/middleware/auth.ts` | Socket secret validation for internal endpoints |
+
+### Why Modularization?
+
+1. **Horizontal Scaling:** Redis adapter allows multiple socket server instances
+2. **Testability:** Each service can be tested independently
+3. **Maintainability:** Clear separation of concerns
+4. **Resilience:** Redis provides fallback when in-memory state is lost
+5. **Performance:** Specialized services optimized for their domain
+
+---
+
 ## Socket Events
 
 ### Client → Server (incoming)
