@@ -124,7 +124,7 @@ socketServer/
 
 | Event | Payload | Description |
 |---|---|---|
-| `identity` | `userId: string` | Register this socket connection with a user ID. Updates `socketId` and `isOnline` in MongoDB. |
+| `identity` | `userId: string` | Register this socket connection with a user ID. Updates `socketId` and `isOnline` in MongoDB. Enables multi-device support via Socket.IO identity rooms. |
 | `join-booking` | `bookingId: string` | Join the private room `booking-{bookingId}`. Both driver and user call this to enter the same room. |
 | `driver-location-update` | `{ bookingId, latitude, longitude }` | Driver broadcasts their GPS coordinates. Server fans out to all members of the booking room. |
 | `chat-message` | `{ rideId, message, sender, ... }` | Send a message within the booking room. Server relays to all room members. |
@@ -155,7 +155,7 @@ curl http://localhost:8000/health
 ---
 
 ### `POST /emit`
-**The bridge endpoint.** Called by the Next.js API to push a WebSocket event to a specific user.
+**The bridge endpoint.** Called by the Next.js API to push a WebSocket event to a specific user or broadcast to a booking room.
 
 **Request body:**
 ```json
@@ -168,11 +168,23 @@ curl http://localhost:8000/health
 
 **Logic:**
 1. Looks up the user by `_id` in MongoDB
-2. Grabs their `socketId`
-3. Emits the event directly to that socket
+2. If user has active WebSocket connection(s), emits the event to all their sockets (multi-device support)
+3. If user is offline and has FCM tokens, sends a push notification via Firebase Cloud Messaging
+4. Broadcasts to booking room if `bookingId` is in the data
+
+**FCM Push Notification Behavior:**
+The server automatically sends push notifications for these events if the user is offline:
+- `new-booking` → "New Ride Request!" 
+- `booking-updated` → "Ride Status Updated"
+- `new-notification` → Custom title & body
+
+**Invalid Token Cleanup:**
+- When sending FCM notifications, the system collects invalid/expired tokens
+- Invalid tokens are automatically removed from `User.fcmTokens` array
+- This prevents repeated failures on subsequent push attempts
 
 **Extra behavior for `new-booking` events:**
-- Starts a **20-second countdown timer** for that booking
+- Starts a **40-second countdown timer** for that booking (Redis + in-memory fallback)
 - If the timer fires (driver didn't accept), POSTs to `{NEXT_BASE_URL}/api/booking/{id}/cascade`
 - The cascade triggers the matchmaker to try the next nearest driver
 
