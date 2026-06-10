@@ -167,6 +167,7 @@ graph TB
 | Video KYC | **ZegoCloud UIKit** | 2.x | In-browser video calls |
 | Images | **ImageKit** | 6.x | CDN upload + optimization |
 | PWA | **@ducanh2912/next-pwa** | 10.x | Service worker, installable |
+| Push Notifications | **Firebase Cloud Messaging** | 12.x | Browser push notifications |
 | Email | **Nodemailer** | 7.x | Transactional email |
 | DB Client | **Mongoose** | 9.x | MongoDB ODM |
 | Realtime | **Socket.IO Client** | 4.x | WebSocket connection |
@@ -179,6 +180,8 @@ graph TB
 | **Node.js** | 24.x | Runtime |
 | **Express** | 4.x | HTTP server + `/emit` endpoint |
 | **Socket.IO** | 4.x | WebSocket engine |
+| **Firebase Admin SDK** | 13.x | Push notifications (FCM) |
+| **Redis** | 4.x | Distributed caching & pub/sub |
 | **Mongoose** | 9.x | MongoDB ODM |
 | **Axios** | 1.x | Internal HTTP calls (cascade) |
 | **dotenv** | — | Environment config |
@@ -197,7 +200,8 @@ graph TB
 ├── Booking
 │   ├── Vehicle type selector (bike/car/SUV/van/truck/auto)
 │   ├── Mapbox address autocomplete
-│   ├── Real-time fare calculation (baseFare + perKm + waiting)
+│   ├── Real-time fare calculation (baseFare + perKm + waiting + surge)
+│   ├── Scheduled bookings (book rides in advance)
 │   ├── Razorpay checkout (UPI, cards, wallets)
 │   └── Cash payment option
 ├── Ride Experience
@@ -207,8 +211,10 @@ graph TB
 │   ├── SOS emergency trigger
 │   └── Trip share link (public, no-auth)
 ├── Post-Ride
-│   ├── Rate & review driver
-│   └── Praise tag system
+│   ├── Rate & review driver (1-5 stars)
+│   ├── Detailed feedback comments
+│   ├── Praise tag system
+│   └── Driver rating aggregation
 └── History
     └── Full booking history with status filters
 ```
@@ -223,8 +229,9 @@ graph TB
 │   ├── Pricing setup (baseFare, perKm, waitingCharge)
 │   └── Video KYC (ZegoCloud)
 ├── Operations
-│   ├── Live booking requests (Socket.IO push)
+│   ├── Live booking requests via push notifications (FCM)
 │   ├── Accept / Reject incoming bookings
+│   ├── Multi-device session support
 │   ├── OTP-based ride start & end
 │   ├── GPS location broadcast
 │   └── In-app chat with rider
@@ -241,6 +248,10 @@ graph TB
 │   ├── Approve / Reject partner applications
 │   ├── Approve / Reject vehicle registrations
 │   └── Video KYC management
+├── Pricing Management
+│   ├── Surge zone editor (polygon draw on map)
+│   ├── Dynamic multiplier-based pricing
+│   └── Real-time surge status display
 ├── Live Map
 │   ├── All active drivers on map
 │   ├── Live booking heatmap
@@ -276,6 +287,7 @@ erDiagram
         number ratingAverage
         number ratingCount
         Map praiseTags
+        string[] fcmTokens "Firebase Cloud Messaging tokens"
     }
 
     VEHICLE {
@@ -302,7 +314,7 @@ erDiagram
         GeoPoint pickupLocation
         GeoPoint dropLocation
         number fare
-        enum status "requested|awaiting_payment|confirmed|arriving|arrived|started|completed|cancelled|rejected|expired"
+        enum status "requested|awaiting_payment|confirmed|arriving|arrived|started|completed|cancelled|rejected|expired|scheduled"
         enum paymentStatus "pending|paid|cash|failed"
         number adminCommission
         number partnerAmount
@@ -311,6 +323,8 @@ erDiagram
         ObjectId[] attemptedDrivers
         enum vehicleType
         boolean sosTriggered
+        Date scheduledTime "For scheduled bookings"
+        number surgeMultiplier "Dynamic pricing"
     }
 
     REVIEW {
@@ -353,11 +367,14 @@ erDiagram
 
 ```mermaid
 stateDiagram-v2
-    [*] --> requested : User books ride
+    [*] --> scheduled : User schedules ride
+    [*] --> requested : User books ride immediately
 
     requested --> awaiting_payment : Partner accepts
     requested --> expired : 20s timeout (matchmaker cascade)
     requested --> rejected : No drivers available
+
+    scheduled --> requested : Scheduled time reached (cron triggers)
 
     awaiting_payment --> confirmed : Razorpay payment verified
     awaiting_payment --> cash : User selects cash
@@ -376,6 +393,7 @@ stateDiagram-v2
     cancelled --> [*]
 
     requested --> cancelled : User cancels
+    scheduled --> cancelled : User cancels
     confirmed --> cancelled : User cancels
     arriving --> cancelled : User cancels
 ```
@@ -406,6 +424,8 @@ flowchart TD
 
 ## Real-time Event Pipeline
 
+### Socket.IO Event Flow
+
 ```mermaid
 sequenceDiagram
     participant U as User Client
@@ -413,6 +433,7 @@ sequenceDiagram
     participant IO as Socket.IO Server
     participant DB as MongoDB
     participant API as Next.js API
+    participant FCM as Firebase Cloud Messaging
 
     Note over U, P: Both connect & send identity event
     U->>IO: identity(userId)
@@ -422,7 +443,9 @@ sequenceDiagram
 
     Note over API, P: Booking created
     API->>IO: POST /emit {userId: partnerId, event: "new-booking"}
-    IO->>P: Emit new-booking
+    IO->>P: Emit new-booking (WebSocket)
+    IO->>FCM: sendPushNotification (if offline)
+    FCM->>P: Browser push notification
 
     Note over P, IO: Partner accepts booking
     P->>U: join-booking(bookingId) [both join room]
@@ -440,10 +463,32 @@ sequenceDiagram
     U->>IO: chat-message {rideId, message}
     IO->>P: chat-message
 
+    Note over U, DB: On socket reconnect
+    U->>IO: identity(userId)
+    IO->>DB: Sync active booking state
+    DB->>U: Restore booking context
+
     Note over P, IO: Disconnect
     P->>IO: disconnect
     IO->>DB: isOnline = false, socketId = null
 ```
+
+### Firebase Cloud Messaging (FCM)
+
+When a user is **offline** or doesn't have an active WebSocket connection, the system automatically sends **browser push notifications** via FCM:
+
+| Event | Notification | Triggered When |
+|---|---|---|
+| `new-booking` | "New Ride Request!" | Driver receives new booking |
+| `booking-updated` | "Ride Status Updated" | Booking status changes |
+| `new-notification` | Custom title & body | Admin or system notification |
+
+**Implementation:**
+- Client collects FCM tokens via `useFCM()` hook (requests browser notification permission)
+- Tokens stored in `User.fcmTokens` array for multi-device support
+- Server sends push via Firebase Admin SDK when WebSocket delivery fails
+- Invalid/expired tokens are auto-cleaned from the database
+- Clicking notification brings user to relevant page (e.g., `/ride/{bookingId}`)
 
 ---
 
@@ -514,6 +559,12 @@ sequenceDiagram
 | `POST` | `/api/payment/create` | Create Razorpay order |
 | `POST` | `/api/payment/verify` | Verify payment signature |
 
+### Notifications
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/user/fcm-token` | Register FCM token for push notifications |
+| `DELETE` | `/api/user/fcm-token` | Remove FCM token (on logout) |
+
 ### Other
 | Method | Endpoint | Description |
 |---|---|---|
@@ -559,6 +610,15 @@ IMAGEKIT_URL_ENDPOINT=https://ik.imagekit.io/<your-id>
 RAZORPAY_KEY_ID=<key-id>
 RAZORPAY_KEY_SECRET=<key-secret>
 
+# Firebase Cloud Messaging
+NEXT_PUBLIC_FIREBASE_API_KEY=<firebase-api-key>
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=<firebase-auth-domain>
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=<firebase-project-id>
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=<firebase-storage-bucket>
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=<firebase-messaging-sender-id>
+NEXT_PUBLIC_FIREBASE_APP_ID=<firebase-app-id>
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=<firebase-vapid-key>
+
 # ZegoCloud
 ZEGO_APP_ID=<app-id>
 ZEGO_SERVER_SECRET=<server-secret>
@@ -578,6 +638,12 @@ PORT=8000
 MONGODB_URL=mongodb+srv://<user>:<pass>@cluster.mongodb.net/rydex
 NEXT_BASE_URL=http://localhost:3000
 CLIENT_URL=http://localhost:3000
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Firebase Admin SDK
+FIREBASE_ADMIN_JSON_PATH=./firebase-admin.json
 ```
 
 ---

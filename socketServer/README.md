@@ -2,14 +2,16 @@
 
 # `socketServer` — Rydex Real-time Engine
 
-### Node.js · Express · Socket.IO · MongoDB
+### Node.js · Express · Socket.IO · Firebase · Redis · MongoDB
 
 [![Node.js](https://img.shields.io/badge/Node.js-24.x-339933?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?style=flat-square&logo=socket.io)](https://socket.io/)
 [![Express](https://img.shields.io/badge/Express-4.x-000000?style=flat-square&logo=express)](https://expressjs.com/)
+[![Firebase](https://img.shields.io/badge/Firebase-Admin-FFCA28?style=flat-square&logo=firebase)](https://firebase.google.com/)
+[![Redis](https://img.shields.io/badge/Redis-4.x-DC382D?style=flat-square&logo=redis)](https://redis.io/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb)](https://mongoosejs.com/)
 
-*The nervous system of Rydex. Handles all real-time events — GPS coordinates, booking dispatches, in-ride chat, and the matchmaker cascade timer.*
+*The nervous system of Rydex. Handles all real-time events — GPS coordinates, booking dispatches, in-ride chat, push notifications via FCM, and the matchmaker cascade timer.*
 
 </div>
 
@@ -23,6 +25,8 @@ Next.js API routes are **stateless and serverless** — they can't hold long-liv
 2. Storing **active matchmaker timers** in a `Map` (memory-safe, per-booking)
 3. **Broadcasting** targeted events to specific users by looking up their `socketId` in MongoDB
 4. Acting as a **bridge** — the Next.js app POSTs to `/emit`, and this server dispatches to the right WebSocket
+5. Sending **push notifications via Firebase Cloud Messaging (FCM)** when users are offline
+6. Managing **Redis pub/sub** for horizontal scaling across multiple server instances
 
 ---
 
@@ -39,6 +43,7 @@ graph LR
         EX["Express HTTP :8000"]
         IO["Socket.IO Engine"]
         TM["Timer Map\n(bookingId → setTimeout)"]
+        FCM["FCM Service\n(Push Notifications)"]
     end
 
     subgraph "Clients"
@@ -46,7 +51,11 @@ graph LR
         P["Partner Browser"]
     end
 
-    DB[("MongoDB")]
+    subgraph "External Services"
+        DB[("MongoDB")]
+        FIREBASE["Firebase Cloud Messaging"]
+        REDIS["Redis Adapter"]
+    end
 
     API -->|POST /emit| EX
     EX --> IO
@@ -55,8 +64,12 @@ graph LR
     P <-->|WebSocket| IO
     U <-->|WebSocket| IO
     IO <--> DB
+    IO <--> REDIS
     MM -->|POST /cascade| API
     TM -->|triggers after 20s| MM
+    FCM -->|sendPushNotification| FIREBASE
+    FIREBASE -->|Push Notification| U
+    FIREBASE -->|Push Notification| P
 ```
 
 ---
@@ -65,23 +78,42 @@ graph LR
 
 ```
 socketServer/
-├── index.js              # Entry point — everything lives here
+├── index.ts                          # Entry point (Express + Socket.IO setup)
 │   ├── Express app setup
 │   ├── MongoDB connection
-│   ├── CORS config
-│   ├── Socket.IO server
+│   ├── CORS & middleware config
+│   ├── Socket.IO server with Redis adapter
 │   ├── /health endpoint
-│   ├── /emit endpoint (with cascade timer logic)
+│   ├── /emit endpoint (with cascade + FCM logic)
+│   ├── /emit-admin endpoint (admin broadcasts)
 │   └── WebSocket event handlers
 │
-├── models/
-│   └── user.models.js    # Lightweight User model
-│                         # (only what the socket server needs:
-│                          #  socketId, isOnline, location)
+├── src/
+│   ├── services/
+│   │   ├── db.ts                     # MongoDB connection
+│   │   ├── redis.ts                  # Redis pub/sub for scaling
+│   │   ├── fcm.ts                    # Firebase Cloud Messaging service
+│   │   ├── notifications.ts          # Real-time notification routing
+│   │   ├── logger.ts                 # Event logging service
+│   │   ├── timers.ts                 # Active timers management
+│   │   └── cron.ts                   # Scheduled booking dispatch
+│   │
+│   ├── handlers/
+│   │   ├── socket.ts                 # Socket.IO event handlers
+│   │   └── redisSub.ts               # Redis subscription handler
+│   │
+│   └── middleware/
+│       ├── auth.ts                   # Token authentication
+│       └── cors.ts                   # CORS validation
 │
-├── .env                  # Environment variables
+├── models/
+│   └── user.models.ts                # User model (socketId, fcmTokens, location)
+│
+├── tests/                            # Vitest integration tests
+│
+├── .env                              # Environment variables
 ├── package.json
-└── README.md             # ← You are here
+└── README.md                         # ← You are here
 ```
 
 ---

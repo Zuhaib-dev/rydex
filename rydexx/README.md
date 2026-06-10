@@ -304,6 +304,14 @@ Used in `PartnerEarningChart` and `PartnerAnalyticsHub` for:
 - Bar chart (trip count by day)
 - Pie chart (vehicle type distribution)
 
+### Firebase Cloud Messaging (FCM)
+Push notification system for offline users:
+- Client-side: `useFCM()` hook requests browser notification permissions and manages FCM tokens
+- Service Worker: `/public/firebase-messaging-sw.js` handles background notifications
+- Multi-device support: Tokens stored per-device in `User.fcmTokens` array
+- Automatic cleanup: Invalid tokens are removed server-side
+- Events: Triggered on `new-booking`, `booking-updated`, and system notifications
+
 ---
 
 ## Environment Setup
@@ -326,11 +334,66 @@ EMAIL_USER=...
 EMAIL_PASS=...
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_MAPBOX_TOKEN=...
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
+NEXT_PUBLIC_FIREBASE_VAPID_KEY=...
 ```
 
 ---
 
-## Running Locally
+## Push Notifications & FCM Setup
+
+### useFCM Hook
+Located at `/src/hooks/useFCM.ts`, this hook handles Firebase Cloud Messaging setup on the client:
+
+```typescript
+import { useFCM } from "@/hooks/useFCM";
+
+export default function MyComponent() {
+  const { fcmToken } = useFCM();
+  
+  // Hook automatically:
+  // 1. Requests browser notification permission
+  // 2. Initializes Firebase service worker
+  // 3. Registers device and gets FCM token
+  // 4. Sends token to backend via POST /api/user/fcm-token
+  // 5. Listens for incoming push notifications
+  // 6. Auto-redirects on notification click
+}
+```
+
+### FCM Token Management
+Users can have **multiple FCM tokens** (for multi-device support):
+
+**Register Token:**
+```bash
+POST /api/user/fcm-token
+{ "token": "firebase-fcm-token-string" }
+```
+
+**Remove Token (on logout):**
+```bash
+DELETE /api/user/fcm-token
+{ "token": "firebase-fcm-token-string" }
+```
+
+### Service Worker for Background Notifications
+The file `/public/firebase-messaging-sw.js` must exist for background notifications when the app is not in focus. This file is automatically loaded by the Firebase SDK.
+
+### Notification Behavior
+| Event | Trigger | Notification |
+|---|---|---|
+| `new-booking` | Driver receives a new ride request | "New Ride Request!" |
+| `booking-updated` | Booking status changes (confirmed, arriving, etc.) | "Ride Status Updated" |
+| `new-notification` | System or admin notification | Custom title & body |
+
+Clicking a notification brings the user to the relevant page (e.g., `/ride/{bookingId}`).
+
+---
 
 ```bash
 # Install dependencies
