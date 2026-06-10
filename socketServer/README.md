@@ -244,18 +244,78 @@ Trailing slashes are normalized (`normalizeOrigin`) to prevent false rejections 
 
 ---
 
+## Firebase Cloud Messaging (FCM) Service
+
+The `src/services/fcm.ts` module handles server-side push notifications:
+
+### How It Works
+
+1. **Client Registration:** Users allow browser notifications via `useFCM()` hook
+2. **Token Collection:** FCM tokens are sent to backend via `POST /api/user/fcm-token`
+3. **Fallback Delivery:** When WebSocket delivery fails (user offline), FCM takes over
+4. **Multi-Device:** Each device can have its own FCM token, stored in `User.fcmTokens`
+5. **Cleanup:** Invalid tokens are auto-removed from database
+
+### Implementation
+
+```typescript
+// Send push to one or more users
+async sendPushNotification(
+  tokens: string[],          // Array of FCM tokens
+  title: string,
+  body: string,
+  data?: Record<string, string>  // Optional custom data
+)
+```
+
+### Firebase Admin Setup
+
+The socket server uses **Firebase Admin SDK** for server-side push delivery. You must:
+
+1. Create a Firebase project and download the service account JSON
+2. Place it at `./firebase-admin.json` or set `FIREBASE_ADMIN_JSON_PATH` environment variable
+3. Configure the following paths (in priority order):
+   - `process.env.FIREBASE_ADMIN_JSON_PATH` (explicit path)
+   - `/etc/secrets/firebase-admin.json` (production secret mount)
+   - `./firebase-admin.json` (project root)
+   - `../../firebase-admin.json` (relative fallback)
+
+If Firebase Admin is not initialized, push notifications are **silently skipped** and WebSocket delivery is used as fallback.
+
+### Notification Lifecycle
+
+```
+User goes offline
+    ↓
+WebSocket delivery fails
+    ↓
+Server fetches User.fcmTokens from MongoDB
+    ↓
+Firebase Admin SDK sends push to each token
+    ↓
+Invalid tokens collected → User.fcmTokens updated
+    ↓
+Browser receives notification → User sees alert
+```
+
+---
+
 ## MongoDB Usage
 
-This server has a **minimal MongoDB footprint** — it only touches the `User` collection for two purposes:
+This server has a **minimal MongoDB footprint** — it only touches the `User` collection for:
 
 | Operation | When | Fields |
 |---|---|---|
 | **Read** `socketId` | On `/emit` to find where to send | `socketId` |
+| **Read** `fcmTokens` | When sending push notifications offline | `fcmTokens` (array) |
 | **Write** `socketId`, `isOnline = true` | On `identity` event | `socketId`, `isOnline` |
+| **Write** `fcmTokens` | On invalid token cleanup | `fcmTokens` ($pull operator) |
 | **Write** `isOnline = false`, `socketId = null` | On `disconnect` | `isOnline`, `socketId` |
 | **Write** `location` (GeoJSON) | On `update-location` event | `location.coordinates` |
 
 The `location` field uses MongoDB's **2dsphere index**, enabling `$near` geo queries from the Next.js matchmaker.
+
+The `fcmTokens` field is an array of Firebase Cloud Messaging tokens, one per user device for multi-device support.
 
 ---
 
@@ -263,11 +323,30 @@ The `location` field uses MongoDB's **2dsphere index**, enabling `$near` geo que
 
 ```env
 # .env
+
+# Server
 PORT=8000
+NODE_ENV=production
+
+# Database
 MONGODB_URL=mongodb+srv://<user>:<pass>@cluster.mongodb.net/rydex
+
+# Socket Server Configuration
 NEXT_BASE_URL=http://localhost:3000
 CLIENT_URL=http://localhost:3000
+SOCKET_INTERNAL_SECRET=<secret-for-internal-endpoints>
+
+# Firebase Cloud Messaging (Optional - push notifications disabled if not set)
+FIREBASE_ADMIN_JSON_PATH=./firebase-admin.json
+
+# Redis (For horizontal scaling)
+REDIS_URL=redis://localhost:6379
 ```
+
+**Firebase Admin JSON File:**
+- Download from Firebase Console → Project Settings → Service Accounts
+- Save to project root as `firebase-admin.json`
+- Or set `FIREBASE_ADMIN_JSON_PATH=/path/to/firebase-admin.json`
 
 ---
 
