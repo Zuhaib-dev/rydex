@@ -99,6 +99,7 @@ function emitToBookingRoom(bookingId: string, event: string, data: any) {
 /**
  * Builds a contextual push notification payload for each booking event / status.
  * Returns { title, body, url } ready to pass to sendPushNotification().
+ * Copy rule: human, casual, direct. No emojis. No corporate-speak.
  */
 function buildPushContent(
   event: string,
@@ -111,67 +112,69 @@ function buildPushContent(
 
   if (event === "new-notification") {
     return {
-      title: data?.title || "New Message from Rydex",
-      body: data?.message || "You have a new notification.",
+      title: data?.title || "hey, you got a message",
+      body: data?.message || "something came in for you on rydex.",
       url: notifUrl,
     };
   }
 
   if (event === "new-booking") {
-    const pickup = data?.pickupAddress ? `Pickup: ${String(data.pickupAddress).slice(0, 60)}` : "Tap to view pickup details.";
+    const pickup = data?.pickupAddress
+      ? `heading to ${String(data.pickupAddress).slice(0, 55)}`
+      : "someone needs a ride nearby. tap to see the details.";
     return {
-      title: "🚖 New Ride Request!",
+      title: "new ride request",
       body: pickup,
       url: partnerUrl,
     };
   }
 
-  // booking-updated — map each status to a friendly message
+  // booking-updated — map each status to casual human copy
   const status = data?.status ? String(data.status) : "";
   const statusMap: Record<string, { title: string; body: string; url: string }> = {
     awaiting_payment: {
-      title: "🚗 Driver Accepted!",
-      body: "Your driver is heading to the pickup point. Select a payment method.",
+      title: "driver's on the way",
+      body: "your driver accepted the ride. open the app to choose how you're paying.",
       url: rideUrl,
     },
     confirmed: {
-      title: "✅ Ride Confirmed",
-      body: "Payment confirmed. Your driver is on the way!",
+      title: "you're all set",
+      body: "payment sorted, driver is heading to you now.",
       url: rideUrl,
     },
     arriving: {
-      title: "📍 Driver Nearby",
-      body: "Your driver is approaching the pickup location.",
+      title: "almost there",
+      body: "your driver is close. start making your way out.",
       url: rideUrl,
     },
     arrived: {
-      title: "🔔 Driver Has Arrived",
-      body: "Your driver is at the pickup point. Please come out.",
+      title: "driver's outside",
+      body: "they've reached the pickup spot. don't keep them waiting too long.",
       url: rideUrl,
     },
     started: {
-      title: "🚀 Ride Started",
-      body: "Your trip has begun. Enjoy the ride!",
+      title: "ride started",
+      body: "you're on the move. sit back.",
       url: rideUrl,
     },
     completed: {
-      title: "🏁 Trip Complete",
-      body: "You've arrived! Don't forget to rate your driver.",
+      title: "ride done",
+      body: "hope it was smooth. drop a rating when you get a sec.",
       url: rideUrl,
     },
     cancelled: {
-      title: "❌ Booking Cancelled",
-      body: "Your booking was cancelled. Book a new ride anytime.",
+      title: "ride got cancelled",
+      body: "this one didn't go through. you can book again whenever you're ready.",
       url: "/user/book",
     },
     rejected: {
-      title: "😔 No Drivers Found",
-      body: "We couldn't find a driver nearby. Please try again.",
+      title: "no drivers close by",
+      body: "we looked but couldn't find anyone nearby. try again in a bit.",
       url: "/user/book",
     },
     expired: {
-      title: "⏰ Request Expired",
-      body: "Your booking request timed out. Please try booking again.",
+      title: "request timed out",
+      body: "the driver didn't respond in time. we'll find you another one.",
       url: "/user/book",
     },
   };
@@ -182,12 +185,11 @@ function buildPushContent(
 
   // Generic fallback
   return {
-    title: "Rydex Update",
-    body: status ? `Your booking status is now: ${status}` : "Your ride status was updated.",
+    title: "ride update",
+    body: status ? `your booking is now ${status}.` : "something changed on your ride.",
     url: rideUrl,
   };
 }
-
 
 
 // Express route for booking and notification updates
