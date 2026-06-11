@@ -63,19 +63,19 @@ export async function POST(
 
     await notifyAdminDashboard({ scope: "dashboard", reason: `kyc-${action}` });
 
-    // Push notification — inform partner of KYC outcome
+    // Push notification — tell partner the KYC result
     const pushData = action === "approved"
       ? {
-          title: "✅ KYC Approved!",
-          message: "Your Video KYC has been verified. Proceed to add your vehicle to complete activation.",
+          title: "video kyc done",
+          message: "you're verified. now add your vehicle and you're good to go.",
           type: "KYC_APPROVED",
           url: "/partner/onboarding",
         }
       : {
-          title: "❌ KYC Rejected",
+          title: "kyc didn't go through",
           message: reason
-            ? `Your Video KYC was rejected. Reason: ${reason}. Please re-submit a new KYC session.`
-            : "Your Video KYC was not approved. Please contact support or re-submit.",
+            ? `your video kyc was rejected. reason: ${reason}. schedule a new session and try again.`
+            : "your video kyc wasn't approved. contact support or book a new session.",
           type: "KYC_REJECTED",
           url: "/partner/video-kyc",
         };
