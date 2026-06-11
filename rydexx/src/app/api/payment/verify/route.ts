@@ -4,6 +4,7 @@ import crypto from "crypto"
 import { emitBookingUpdated } from "@/lib/bookingEvents"
 import { auth } from "@/lib/auth"
 import { applyCommissionSplit } from "@/lib/commissionSplit"
+import { paymentVerifySchema } from "@/lib/validations/payment"
 
 
 
@@ -16,12 +17,22 @@ export async function POST(req: Request) {
     return Response.json({ success:false, message:"Unauthorized" }, { status: 401 })
   }
 
+  const body = await req.json()
+  const validation = paymentVerifySchema.safeParse(body)
+  if (!validation.success) {
+    const errorMsg = validation.error.errors[0]?.message || "Validation failed"
+    return Response.json(
+      { success: false, message: errorMsg, errors: validation.error.format() },
+      { status: 400 }
+    )
+  }
+
   const {
     bookingId,
     razorpay_order_id,
     razorpay_payment_id,
     razorpay_signature
-  } = await req.json()
+  } = validation.data
 
   const secretKey = process.env.RAZORPAY_KEY_SECRET;
   if (!secretKey) {

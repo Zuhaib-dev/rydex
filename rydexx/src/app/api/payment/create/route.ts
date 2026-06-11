@@ -3,6 +3,7 @@ import razorpay from "@/lib/razorpay"
 import connectDb from "@/lib/db"
 import Booking from "@/models/booking.model"
 import { auth } from "@/lib/auth"
+import { paymentCreateSchema } from "@/lib/validations/payment"
 
 
 
@@ -15,7 +16,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { bookingId } = await req.json()
+  const body = await req.json()
+  const validation = paymentCreateSchema.safeParse(body)
+  if (!validation.success) {
+    const errorMsg = validation.error.errors[0]?.message || "Validation failed"
+    return NextResponse.json(
+      { error: errorMsg, errors: validation.error.format() },
+      { status: 400 }
+    )
+  }
+
+  const { bookingId } = validation.data
 
   const booking = await Booking.findById(bookingId)
 
