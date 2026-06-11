@@ -23,6 +23,7 @@ import { getSocket } from "@/lib/socket";
 import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 import type { RealtimeToast } from "@/hooks/useBookingRealtime";
 import RideToasts from "@/components/ride/RideToasts";
+import { snapToRoute, checkRouteDeviation } from "@/lib/routeDeviation";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IUser } from "@/models/user.model";
@@ -299,8 +300,26 @@ export default function DriverRidePage() {
     const handlePositionUpdate = (pos: GeolocationPosition) => {
       const b = bookingRef.current;
       if (!b?._id || TERMINAL.includes(b.status)) return;
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
+      let lat = pos.coords.latitude;
+      let lng = pos.coords.longitude;
+
+      if (b.routePolyline) {
+        const deviated = checkRouteDeviation([lat, lng], b.routePolyline, 50);
+        if (deviated) {
+          socket.emit("route-deviation", {
+            bookingId: b._id,
+            driverId: b.driver?._id,
+            latitude: lat,
+            longitude: lng,
+          });
+        }
+
+        // Snap for smooth visual rendering
+        const snapped = snapToRoute([lat, lng], b.routePolyline);
+        lat = snapped[0];
+        lng = snapped[1];
+      }
+
       setDriverPos([lat, lng]);
       socket.emit("driver-location-update", {
         bookingId: b._id,
