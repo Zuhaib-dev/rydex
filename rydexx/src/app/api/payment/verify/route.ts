@@ -17,10 +17,10 @@ export async function POST(req: Request) {
     return Response.json({ success:false, message:"Unauthorized" }, { status: 401 })
   }
 
-  const body = await req.json()
-  const validation = paymentVerifySchema.safeParse(body)
+  const reqJson = await req.json()
+  const validation = paymentVerifySchema.safeParse(reqJson)
   if (!validation.success) {
-    const errorMsg = validation.error.errors[0]?.message || "Validation failed"
+    const errorMsg = validation.error.issues[0]?.message || "Validation failed"
     return Response.json(
       { success: false, message: errorMsg, errors: validation.error.format() },
       { status: 400 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const bookingCreateSchema = z.object({
   quoteId: z.string({
-    required_error: "quoteId is required — create a locked quote first",
+    message: "quoteId is required — create a locked quote first",
   }).min(1, "quoteId is required — create a locked quote first"),
   mobileNumber: z.union([z.string(), z.number()]).optional().refine(
     (val) => {
