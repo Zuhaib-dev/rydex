@@ -58,6 +58,7 @@ export interface IBooking {
   dropAddress: string;
   pickupLocation?: { type: "Point"; coordinates: [number, number] };
   dropLocation?: { type: "Point"; coordinates: [number, number] };
+  routePolyline?: GeoJSON.LineString;
   fare: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
