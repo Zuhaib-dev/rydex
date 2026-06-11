@@ -64,13 +64,13 @@ export async function GET(
 
     await notifyAdminDashboard({ scope: "dashboard", reason: "partner-approved" });
 
-    // Push notification — inform partner that docs are approved and KYC is next
+    // Push notification — tell the partner their docs passed and what's next
     await emitToSocketServer({
       userId: String(partner._id),
       event: "new-notification",
       data: {
-        title: "📋 Documents Approved!",
-        message: "Your documents have been verified. Complete the Video KYC step to activate your account.",
+        title: "docs approved",
+        message: "your documents checked out. next step is a quick video verification — wrap that up and you're almost live.",
         type: "PARTNER_DOCS_APPROVED",
         url: "/partner/video-kyc",
       },
