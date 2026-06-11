@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getSocket } from "@/lib/socket";
 import type { LatLng } from "@/lib/mapboxRouting";
+import { snapToRoute, checkRouteDeviation } from "@/lib/routeDeviation";
 
 export type RideSocketStatus =
   | "connecting"
@@ -16,6 +17,7 @@ type UseRideSocketOptions = {
   initialDriverLocation?: LatLng | null;
   driverId?: string;
   status?: string;
+  routeGeoJSON?: GeoJSON.LineString | null;
 };
 
 /** GPS + connection only. Booking state sync lives in useBookingRealtime. */
@@ -25,6 +27,7 @@ export function useRideSocket({
   initialDriverLocation,
   driverId,
   status,
+  routeGeoJSON,
 }: UseRideSocketOptions) {
   const [driverPosition, setDriverPosition] = useState<LatLng | null>(
     initialDriverLocation ?? null
@@ -67,7 +70,16 @@ export function useRideSocket({
         typeof data.latitude === "number" &&
         typeof data.longitude === "number"
       ) {
-        setDriverPosition([data.latitude, data.longitude]);
+        let lat = data.latitude;
+        let lng = data.longitude;
+
+        if (routeGeoJSON && (status === "started" || status === "arriving")) {
+          const snapped = snapToRoute([lat, lng], routeGeoJSON);
+          lat = snapped[0];
+          lng = snapped[1];
+        }
+
+        setDriverPosition([lat, lng]);
         setLastLocationAt(Date.now());
       }
     };
@@ -98,8 +110,25 @@ export function useRideSocket({
     const socket = getSocket();
 
     const handlePassengerPosition = (pos: GeolocationPosition) => {
-      const lat = pos.coords.latitude;
-      const lng = pos.coords.longitude;
+      let lat = pos.coords.latitude;
+      let lng = pos.coords.longitude;
+
+      if (routeGeoJSON) {
+        const deviated = checkRouteDeviation([lat, lng], routeGeoJSON, 50);
+        if (deviated) {
+          socket.emit("route-deviation", {
+            bookingId,
+            driverId,
+            latitude: lat,
+            longitude: lng,
+          });
+        }
+        
+        // Snap for smooth visual tracking
+        const snapped = snapToRoute([lat, lng], routeGeoJSON);
+        lat = snapped[0];
+        lng = snapped[1];
+      }
 
       // Update state locally so the passenger map updates smoothly
       setDriverPosition([lat, lng]);
@@ -139,7 +168,7 @@ export function useRideSocket({
       navigator.geolocation.clearWatch(watchId);
       clearInterval(pollingInterval);
     };
-  }, [bookingId, enabled, status, driverId]);
+  }, [bookingId, enabled, status, driverId, routeGeoJSON]);
 
   return {
     driverPosition,
