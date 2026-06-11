@@ -2,6 +2,7 @@
  * Mapbox Directions helpers tuned for Kashmir valley / mountain road realities.
  * Applies a conservative duration factor inside the region and avoids over-snapping.
  */
+import * as turf from "@turf/turf";
 
 /** Approximate J&K / Kashmir operational bounds */
 export const KASHMIR_BOUNDS = {
@@ -34,17 +35,11 @@ export function isInKashmir(lat: number, lng: number): boolean {
   );
 }
 
-/** Haversine distance in meters */
+/** Haversine distance in meters (now powered by turf.js) */
 export function distanceMeters(a: LatLng, b: LatLng): number {
-  const R = 6371000;
-  const dLat = ((b[0] - a[0]) * Math.PI) / 180;
-  const dLng = ((b[1] - a[1]) * Math.PI) / 180;
-  const lat1 = (a[0] * Math.PI) / 180;
-  const lat2 = (b[0] * Math.PI) / 180;
-  const x =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.asin(Math.sqrt(x));
+  const ptA = turf.point([a[1], a[0]]);
+  const ptB = turf.point([b[1], b[0]]);
+  return turf.distance(ptA, ptB, { units: "meters" });
 }
 
 export async function fetchDrivingRoute(
