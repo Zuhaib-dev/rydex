@@ -2,6 +2,7 @@ import { notifyAdminDashboard } from "@/lib/adminEvents";
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
+import { emitToSocketServer } from "@/lib/socketServer";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(
@@ -61,6 +62,29 @@ export async function POST(
     });
 
     await notifyAdminDashboard({ scope: "dashboard", reason: `kyc-${action}` });
+
+    // Push notification — inform partner of KYC outcome
+    const pushData = action === "approved"
+      ? {
+          title: "✅ KYC Approved!",
+          message: "Your Video KYC has been verified. Proceed to add your vehicle to complete activation.",
+          type: "KYC_APPROVED",
+          url: "/partner/onboarding",
+        }
+      : {
+          title: "❌ KYC Rejected",
+          message: reason
+            ? `Your Video KYC was rejected. Reason: ${reason}. Please re-submit a new KYC session.`
+            : "Your Video KYC was not approved. Please contact support or re-submit.",
+          type: "KYC_REJECTED",
+          url: "/partner/video-kyc",
+        };
+
+    await emitToSocketServer({
+      userId: String(partner._id),
+      event: "new-notification",
+      data: pushData,
+    }).catch((err) => console.warn(`[push] KYC ${action} push failed:`, err));
 
     return NextResponse.json({
       message: `Video KYC ${action} successfully`,
