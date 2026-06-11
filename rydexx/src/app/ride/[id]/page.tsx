@@ -345,6 +345,7 @@ export default function RidePage() {
     initialDriverLocation: driverInitialLoc,
     driverId: booking?.driver?._id,
     status: booking?.status,
+    routeGeoJSON: booking?.routePolyline,
   });
 
   useBookingRealtime<BookingDetails>({
