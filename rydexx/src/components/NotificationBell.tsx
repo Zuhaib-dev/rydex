@@ -219,9 +219,13 @@ export default function NotificationBell() {
               )}
             </div>
             <div className="border-t border-white/10 p-3 bg-black/40 text-center">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
-                End of notifications
-              </span>
+              <a
+                href="/user/notifications"
+                className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                View all notifications →
+              </a>
             </div>
           </motion.div>
         )}
