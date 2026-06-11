@@ -4,10 +4,19 @@ import { useEffect, useState } from "react";
 import { getToken, onMessage } from "firebase/messaging";
 import { initMessaging, VAPID_KEY } from "@/lib/firebase";
 
-export function useFCM() {
+/**
+ * useFCM — requests notification permission and registers an FCM token.
+ *
+ * @param enabled - Set to `false` to delay the permission prompt until a more
+ *                  appropriate moment (e.g., after the user's first booking).
+ *                  Defaults to `true` (immediate prompt on mount).
+ */
+export function useFCM({ enabled = true }: { enabled?: boolean } = {}) {
   const [fcmToken, setFcmToken] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
+
     let unsubscribe: (() => void) | undefined;
 
     const requestPermissionAndGetToken = async () => {
@@ -71,7 +80,7 @@ export function useFCM() {
     return () => {
       unsubscribe?.();
     };
-  }, []);
+  }, [enabled]);
 
   return { fcmToken };
 }
