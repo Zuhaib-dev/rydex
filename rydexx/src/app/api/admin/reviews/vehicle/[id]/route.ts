@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import Vehicle from "@/models/vehicle.model";
+import { emitToSocketServer } from "@/lib/socketServer";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(
@@ -106,6 +107,48 @@ export async function PUT(
       scope: "dashboard",
       reason: `vehicle-${action}`,
     });
+
+    // Push notification — inform the vehicle owner of the review outcome
+    const ownerId = String(vehicle.owner);
+    if (action === "approved" && user.partnerOnboardingSteps >= 8) {
+      // Full account activation — most important push in the partner journey
+      await emitToSocketServer({
+        userId: ownerId,
+        event: "new-notification",
+        data: {
+          title: "🎉 You're Live on Rydex!",
+          message: "Your vehicle has been approved. Your account is fully activated — go online and start accepting rides!",
+          type: "PARTNER_ACCOUNT_APPROVED",
+          url: "/partner/dashboard",
+        },
+      }).catch((err) => console.warn("[push] Partner account approval push failed:", err));
+    } else if (action === "rejected") {
+      await emitToSocketServer({
+        userId: ownerId,
+        event: "new-notification",
+        data: {
+          title: "⚠️ Vehicle Not Approved",
+          message: reason
+            ? `Your vehicle was not approved. Reason: ${reason}. Please re-submit with correct details.`
+            : "Your vehicle was not approved. Please check your documents and re-submit.",
+          type: "VEHICLE_REJECTED",
+          url: "/partner/onboarding",
+        },
+      }).catch((err) => console.warn("[push] Vehicle rejection push failed:", err));
+    } else if (action === "suspended") {
+      await emitToSocketServer({
+        userId: ownerId,
+        event: "new-notification",
+        data: {
+          title: "🚫 Vehicle Suspended",
+          message: reason
+            ? `Your vehicle has been suspended. Reason: ${reason}. Contact support for assistance.`
+            : "Your vehicle has been suspended by the admin.",
+          type: "VEHICLE_SUSPENDED",
+          url: "/partner/dashboard",
+        },
+      }).catch((err) => console.warn("[push] Vehicle suspension push failed:", err));
+    }
 
     return NextResponse.json({ message: `Vehicle ${action} successfully` });
   } catch (error) {
