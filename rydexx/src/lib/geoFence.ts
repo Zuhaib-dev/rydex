@@ -16,7 +16,7 @@ export type GeoFenceResult = {
 
 type Zone = {
   name: string;
-  polygon: turf.Feature<turf.Polygon>;
+  polygon: GeoJSON.Feature<GeoJSON.Polygon>;
   /** blocked = no bookings; cashOnly = bookings only with cash payment */
   type: "blocked" | "cashOnly";
   reason: string;
