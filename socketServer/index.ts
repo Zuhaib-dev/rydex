@@ -96,6 +96,100 @@ function emitToBookingRoom(bookingId: string, event: string, data: any) {
   io.to(room).emit(event as any, data);
 }
 
+/**
+ * Builds a contextual push notification payload for each booking event / status.
+ * Returns { title, body, url } ready to pass to sendPushNotification().
+ */
+function buildPushContent(
+  event: string,
+  data: any,
+  bookingRoomId?: string
+): { title: string; body: string; url: string } {
+  const rideUrl = bookingRoomId ? `/ride/${bookingRoomId}` : "/";
+  const partnerUrl = "/partner/pending-requests";
+  const notifUrl = data?.url ? String(data.url) : "/user/notifications";
+
+  if (event === "new-notification") {
+    return {
+      title: data?.title || "New Message from Rydex",
+      body: data?.message || "You have a new notification.",
+      url: notifUrl,
+    };
+  }
+
+  if (event === "new-booking") {
+    const pickup = data?.pickupAddress ? `Pickup: ${String(data.pickupAddress).slice(0, 60)}` : "Tap to view pickup details.";
+    return {
+      title: "🚖 New Ride Request!",
+      body: pickup,
+      url: partnerUrl,
+    };
+  }
+
+  // booking-updated — map each status to a friendly message
+  const status = data?.status ? String(data.status) : "";
+  const statusMap: Record<string, { title: string; body: string; url: string }> = {
+    awaiting_payment: {
+      title: "🚗 Driver Accepted!",
+      body: "Your driver is heading to the pickup point. Select a payment method.",
+      url: rideUrl,
+    },
+    confirmed: {
+      title: "✅ Ride Confirmed",
+      body: "Payment confirmed. Your driver is on the way!",
+      url: rideUrl,
+    },
+    arriving: {
+      title: "📍 Driver Nearby",
+      body: "Your driver is approaching the pickup location.",
+      url: rideUrl,
+    },
+    arrived: {
+      title: "🔔 Driver Has Arrived",
+      body: "Your driver is at the pickup point. Please come out.",
+      url: rideUrl,
+    },
+    started: {
+      title: "🚀 Ride Started",
+      body: "Your trip has begun. Enjoy the ride!",
+      url: rideUrl,
+    },
+    completed: {
+      title: "🏁 Trip Complete",
+      body: "You've arrived! Don't forget to rate your driver.",
+      url: rideUrl,
+    },
+    cancelled: {
+      title: "❌ Booking Cancelled",
+      body: "Your booking was cancelled. Book a new ride anytime.",
+      url: "/user/book",
+    },
+    rejected: {
+      title: "😔 No Drivers Found",
+      body: "We couldn't find a driver nearby. Please try again.",
+      url: "/user/book",
+    },
+    expired: {
+      title: "⏰ Request Expired",
+      body: "Your booking request timed out. Please try booking again.",
+      url: "/user/book",
+    },
+  };
+
+  if (statusMap[status]) {
+    return statusMap[status];
+  }
+
+  // Generic fallback
+  return {
+    title: "Rydex Update",
+    body: status ? `Your booking status is now: ${status}` : "Your ride status was updated.",
+    url: rideUrl,
+  };
+}
+
+
+
 // Express route for booking and notification updates
 app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
   const { userId, event, data, bookingId: roomFromBody } = req.body;
