@@ -108,16 +108,16 @@ export async function PUT(
       reason: `vehicle-${action}`,
     });
 
-    // Push notification — inform the vehicle owner of the review outcome
+    // Push notification — tell the vehicle owner what happened
     const ownerId = String(vehicle.owner);
     if (action === "approved" && user.partnerOnboardingSteps >= 8) {
-      // Full account activation — most important push in the partner journey
+      // Full activation — the most important push in the partner journey
       await emitToSocketServer({
         userId: ownerId,
         event: "new-notification",
         data: {
-          title: "🎉 You're Live on Rydex!",
-          message: "Your vehicle has been approved. Your account is fully activated — go online and start accepting rides!",
+          title: "you're live",
+          message: "vehicle cleared, account fully activated. go online and start picking up rides.",
           type: "PARTNER_ACCOUNT_APPROVED",
           url: "/partner/dashboard",
         },
@@ -127,10 +127,10 @@ export async function PUT(
         userId: ownerId,
         event: "new-notification",
         data: {
-          title: "⚠️ Vehicle Not Approved",
+          title: "vehicle not approved",
           message: reason
-            ? `Your vehicle was not approved. Reason: ${reason}. Please re-submit with correct details.`
-            : "Your vehicle was not approved. Please check your documents and re-submit.",
+            ? `we couldn't approve your vehicle. reason: ${reason}. fix it up and resubmit when ready.`
+            : "your vehicle wasn't approved. check your details and resubmit.",
           type: "VEHICLE_REJECTED",
           url: "/partner/onboarding",
         },
@@ -140,10 +140,10 @@ export async function PUT(
         userId: ownerId,
         event: "new-notification",
         data: {
-          title: "🚫 Vehicle Suspended",
+          title: "vehicle suspended",
           message: reason
-            ? `Your vehicle has been suspended. Reason: ${reason}. Contact support for assistance.`
-            : "Your vehicle has been suspended by the admin.",
+            ? `your vehicle was suspended. reason: ${reason}. reach out to support if you think this is a mistake.`
+            : "your vehicle has been suspended by the admin. contact support for details.",
           type: "VEHICLE_SUSPENDED",
           url: "/partner/dashboard",
         },
