@@ -121,25 +121,14 @@ app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
       if (event === "new-booking" || event === "booking-updated" || event === "new-notification") {
         const targetUser = await User.findById(userId).select("fcmTokens").lean();
         if (targetUser && targetUser.fcmTokens && targetUser.fcmTokens.length > 0) {
-          let title = "Rydex Update";
-          let body = "You have a new update.";
-          
-          if (event === "new-booking") {
-            title = "New Ride Request!";
-            body = "Tap to view pickup details.";
-          } else if (event === "booking-updated") {
-            title = "Ride Status Updated";
-            body = data?.status ? `Booking is now ${data.status}` : "Your ride status was updated.";
-          } else if (event === "new-notification") {
-            title = data?.title || "New Message from Rydex";
-            body = data?.message || "You have a new notification.";
-          }
+
+          const { title, body, url } = buildPushContent(event, data, bookingRoomId);
 
           const pushResult = await sendPushNotification(targetUser.fcmTokens as string[], title, body, {
             bookingId: String(bookingRoomId || ""),
             event,
             notificationId: data?._id ? String(data._id) : "",
-            url: data?.url ? String(data.url) : bookingRoomId ? `/ride/${bookingRoomId}` : "/",
+            url,
           });
 
           if (pushResult.invalidTokens.length > 0) {
