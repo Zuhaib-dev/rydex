@@ -34,6 +34,7 @@ export interface ClientToServerEvents {
   "chat-read": (data: { rideId: string; sender: "user" | "driver" }) => void;
   "update-location": (data: { latitude: number; longitude: number }) => void;
   "partner-availability": (data: { available: boolean }) => void;
+  "route-deviation": (data: { bookingId: string; driverId?: string; latitude: number; longitude: number }) => void;
 }
 
 export interface InterServerEvents {}
@@ -181,6 +182,19 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
           console.error("Failed to update driver location in DB/Redis on driver-location-update:", err.message);
         }
       }
+    });
+
+    socket.on("route-deviation", async (data) => {
+      console.warn(`[Route Deviation] Driver ${data.driverId} went off route on booking ${data.bookingId} at lat:${data.latitude}, lng:${data.longitude}`);
+      io.to("admin-dashboard").emit("system-telemetry-update", {
+        type: "ROUTE_DEVIATION",
+        message: `Driver deviated from route`,
+        bookingId: data.bookingId,
+        driverId: data.driverId,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        timestamp: Date.now(),
+      });
     });
 
     socket.on("chat-message", (msg) => {
