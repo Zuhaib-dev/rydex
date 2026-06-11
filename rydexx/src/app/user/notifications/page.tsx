@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import NotificationsPage from "./_page";
+import NotificationsPage from "./NotificationsClient";
 
 export const metadata: Metadata = {
   title: "Notifications | Rydex",

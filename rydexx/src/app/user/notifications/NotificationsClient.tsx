@@ -131,7 +131,7 @@ export default function NotificationsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#060608] text-white">
+    <div className="min-h-screen bg-landing-bg text-white">
       {/* Ambient glow */}
       <div
         className="fixed inset-0 pointer-events-none"
@@ -142,7 +142,7 @@ export default function NotificationsPage() {
       />
 
       {/* ── STICKY HEADER ─────────────────────────── */}
-      <header className="sticky top-0 z-20 border-b border-white/6 bg-[#060608]/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-20 border-b border-white/6 bg-landing-bg/80 backdrop-blur-xl">
         <div className="mx-auto max-w-2xl px-4 py-4 flex items-center gap-4">
           <button
             onClick={() => router.back()}
@@ -221,13 +221,13 @@ export default function NotificationsPage() {
                     className={`relative flex gap-4 rounded-2xl border p-4 cursor-pointer transition-all duration-200
                       ${
                         n.isRead
-                          ? "border-white/5 bg-white/[0.02] hover:bg-white/5"
-                          : "border-white/10 bg-white/[0.05] hover:bg-white/8"
+                          ? "border-white/5 bg-white/2 hover:bg-white/5"
+                          : "border-white/10 bg-white/5 hover:bg-white/8"
                       }`}
                   >
                     {/* Unread dot */}
                     {!n.isRead && (
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-[#9eff6b] shadow-[0_0_8px_#9eff6b80]" />
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-landing-accent shadow-[0_0_8px_#9eff6b80]" />
                     )}
 
                     {/* Icon badge */}
