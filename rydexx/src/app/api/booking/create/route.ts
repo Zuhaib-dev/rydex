@@ -14,6 +14,7 @@ import {
   quoteToSnapshot,
 } from "@/lib/createBookingQuote";
 import { getRedisClient } from "@/lib/redis";
+import { bookingCreateSchema } from "@/lib/validations/booking";
 
 export async function POST(req: Request) {
   await connectDb();
@@ -31,27 +32,21 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const { quoteId, mobileNumber: rawMobile, driverId: overrideDriverId } = body;
-
-  // BUG-015 FIX: Validate and sanitise mobileNumber before storing
-  let mobileNumber: string | undefined;
-  if (rawMobile !== undefined) {
-    const digits = String(rawMobile).replace(/\D/g, "").slice(0, 15);
-    if (digits.length < 7 || digits.length > 15) {
-      return NextResponse.json(
-        { message: "Invalid mobile number format" },
-        { status: 400 },
-      );
-    }
-    mobileNumber = digits;
-  }
-
-  if (!quoteId) {
+  const validation = bookingCreateSchema.safeParse(body);
+  if (!validation.success) {
+    const errorMsg = validation.error.errors[0]?.message || "Validation failed";
     return NextResponse.json(
-      { message: "quoteId is required — create a locked quote first" },
-      { status: 400 },
+      { message: errorMsg, errors: validation.error.format() },
+      { status: 400 }
     );
   }
+
+  const { quoteId, mobileNumber: rawMobile, driverId: overrideDriverId } = validation.data;
+
+  // BUG-015 FIX: Sanitise mobileNumber before storing
+  const mobileNumber = rawMobile !== undefined
+    ? String(rawMobile).replace(/\D/g, "")
+    : undefined;
 
   const quote = await loadValidQuote(quoteId, session.user.id);
   if (!quote) {
