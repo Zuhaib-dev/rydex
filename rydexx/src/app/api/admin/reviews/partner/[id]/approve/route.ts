@@ -4,6 +4,7 @@ import connectDb from "@/lib/db";
 import PartnerBank from "@/models/partnerBank.model";
 import PartnerDocs from "@/models/partnerDocs.model";
 import User from "@/models/user.model";
+import { emitToSocketServer } from "@/lib/socketServer";
 
 import { NextRequest, NextResponse } from "next/server";
 
@@ -62,6 +63,19 @@ export async function GET(
     });
 
     await notifyAdminDashboard({ scope: "dashboard", reason: "partner-approved" });
+
+    // Push notification — inform partner that docs are approved and KYC is next
+    await emitToSocketServer({
+      userId: String(partner._id),
+      event: "new-notification",
+      data: {
+        title: "📋 Documents Approved!",
+        message: "Your documents have been verified. Complete the Video KYC step to activate your account.",
+        type: "PARTNER_DOCS_APPROVED",
+        url: "/partner/video-kyc",
+      },
+    }).catch((err) => console.warn("[push] Partner docs approval push failed:", err));
+
     return NextResponse.json(
       { message: "Partner Approved Successfully" },
       { status: 200 },
