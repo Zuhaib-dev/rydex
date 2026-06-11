@@ -60,6 +60,7 @@ export async function POST(req: Request) {
     const insertedNotifications = await Notification.insertMany(notifications);
 
     // Emit socket event to each recipient and wait for the delivery handoff.
+    // The socketServer /emit endpoint automatically fires FCM for "new-notification" events.
     await Promise.allSettled(
       insertedNotifications.map((n) => emitToSocketServer({
         userId: n.recipientId.toString(),
@@ -70,6 +71,8 @@ export async function POST(req: Request) {
           message: n.message,
           type: n.type,
           createdAt: n.createdAt.toISOString(),
+          // Deep-link: tapping the push opens the notifications page
+          url: "/user/notifications",
         },
       })),
     );
