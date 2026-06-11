@@ -5,6 +5,7 @@
  */
 
 import { getRedisClient } from "@/lib/redis";
+import * as turf from "@turf/turf";
 
 export type GeoFenceResult = {
   allowed: boolean;
@@ -15,10 +16,7 @@ export type GeoFenceResult = {
 
 type Zone = {
   name: string;
-  minLat: number;
-  maxLat: number;
-  minLng: number;
-  maxLng: number;
+  polygon: turf.Feature<turf.Polygon>;
   /** blocked = no bookings; cashOnly = bookings only with cash payment */
   type: "blocked" | "cashOnly";
   reason: string;
@@ -26,50 +24,63 @@ type Zone = {
 
 /**
  * Geo-fence zones within the J&K / Kashmir operational area.
- * Coordinates are approximate bounding boxes — update as needed.
+ * Coordinates are defined as Turf.js polygons (can be upgraded to exact boundaries later).
  */
 const GEO_FENCE_ZONES: Zone[] = [
   {
     name: "LOC Buffer Zone (North Kashmir)",
-    minLat: 34.2,
-    maxLat: 34.7,
-    minLng: 73.8,
-    maxLng: 74.5,
+    polygon: turf.polygon([[
+      [73.8, 34.2],
+      [74.5, 34.2],
+      [74.5, 34.7],
+      [73.8, 34.7],
+      [73.8, 34.2]
+    ]]),
     type: "cashOnly",
     reason: "This route passes through an area near the Line of Control. Online payments are not available here. Please pay in cash.",
   },
   {
     name: "High-Altitude Gurez Valley",
-    minLat: 34.6,
-    maxLat: 34.85,
-    minLng: 74.7,
-    maxLng: 75.2,
+    polygon: turf.polygon([[
+      [74.7, 34.6],
+      [75.2, 34.6],
+      [75.2, 34.85],
+      [74.7, 34.85],
+      [74.7, 34.6]
+    ]]),
     type: "blocked",
     reason: "Bookings in Gurez Valley are temporarily unavailable due to limited connectivity in the region.",
   },
   {
     name: "Drass High-Altitude Zone",
-    minLat: 34.4,
-    maxLat: 34.65,
-    minLng: 75.6,
-    maxLng: 76.0,
+    polygon: turf.polygon([[
+      [75.6, 34.4],
+      [76.0, 34.4],
+      [76.0, 34.65],
+      [75.6, 34.65],
+      [75.6, 34.4]
+    ]]),
     type: "blocked",
     reason: "Bookings in the Drass sector are unavailable due to restricted access.",
   },
   {
     name: "Tangmarg / Gulmarg Tourist Zone",
-    minLat: 34.0,
-    maxLat: 34.2,
-    minLng: 74.3,
-    maxLng: 74.55,
+    polygon: turf.polygon([[
+      [74.3, 34.0],
+      [74.55, 34.0],
+      [74.55, 34.2],
+      [74.3, 34.2],
+      [74.3, 34.0]
+    ]]),
     type: "cashOnly",
     reason: "Online payments are not supported in Gulmarg/Tangmarg due to connectivity limitations. Please pay in cash.",
   },
 ];
 
 function checkZone(lat: number, lng: number): GeoFenceResult {
+  const pt = turf.point([lng, lat]);
   for (const zone of GEO_FENCE_ZONES) {
-    if (lat >= zone.minLat && lat <= zone.maxLat && lng >= zone.minLng && lng <= zone.maxLng) {
+    if (turf.booleanPointInPolygon(pt, zone.polygon)) {
       if (zone.type === "blocked") {
         return { allowed: false, cashOnly: false, reason: zone.reason, zoneName: zone.name };
       }
