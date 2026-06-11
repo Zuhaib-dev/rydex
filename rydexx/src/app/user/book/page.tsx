@@ -17,6 +17,8 @@ import WeatherWidget from "@/components/WeatherWidget";
 
 // Removed old manual types
 
+type VehicleType = "bike" | "auto" | "car" | "loading" | "truck";
+
 const VEHICLES = [
   { id: "bike",    label: "Bike",    Icon: Bike,  desc: "Quick & affordable", capacity: "1 Pax" },
   { id: "auto",    label: "Auto",    Icon: Car,   desc: "Everyday rides",     capacity: "3 Pax" },
@@ -138,7 +140,6 @@ export default function BookPage() {
       placeholder: 'Enter pickup address',
       flyTo: false,
       marker: false,
-      clearAndBlurOnSuccessfulSearch: false,
     });
 
     pickupGeocoderRef.current.addTo(pickupContainerRef.current);
@@ -182,7 +183,6 @@ export default function BookPage() {
       placeholder: 'Enter destination address',
       flyTo: false,
       marker: false,
-      clearAndBlurOnSuccessfulSearch: false,
     });
 
     dropGeocoderRef.current.addTo(dropContainerRef.current);
