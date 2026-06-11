@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
@@ -9,41 +9,13 @@ import {
   Bike, Car, Truck, LocateFixed, Phone,
   Calendar, User, FileText, Info, Compass, Clock
 } from "lucide-react";
+import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
+import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
 import WeatherWidget from "@/components/WeatherWidget";
 
-type Place = {
-  id: string;
-  name: string;
-  city?: string;
-  state?: string;
-  country?: string;
-  countrycode?: string;
-  lat: number;
-  lng: number;
-};
-
-type VehicleType = "bike" | "auto" | "car" | "loading" | "truck";
-
-type MapboxFeature = {
-  id: string;
-  place_name: string;
-  center: [number, number];
-};
-
-type PhotonFeature = {
-  properties: {
-    osm_id?: string | number;
-    name?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-  };
-  geometry: {
-    coordinates: [number, number];
-  };
-};
+// Removed old manual types
 
 const VEHICLES = [
   { id: "bike",    label: "Bike",    Icon: Bike,  desc: "Quick & affordable", capacity: "1 Pax" },
@@ -106,9 +78,13 @@ export default function BookPage() {
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
 
-  // Search Results
-  const [pickupResults, setPickupResults] = useState<Place[]>([]);
-  const [dropResults, setDropResults] = useState<Place[]>([]);
+  // Geocoder Refs
+  const pickupContainerRef = useRef<HTMLDivElement>(null);
+  const dropContainerRef = useRef<HTMLDivElement>(null);
+  const pickupGeocoderRef = useRef<MapboxGeocoder | null>(null);
+  const dropGeocoderRef = useRef<MapboxGeocoder | null>(null);
+
+  // Focus state for shortcuts
   const [activeInput, setActiveInput] = useState<"pickup" | "drop" | null>(null);
 
   // Status & Validation Error states
@@ -149,115 +125,93 @@ export default function BookPage() {
     setTimeout(() => setToastMessage(null), 4000);
   };
 
-  const handleQueryChange = (query: string, inputType: "pickup" | "drop") => {
-    if (inputType === "pickup") {
-      setPickup(query);
+  // Mapbox Geocoder Initialization
+  useEffect(() => {
+    if (!pickupContainerRef.current || pickupGeocoderRef.current) return;
+
+    pickupGeocoderRef.current = new MapboxGeocoder({
+      accessToken: MAPBOX_TOKEN as string,
+      countries: 'in',
+      bbox: [73.5, 32.2, 80.3, 35.5], // J&K bounding box
+      proximity: { longitude: 74.7973, latitude: 34.0837 }, // Srinagar
+      types: 'address,poi,place,locality,neighborhood',
+      placeholder: 'Enter pickup address',
+      flyTo: false,
+      marker: false,
+      clearAndBlurOnSuccessfulSearch: false,
+    });
+
+    pickupGeocoderRef.current.addTo(pickupContainerRef.current);
+
+    pickupGeocoderRef.current.on('result', (e: any) => {
+      setPickupLat(e.result.center[1]);
+      setPickupLng(e.result.center[0]);
+      setPickup(e.result.place_name);
+      setActiveInput(null);
+    });
+
+    pickupGeocoderRef.current.on('clear', () => {
       setPickupLat(null);
       setPickupLng(null);
-    } else {
-      setDrop(query);
+      setPickup('');
+    });
+
+    // Add focus listener manually to underlying input
+    const input = pickupContainerRef.current.querySelector('.mapboxgl-ctrl-geocoder--input');
+    if (input) {
+      input.addEventListener('focus', () => setActiveInput("pickup"));
+    }
+
+    return () => {
+      if (pickupGeocoderRef.current) {
+        pickupGeocoderRef.current.onRemove();
+        pickupGeocoderRef.current = null;
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!dropContainerRef.current || dropGeocoderRef.current) return;
+
+    dropGeocoderRef.current = new MapboxGeocoder({
+      accessToken: MAPBOX_TOKEN as string,
+      countries: 'in',
+      bbox: [73.5, 32.2, 80.3, 35.5],
+      proximity: { longitude: 74.7973, latitude: 34.0837 },
+      types: 'address,poi,place,locality,neighborhood',
+      placeholder: 'Enter destination address',
+      flyTo: false,
+      marker: false,
+      clearAndBlurOnSuccessfulSearch: false,
+    });
+
+    dropGeocoderRef.current.addTo(dropContainerRef.current);
+
+    dropGeocoderRef.current.on('result', (e: any) => {
+      setDropLat(e.result.center[1]);
+      setDropLng(e.result.center[0]);
+      setDrop(e.result.place_name);
+      setActiveInput(null);
+    });
+
+    dropGeocoderRef.current.on('clear', () => {
       setDropLat(null);
       setDropLng(null);
-    }
-    searchAddress(query, inputType === "pickup" ? setPickupResults : setDropResults);
-  };
+      setDrop('');
+    });
 
-  // Autocomplete Geocoding searches (Mapbox primary, Photon fallback)
-  const searchAddress = async (q: string, setResults: (r: Place[]) => void) => {
-    if (!q || q.trim().length < 1) {
-      setResults([]);
-      return;
+    const input = dropContainerRef.current.querySelector('.mapboxgl-ctrl-geocoder--input');
+    if (input) {
+      input.addEventListener('focus', () => setActiveInput("drop"));
     }
 
-    const isKashmirLocation = (name: string): boolean => {
-      const n = name.toLowerCase();
-      return (
-        n.includes("kashmir") ||
-        n.includes("srinagar") ||
-        n.includes("budgam") ||
-        n.includes("chadoora") ||
-        n.includes("humhama") ||
-        n.includes("chanapora") ||
-        n.includes("dal lake") ||
-        n.includes("j&k") ||
-        n.includes("jammu")
-      );
-    };
-
-    // Try Mapbox Primary Geocoding with proximity to Srinagar (74.7973, 34.0837)
-    if (MAPBOX_TOKEN) {
-      try {
-        const res = await fetch(
-          `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q.trim())}.json?access_token=${MAPBOX_TOKEN}&limit=12&proximity=74.7973,34.0837`
-        );
-        const data = await res.json();
-        if (data.features) {
-          const results: Place[] = (data.features as MapboxFeature[]).map((f) => {
-            const [lng, lat] = f.center;
-            return {
-              id: String(f.id),
-              name: f.place_name,
-              lat,
-              lng,
-            };
-          });
-
-          // Sort so Kashmir results are at the top
-          const sorted = results.sort((a, b) => {
-            const aK = isKashmirLocation(a.name);
-            const bK = isKashmirLocation(b.name);
-            if (aK && !bK) return -1;
-            if (!aK && bK) return 1;
-            return 0;
-          }).slice(0, 5);
-
-          setResults(sorted);
-          return;
-        }
-      } catch (err) {
-        console.warn("Mapbox geocoder failed, falling back to Photon:", err);
+    return () => {
+      if (dropGeocoderRef.current) {
+        dropGeocoderRef.current.onRemove();
+        dropGeocoderRef.current = null;
       }
-    }
-
-    // Photon Fallback with lat/lon biasing to Srinagar
-    try {
-      const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q.trim())}&limit=12&lang=en&lat=34.0837&lon=74.7973`);
-      const data = await res.json();
-      const results: Place[] = ((data?.features ?? []) as PhotonFeature[]).map((f) => ({
-        id: String(f.properties.osm_id),
-        name: [f.properties.name, f.properties.city, f.properties.state, f.properties.country].filter(Boolean).join(", "),
-        lat: f.geometry.coordinates[1],
-        lng: f.geometry.coordinates[0],
-      }));
-
-      const sorted = results.sort((a, b) => {
-        const aK = isKashmirLocation(a.name);
-        const bK = isKashmirLocation(b.name);
-        if (aK && !bK) return -1;
-        if (!aK && bK) return 1;
-        return 0;
-      }).slice(0, 5);
-
-      setResults(sorted);
-    } catch {
-      setResults([]);
-    }
-  };
-
-  const selectSuggestion = (p: Place, type: "pickup" | "drop") => {
-    if (type === "pickup") {
-      setPickup(p.name);
-      setPickupLat(p.lat);
-      setPickupLng(p.lng);
-      setPickupResults([]);
-    } else {
-      setDrop(p.name);
-      setDropLat(p.lat);
-      setDropLng(p.lng);
-      setDropResults([]);
-    }
-    setActiveInput(null);
-  };
+    };
+  }, []);
 
   // Pre-configured Kashmir Location Shortcuts (Chadoora, Chanapora, Dal Lake)
   const selectShortcut = (address: string, lat: number, lng: number, defaultType: "pickup" | "drop") => {
@@ -266,10 +220,12 @@ export default function BookPage() {
       setPickup(address);
       setPickupLat(lat);
       setPickupLng(lng);
+      if (pickupGeocoderRef.current) pickupGeocoderRef.current.setInput(address);
     } else {
       setDrop(address);
       setDropLat(lat);
       setDropLng(lng);
+      if (dropGeocoderRef.current) dropGeocoderRef.current.setInput(address);
     }
     triggerToast(`Set ${targetType} shortcut: ${address.split(",")[0]}`);
   };
@@ -288,10 +244,11 @@ export default function BookPage() {
             );
             const data = await res.json();
             if (data?.features?.length) {
-              setPickup(data.features[0].place_name);
+              const placeName = data.features[0].place_name;
+              setPickup(placeName);
               setPickupLat(coords.latitude);
               setPickupLng(coords.longitude);
-              setPickupResults([]);
+              if (pickupGeocoderRef.current) pickupGeocoderRef.current.setInput(placeName);
               return;
             }
           }
@@ -305,7 +262,7 @@ export default function BookPage() {
             setPickup(addr);
             setPickupLat(coords.latitude);
             setPickupLng(coords.longitude);
-            setPickupResults([]);
+            if (pickupGeocoderRef.current) pickupGeocoderRef.current.setInput(addr);
           }
         } catch {
           setValidationError("Could not reverse-geocode coordinates. Search manually.");
@@ -409,7 +366,58 @@ export default function BookPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-zinc-50 text-zinc-900 grid grid-cols-1 lg:grid-cols-12 lg:h-dvh lg:overflow-hidden relative">
+    <div className="min-h-dvh bg-zinc-50 text-zinc-900 grid grid-cols-1 lg:grid-cols-12 lg:h-dvh lg:overflow-hidden relative custom-geocoder-wrapper">
+      <style dangerouslySetInnerHTML={{__html: `
+        /* Override Mapbox Geocoder styles to match Rydex UI */
+        .custom-geocoder-wrapper .mapboxgl-ctrl-geocoder {
+          width: 100%;
+          max-width: none;
+          box-shadow: none;
+          background: transparent;
+        }
+        .custom-geocoder-wrapper .mapboxgl-ctrl-geocoder--input {
+          height: auto;
+          padding: 0px 8px 0px 0px;
+          font-size: 0.75rem; /* text-xs */
+          font-weight: 700;   /* font-bold */
+          color: #18181b;     /* zinc-900 */
+          background: transparent;
+        }
+        .custom-geocoder-wrapper .mapboxgl-ctrl-geocoder--input::placeholder {
+          color: #a1a1aa; /* text-zinc-400 */
+          font-weight: 700;
+        }
+        .custom-geocoder-wrapper .mapboxgl-ctrl-geocoder--icon {
+          display: none; /* Hide default icons, we use custom ones */
+        }
+        .custom-geocoder-wrapper .mapboxgl-ctrl-geocoder--button {
+          background: transparent;
+        }
+        .custom-geocoder-wrapper .suggestions {
+          border-radius: 1rem;
+          box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+          border: 1px solid #e4e4e7;
+          margin-top: 8px;
+          overflow: hidden;
+        }
+        .custom-geocoder-wrapper .suggestions > li > a {
+          padding: 12px 16px;
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #27272a;
+        }
+        .custom-geocoder-wrapper .suggestions > .active > a,
+        .custom-geocoder-wrapper .suggestions > li > a:hover {
+          background-color: #fafafa;
+          color: #18181b;
+        }
+        .custom-geocoder-wrapper .mapboxgl-ctrl-geocoder--suggestion-title {
+          font-weight: 700;
+        }
+        .custom-geocoder-wrapper .mapboxgl-ctrl-geocoder--suggestion-address {
+          color: #a1a1aa;
+        }
+      `}} />
       
       {/* ── ALERTS TOAST POPUP ── */}
       <AnimatePresence>
@@ -567,87 +575,35 @@ export default function BookPage() {
               {/* Pickup location */}
               <div className="relative">
                 <div className="flex items-center gap-3 px-4 py-3.5 focus-within:bg-white rounded-t-2xl transition">
-                  <div className="w-2.5 h-2.5 rounded-full bg-black border-2 border-white shadow shrink-0" />
-                  <input
-                    value={pickup}
-                    onFocus={() => setActiveInput("pickup")}
-                    onChange={e => handleQueryChange(e.target.value, "pickup")}
-                    placeholder="Enter pickup address"
-                    className="flex-1 bg-transparent text-xs font-bold text-zinc-900 outline-none placeholder:text-zinc-400"
-                  />
+                  <div className="w-2.5 h-2.5 rounded-full bg-black border-2 border-white shadow shrink-0 z-10" />
+                  
+                  {/* Geocoder Mount Point */}
+                  <div ref={pickupContainerRef} className="flex-1 min-w-0" />
+                  
                   <motion.button
                     whileTap={{ scale: 0.90 }}
                     onClick={useCurrentLocation}
                     disabled={locating}
-                    className="w-8 h-8 rounded-xl bg-zinc-200 hover:bg-zinc-300 transition flex items-center justify-center shrink-0"
+                    className="w-8 h-8 rounded-xl bg-zinc-200 hover:bg-zinc-300 transition flex items-center justify-center shrink-0 z-10"
                     title="Locate coordinates"
                   >
                     <LocateFixed size={13} className={`text-zinc-700 ${locating ? "animate-spin" : ""}`} />
                   </motion.button>
                 </div>
-
-                <AnimatePresence>
-                  {activeInput === "pickup" && pickupResults.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-2xl shadow-2xl max-h-48 overflow-y-auto z-50 p-1"
-                    >
-                      {pickupResults.map(p => (
-                        <motion.button
-                          key={p.id}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => selectSuggestion(p, "pickup")}
-                          className="w-full text-left text-xs font-semibold p-2.5 hover:bg-zinc-50 rounded-xl flex items-start gap-2 text-zinc-800 transition"
-                        >
-                          <MapPin size={12} className="text-zinc-400 shrink-0 mt-0.5" />
-                          <span className="truncate">{p.name}</span>
-                        </motion.button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               {/* Separator Line */}
               <div className="h-px bg-zinc-200 mx-4" />
 
               {/* Drop location */}
-              <div className="relative">
+              <div className="relative z-10">
                 <div className="flex items-center gap-3 px-4 py-3.5 focus-within:bg-white rounded-b-2xl transition">
-                  <div className="w-2.5 h-2.5 rounded-sm bg-black border-2 border-white shadow shrink-0" />
-                  <input
-                    value={drop}
-                    onFocus={() => setActiveInput("drop")}
-                    onChange={e => handleQueryChange(e.target.value, "drop")}
-                    placeholder="Enter destination address"
-                    className="flex-1 bg-transparent text-xs font-bold text-zinc-900 outline-none placeholder:text-zinc-400"
-                  />
+                  <div className="w-2.5 h-2.5 rounded-sm bg-black border-2 border-white shadow shrink-0 z-10" />
+                  
+                  {/* Geocoder Mount Point */}
+                  <div ref={dropContainerRef} className="flex-1 min-w-0" />
+                  
                 </div>
-
-                <AnimatePresence>
-                  {activeInput === "drop" && dropResults.length > 0 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute left-0 right-0 top-full mt-1 bg-white border border-zinc-200 rounded-2xl shadow-2xl max-h-48 overflow-y-auto z-50 p-1"
-                    >
-                      {dropResults.map(p => (
-                        <motion.button
-                          key={p.id}
-                          whileTap={{ scale: 0.98 }}
-                          onClick={() => selectSuggestion(p, "drop")}
-                          className="w-full text-left text-xs font-semibold p-2.5 hover:bg-zinc-50 rounded-xl flex items-start gap-2 text-zinc-800 transition"
-                        >
-                          <Navigation size={12} className="text-zinc-400 shrink-0 mt-0.5" />
-                          <span className="truncate">{p.name}</span>
-                        </motion.button>
-                      ))}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
             </div>
 
