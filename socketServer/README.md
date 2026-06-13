@@ -353,6 +353,17 @@ The `fcmTokens` field is an array of Firebase Cloud Messaging tokens, one per us
 
 ---
 
+## OpenTelemetry & Distributed Tracing
+
+The socket server is configured with full **OpenTelemetry** support for distributed transaction tracing:
+
+- **SDK Initialization**: The tracing engine is defined at `src/tracing.ts` and **MUST** be imported first at the top of `index.ts` so auto-instrumentations can intercept dependencies (Express, HTTP, MongoDB) as they load.
+- **Trace Context Propagation**: Custom Express middleware extracts incoming W3C `traceparent` and `tracestate` headers sent by the frontend Next.js API client. This guarantees that HTTP calls from `rydexx` to the socket server's `/emit` endpoint continue the same trace rather than generating a new root span.
+- **Auto-Instrumentation**: Captures HTTP incoming/outgoing traffic, Express routes and middleware overhead, and MongoDB queries (using standard command serialization).
+- **Production Guard**: Tracing is safely disabled in production if `OTEL_EXPORTER_OTLP_ENDPOINT` is missing.
+
+---
+
 ## Environment Variables
 
 ```env
@@ -375,6 +386,9 @@ FIREBASE_ADMIN_JSON_PATH=./firebase-admin.json
 
 # Redis (For horizontal scaling)
 REDIS_URL=redis://localhost:6379
+
+# OpenTelemetry Tracing (Optional in Dev / Safe fallback in Prod if blank)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
 **Firebase Admin JSON File:**
@@ -386,15 +400,27 @@ REDIS_URL=redis://localhost:6379
 
 ## Running Locally
 
+### 1. Prerequisites (Docker Services)
+Ensure you have local instances of Redis (required for Socket Server Pub/Sub and caching) and Jaeger (required for viewing traces) running in Docker:
+```bash
+# Spin up Redis
+docker run -d --name rydex-redis -p 6379:6379 --restart unless-stopped redis:alpine
+
+# Spin up Jaeger
+docker run -d --name jaeger -p 16686:16686 -p 4317:4317 --restart unless-stopped jaegertracing/all-in-one:latest
+```
+
+### 2. Run the App
 ```bash
 # Install dependencies
 npm install
 
-# Start with nodemon (auto-restart on change)
+# Start in development mode (nodemon + tsx compilation)
 npm run dev
 
-# Start without nodemon (production)
-node index.js
+# Build and start in production mode
+npm run build
+npm start
 ```
 
 **Expected output:**
