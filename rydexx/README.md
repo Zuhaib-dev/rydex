@@ -341,6 +341,7 @@ NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
 NEXT_PUBLIC_FIREBASE_VAPID_KEY=...
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
 ---
@@ -392,6 +393,17 @@ The file `/public/firebase-messaging-sw.js` must exist for background notificati
 | `new-notification` | System or admin notification | Custom title & body |
 
 Clicking a notification brings the user to the relevant page (e.g., `/ride/{bookingId}`).
+
+---
+
+## OpenTelemetry & Distributed Tracing
+
+This frontend utilizes **OpenTelemetry** for full request tracing.
+
+- **Initialization Hook**: Standard Next.js instrumentation bootstrap is defined at `src/instrumentation.ts` and loads the tracing engine from `src/lib/tracing.ts` at start time on the Node.js runtime.
+- **Auto-Instrumentation**: Tracks all incoming HTTP routes/endpoints, outgoing requests (such as `/emit` backend calls), and Mongoose/MongoDB commands.
+- **Manual Instrumentation**: Custom tracer spans are established inside `src/lib/matchmaker.ts` to log specific timings of matchmaker locks, partner queries, and cascades.
+- **Production Safety**: If running in production with `NODE_ENV=production` and `OTEL_EXPORTER_OTLP_ENDPOINT` is blank/unset, tracing is skipped to avoid logging overhead.
 
 ---
 
