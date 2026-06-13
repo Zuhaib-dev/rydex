@@ -35,6 +35,7 @@ Bikes · Cars · SUVs · Vans · Trucks · Auto-rickshaws
 - [Booking Lifecycle](#booking-lifecycle)
 - [Matchmaker Algorithm](#matchmaker-algorithm)
 - [Real-time Event Pipeline](#real-time-event-pipeline)
+- [Observability & Distributed Tracing](#observability--distributed-tracing)
 - [API Reference](#api-reference)
 - [Environment Variables](#environment-variables)
 - [Testing](#testing)
@@ -172,6 +173,7 @@ graph TB
 | DB Client | **Mongoose** | 9.x | MongoDB ODM |
 | Realtime | **Socket.IO Client** | 4.x | WebSocket connection |
 | Passwords | **bcryptjs** | 3.x | Password hashing |
+| Observability | **OpenTelemetry SDK** | 0.203.x / 2.x | Distributed tracing & auto-instrumentation |
 
 ### Backend Socket Server (`socketServer`)
 
@@ -186,6 +188,7 @@ graph TB
 | **Axios** | 1.x | Internal HTTP calls (cascade) |
 | **dotenv** | — | Environment config |
 | **nodemon** | 3.x | Dev auto-restart |
+| **OpenTelemetry SDK** | 0.203.x / 2.x | Distributed tracing, auto-instrumentation & trace propagation |
 
 ---
 
@@ -492,6 +495,49 @@ When a user is **offline** or doesn't have an active WebSocket connection, the s
 
 ---
 
+## Observability & Distributed Tracing
+
+Rydex includes full end-to-end distributed tracing utilizing **OpenTelemetry** to trace requests across services: `rydexx` (Next.js frontend/APIs) ➔ `socketServer` (Express WebSocket engine) ➔ Redis ➔ MongoDB.
+
+### Architecture
+
+```mermaid
+graph LR
+    subgraph "Next.js App (rydexx)"
+        A["Incoming HTTP Requests"] --> B["tracing.ts (SDK)"]
+        B --> C["matchmaker.ts (Custom Spans)"]
+    end
+
+    subgraph "Socket Server (socketServer)"
+        D["W3C Traceparent Middleware"] --> E["tracing.ts (SDK)"]
+        E --> F["MongoDB Auto-instrumentation"]
+    end
+
+    C -->|HTTP Post + Traceparent Header| D
+    F --> G[("MongoDB / Redis")]
+    B -->|OTLP Export| J["Jaeger UI (:16686)"]
+    E -->|OTLP Export| J
+```
+
+### Features
+1. **Context Propagation**: Automatically propagates trace context from the Next.js API client down to the socket server using standard W3C `traceparent` headers.
+2. **Auto-Instrumentation**: Captures HTTP incoming/outgoing requests, Express routes and middleware operations, and MongoDB queries (including full database command sanitization).
+3. **Manual Spanning**: Detailed lifecycle tracking of the `cascadeBooking` algorithm (including partner search, lock dispatching, and socket server updates) to isolate Matchmaker execution latencies.
+4. **Resilient Production Mode**: In production, if `OTEL_EXPORTER_OTLP_ENDPOINT` is missing or undefined, tracing is disabled gracefully without logs pollution or runtime overhead.
+
+### Local Setup
+To run Jaeger locally using Docker:
+```bash
+docker run -d --name jaeger -p 16686:16686 -p 4317:4317 --restart unless-stopped jaegertracing/all-in-one:latest
+```
+Set the OTLP exporter endpoint in both `.env` configurations:
+```env
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+```
+Once configured, initiate a booking and view trace timelines at `http://localhost:16686`.
+
+---
+
 ## API Reference
 
 ### Auth
@@ -630,6 +676,9 @@ EMAIL_PASS=<app-password>
 # App
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 NEXT_PUBLIC_MAPBOX_TOKEN=<mapbox-token>
+
+# OpenTelemetry Tracing (Optional in Dev / Safe fallback in Prod if blank)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
 ### `socketServer/.env`
@@ -644,6 +693,9 @@ REDIS_URL=redis://localhost:6379
 
 # Firebase Admin SDK
 FIREBASE_ADMIN_JSON_PATH=./firebase-admin.json
+
+# OpenTelemetry Tracing (Optional in Dev / Safe fallback in Prod if blank)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
 ---
@@ -684,6 +736,7 @@ For detailed testing guides and structures, refer to [Frontend Testing Docs](./r
 - Mapbox account (free tier works)
 - Google Cloud project with OAuth credentials
 - Razorpay account (test mode)
+- Docker Desktop (for running local dependencies like Redis and Jaeger)
 
 ### 1. Clone the repo
 
@@ -692,7 +745,19 @@ git clone https://github.com/Zuhaib-dev/rydex.git
 cd rydex
 ```
 
-### 2. Start the Socket Server
+### 2. Start Local Services (Docker)
+
+Before running the backend or frontend services, make sure you have Redis and Jaeger running locally:
+
+```bash
+# Start Redis (Required for Socket Server Pub/Sub and scaling)
+docker run -d --name rydex-redis -p 6379:6379 --restart unless-stopped redis:alpine
+
+# Start Jaeger (Required to view OpenTelemetry distributed traces)
+docker run -d --name jaeger -p 16686:16686 -p 4317:4317 --restart unless-stopped jaegertracing/all-in-one:latest
+```
+
+### 3. Start the Socket Server
 
 ```bash
 cd socketServer
@@ -702,7 +767,7 @@ npm run dev
 # → server started at 8000
 ```
 
-### 3. Start the Next.js App
+### 4. Start the Next.js App
 
 ```bash
 cd rydexx
@@ -712,7 +777,7 @@ npm run dev
 # → http://localhost:3000
 ```
 
-### 4. Access the app
+### 5. Access the app
 
 | URL | Description |
 |---|---|
@@ -720,6 +785,7 @@ npm run dev
 | `http://localhost:3000/user/book` | Book a ride (auth required) |
 | `http://localhost:3000/partner/...` | Partner dashboard |
 | `http://localhost:8000/health` | Socket server health check |
+| `http://localhost:16686` | Jaeger UI (OpenTelemetry distributed tracing) |
 
 ---
 
