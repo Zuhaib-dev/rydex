@@ -1,3 +1,8 @@
+// ⚠️  OpenTelemetry MUST be imported first — before any other modules —
+// so that auto-instrumentation patches are applied before they load.
+import { startTracing } from "./src/tracing.js";
+startTracing();
+
 import express, { Request, Response } from "express";
 import http from "http";
 import dotenv from "dotenv";
@@ -15,11 +20,19 @@ import { requireSocketSecret } from "./src/middleware/auth.js";
 import { setupRedisSub } from "./src/handlers/redisSub.js";
 import { setupSocketHandlers } from "./src/handlers/socket.js";
 import { sendPushNotification } from "./src/services/fcm.js";
+import { trace, context, propagation, SpanStatusCode } from "@opentelemetry/api";
 
 dotenv.config();
 
 const app = express();
 app.use(express.json());
+
+// Extract W3C traceparent/tracestate headers from rydexx so every incoming
+// HTTP request continues the same distributed trace (not a new root span).
+app.use((req, res, next) => {
+  const extracted = propagation.extract(context.active(), req.headers);
+  context.with(extracted, next);
+});
 const server = http.createServer(app);
 const port = process.env.PORT || 8000;
 
