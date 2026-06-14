@@ -13,7 +13,7 @@
 
 *The nervous system of Rydex. Handles all real-time events — GPS coordinates, booking dispatches, in-ride chat, push notifications via FCM, and the matchmaker cascade timer.*
 
-</div>
+</div> 
 
 ---
 
