@@ -816,4 +816,4 @@ Full-stack engineer · UI/UX obsessive · Real-time systems nerd
 
 *Built with obsessive attention to detail, real-world production patterns, and way too much coffee.*
 
-</div>
+</div> 
