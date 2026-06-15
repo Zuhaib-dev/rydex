@@ -1,8 +1,13 @@
 import { Server } from "socket.io";
 import os from "os";
 import axios from "axios";
+import mongoose from "mongoose";
 import { redisPub } from "./redis.js";
 import { activeTimers } from "./timers.js";
+import User from "../../models/user.models.js";
+import { logSocketEvent } from "./logger.js";
+import { notifyAdminMapThrottled, notifyPublicAvailabilityThrottled } from "./notifications.js";
+
 
 async function getRedisMetrics() {
   try {
@@ -110,11 +115,71 @@ export function incrementCronConnectionCount() {
   connectionsThisMinute++;
 }
 
+export async function cleanStaleDrivers() {
+  try {
+    if (mongoose.connection.readyState !== 1) {
+      return;
+    }
+
+    // Find all partners who are marked online or available in the DB
+    const onlinePartners = await User.find({
+      role: "partner",
+      $or: [{ isOnline: true }, { isPartnerAvailable: true }],
+    }).select("_id").lean();
+
+    if (!onlinePartners || onlinePartners.length === 0) {
+      return;
+    }
+
+    for (const partner of onlinePartners) {
+      const driverId = String(partner._id);
+      
+      // Check if Redis presence key exists
+      const presenceExists = await redisPub.exists(`presence:driver:${driverId}`);
+      if (!presenceExists) {
+        console.log(`[PresenceSync] Cleanup stale driver ${driverId} (no Redis presence key found)`);
+        
+        await User.updateOne(
+          { _id: driverId },
+          {
+            isOnline: false,
+            socketId: null,
+            isPartnerAvailable: false,
+          }
+        );
+        
+        await redisPub.zrem("driver:locations:active", driverId);
+        
+        notifyAdminMapThrottled();
+        notifyPublicAvailabilityThrottled("presence-expired");
+
+        await logSocketEvent(
+          "driver_presence_expired",
+          `Presence heartbeat expired (sync fallback). Driver marked offline automatically.`,
+          "warning",
+          "task",
+          "system",
+          driverId,
+          "User"
+        ).catch(() => {});
+      }
+    }
+  } catch (err: any) {
+    console.error("[PresenceSync] Error cleaning up stale drivers:", err.message);
+  }
+}
+
 export function startCronServices(io: Server) {
   // Reset connection rate minute tracker
   setInterval(() => {
     connectionsThisMinute = 0;
   }, 60000);
+
+  // Periodic stale driver cleanup fallback (every 30 seconds)
+  setInterval(async () => {
+    await cleanStaleDrivers();
+  }, 30000);
+
 
   // System telemetry ticker
   setInterval(async () => {

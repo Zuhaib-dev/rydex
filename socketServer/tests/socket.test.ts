@@ -479,4 +479,56 @@ describe("WebSocket Realtime Integration Tests", () => {
       }
     });
   });
+
+  it("should clean up stale drivers with expired presence in Redis", async () => {
+    const driver = await User.create({
+      name: "Stale Driver Joe",
+      email: "stalejoe@rydex.com",
+      role: "partner",
+      partnerStatus: "approved",
+      isOnline: true,
+      isPartnerAvailable: true,
+      mobileNumber: "9988776600",
+      location: { type: "Point", coordinates: [74.0, 34.0] },
+    });
+
+    const { cleanStaleDrivers } = await import("../src/services/cron.js");
+    const { redisPub } = await import("../src/services/redis.js");
+
+    await redisPub.del(`presence:driver:${driver._id}`);
+
+    await cleanStaleDrivers();
+
+    const updatedDriver = await User.findById(driver._id);
+    expect(updatedDriver.isOnline).toBe(false);
+    expect(updatedDriver.isPartnerAvailable).toBe(false);
+    expect(updatedDriver.socketId).toBeNull();
+  });
+
+  it("should NOT clean up active drivers who have presence in Redis", async () => {
+    const driver = await User.create({
+      name: "Active Driver Bob",
+      email: "activebob@rydex.com",
+      role: "partner",
+      partnerStatus: "approved",
+      isOnline: true,
+      isPartnerAvailable: true,
+      mobileNumber: "9988776611",
+      location: { type: "Point", coordinates: [74.0, 34.0] },
+    });
+
+    const { cleanStaleDrivers } = await import("../src/services/cron.js");
+    const { redisPub } = await import("../src/services/redis.js");
+
+    await redisPub.set(`presence:driver:${driver._id}`, "online", "EX", 60);
+
+    await cleanStaleDrivers();
+
+    const updatedDriver = await User.findById(driver._id);
+    expect(updatedDriver.isOnline).toBe(true);
+    expect(updatedDriver.isPartnerAvailable).toBe(true);
+
+    await redisPub.del(`presence:driver:${driver._id}`);
+  });
 });
+
