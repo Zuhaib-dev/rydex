@@ -38,3 +38,16 @@ export async function rateLimit(
     return { success: true, remaining: limit };
   }
 }
+
+/**
+ * Backward compatibility wrapper for existing routes using `isRateLimited`.
+ * Returns true if the user IS limited (i.e. success is false).
+ */
+export async function isRateLimited(
+  identifier: string,
+  limit: number = 5,
+  windowInSeconds: number = 60
+): Promise<boolean> {
+  const { success } = await rateLimit(identifier, limit, windowInSeconds);
+  return !success;
+}

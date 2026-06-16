@@ -370,6 +370,9 @@ describe("WebSocket Realtime Integration Tests", () => {
               headers: { "x-socket-secret": process.env.SOCKET_INTERNAL_SECRET || "" }
             });
 
+            // Wait briefly for Redis pub/sub to broadcast the disconnect command
+            await new Promise(resolve => setTimeout(resolve, 50));
+
             // Verify client was disconnected
             expect(disconnected).toBe(true);
 
