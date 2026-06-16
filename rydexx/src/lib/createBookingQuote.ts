@@ -53,10 +53,18 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
     return { success: false as const, message: "Vehicle not available" };
   }
 
-  const route = await fetchDrivingRoute([
-    [input.pickupLat, input.pickupLng],
-    [input.dropLat, input.dropLng],
-  ]);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 800);
+
+  const route = await fetchDrivingRoute(
+    [
+      [input.pickupLat, input.pickupLng],
+      [input.dropLat, input.dropLng],
+    ],
+    { signal: controller.signal }
+  ).catch(() => null);
+
+  clearTimeout(timeoutId);
 
   const tripDistanceKm = route
     ? Math.round(route.distanceKm * 100) / 100
