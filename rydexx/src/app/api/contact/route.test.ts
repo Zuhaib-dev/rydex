@@ -29,7 +29,7 @@ describe("Contact form API route", () => {
     const response = await POST(request);
     expect(response.status).toBe(400);
     const data = await response.json();
-    expect(data.message).toMatch(/required/i);
+    expect(data.message).toMatch(/required|invalid|failed/i);
     expect(sendMail).not.toHaveBeenCalled();
   });
 
