@@ -3,10 +3,20 @@ import { sendMail } from "@/lib/sendMail";
 import User from "@/models/user.model";
 import bcrypt from "bcryptjs";
 import { getOtpEmailTemplate } from "@/lib/emailTemplate";
+import { logSystemEvent } from "@/lib/auditLogger";
+import { rateLimit } from "@/lib/rateLimit";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
+  let targetEmail = "unknown";
   try {
+    const ip = req.headers.get("x-forwarded-for") || "unknown-ip";
+    const { success } = await rateLimit(`resend-otp:${ip}`, 3, 10 * 60); // 3 requests per 10 minutes
+    
+    if (!success) {
+      return NextResponse.json({ message: "Too many OTP requests. Please try again later." }, { status: 429 });
+    }
+
     const body = await req.json();
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
 

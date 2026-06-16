@@ -2,9 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { sendMail } from "@/lib/sendMail";
 import sanitizeHtml from "sanitize-html";
 import { contactSchema } from "@/lib/validations/contact";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = request.headers.get("x-forwarded-for") || "unknown-ip";
+    const { success } = await rateLimit(`contact:${ip}`, 3, 60 * 60); // 3 requests per hour
+    
+    if (!success) {
+      return NextResponse.json({ message: "Too many requests. Please try again later." }, { status: 429 });
+    }
+
     const body = await request.json();
     
     // Zod Validation

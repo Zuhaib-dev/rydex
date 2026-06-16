@@ -35,6 +35,36 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // 1.5 CSRF Protection: Validate Origin/Referer for state-changing requests
+  if (req.method !== "GET" && req.method !== "OPTIONS") {
+    // Skip CSRF for webhooks that expect external origins
+    if (!pathname.startsWith("/api/payment/verify")) {
+      const origin = req.headers.get("origin");
+      const referer = req.headers.get("referer");
+      const host = req.headers.get("host");
+      const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
+
+      if (origin || referer) {
+        const source = origin || referer || "";
+        let sourceHost = "";
+        try {
+          sourceHost = new URL(source).host;
+        } catch {
+          sourceHost = source;
+        }
+        
+        const expectedHost = host || new URL(nextBaseUrl).host;
+        
+        if (sourceHost !== expectedHost) {
+          return NextResponse.json(
+            { message: "Forbidden: CSRF check failed (Invalid Origin)" },
+            { status: 403 }
+          );
+        }
+      }
+    }
+  }
+
   // 2. Allow public routes and public API routes
   if (
     PUBLIC_ROUTES.includes(pathname) ||

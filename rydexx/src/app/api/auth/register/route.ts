@@ -6,10 +6,18 @@ import { getOtpEmailTemplate } from "@/lib/emailTemplate";
 import { NextRequest, NextResponse } from "next/server";
 import { logSystemEvent } from "@/lib/auditLogger";
 import { registerSchema } from "@/lib/validations/auth";
+import { rateLimit } from "@/lib/rateLimit";
 
 export async function POST(req: NextRequest) {
   let requestEmail = "unknown";
   try {
+    const ip = req.headers.get("x-forwarded-for") || "unknown-ip";
+    const { success } = await rateLimit(`register:${ip}`, 5, 15 * 60); // 5 requests per 15 minutes
+    
+    if (!success) {
+      return NextResponse.json({ message: "Too many registration attempts. Please try again later." }, { status: 429 });
+    }
+
     const body = await req.json();
     
     // Zod Validation
