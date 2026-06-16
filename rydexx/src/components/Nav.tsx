@@ -3,8 +3,8 @@
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState, useRef, useSyncExternalStore } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useRef, useSyncExternalStore, Suspense } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import {
@@ -61,6 +61,23 @@ type ProfileContentProps = {
 };
 
 export default function Nav() {
+  return (
+    <Suspense fallback={
+      <nav className="fixed top-3 left-1/2 z-50 w-[94%] -translate-x-1/2 rounded-full text-white py-3 border border-white/10 bg-landing-bg/75 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.45)] md:w-[86%]">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between">
+          <Link href="/" className="flex items-center">
+            <Image src="/logo.png" alt="RYDEX" width={44} height={44} priority className="h-11 w-11 object-contain" />
+          </Link>
+          <div className="h-8 w-24 bg-white/10 rounded-full animate-pulse" />
+        </div>
+      </nav>
+    }>
+      <NavContent />
+    </Suspense>
+  );
+}
+
+function NavContent() {
   useFCM();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -75,6 +92,8 @@ export default function Nav() {
   const isHydrated = useSyncExternalStore(subscribeHydration, () => true, () => false);
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTabParam = searchParams?.get("tab");
   const profileRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -106,6 +125,56 @@ export default function Nav() {
     pathname === "/" &&
     userData?.role !== "partner" &&
     userData?.role !== "admin";
+
+  type NavLink = {
+    href: string;
+    label: string;
+    gate?: boolean;
+    tab?: string;
+    badge?: number;
+    badgeColor?: string;
+  };
+
+  const getNavLinks = (): NavLink[] => {
+    const role = userData?.role || session?.user?.role;
+
+    if (role === "partner") {
+      return [
+        { href: "/partner/active-ride", label: "Active Ride", badge: pendingCount > 0 ? pendingCount : undefined, badgeColor: "bg-red-500" },
+        { href: "/partner/pending-requests", label: "Pending Requests", badge: pendingCount > 0 ? pendingCount : undefined, badgeColor: "bg-red-500" },
+        { href: "/partner/bookings", label: "My Bookings", badge: activeCount > 0 ? activeCount : undefined, badgeColor: "bg-emerald-500" },
+        { href: "/partner/vehicle", label: "My Vehicle" },
+      ];
+    }
+
+    if (role === "admin") {
+      return [
+        { href: "/", label: "Dashboard", tab: "overview" },
+        { href: "/?tab=map", label: "Control Map", tab: "map" },
+        { href: "/?tab=users", label: "Users", tab: "users" },
+        { href: "/?tab=vehicles", label: "Vehicles", tab: "vehicles" },
+        { href: "/faq", label: "FAQ" },
+      ];
+    }
+
+    return [
+      { href: "/", label: "Home" },
+      { href: "/bookings", label: "Bookings", gate: shouldGateBookings },
+      { href: "/fleet", label: "Fleet" },
+      { href: "/faq", label: "FAQ" },
+      { href: "/contact", label: "Contact" },
+    ];
+  };
+
+  const isLinkActive = (link: { href: string; tab?: string }) => {
+    if (link.tab) {
+      return pathname === "/" && activeTabParam === link.tab;
+    }
+    if (link.href === "/") {
+      return pathname === "/" && !activeTabParam;
+    }
+    return pathname === link.href;
+  };
 
   /* Scroll */
   useEffect(() => {
@@ -200,82 +269,44 @@ export default function Nav() {
   };
 
   const renderNavItems = () => {
-    if (userData?.role === "partner") {
-      return (
-        <>
-         <Link
-            href="/partner/active-ride"
-            className="relative text-sm font-medium text-gray-300 hover:text-white transition"
-          >
-            Active Ride
-            {pendingCount > 0 && (
-              <span className="absolute -top-2 -right-5 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                {pendingCount}
-              </span>
-            )}
-          </Link>
+    const links = getNavLinks();
+    return links.map((link) => {
+      const active = isLinkActive(link);
 
-          <Link
-            href="/partner/pending-requests"
-            className="relative text-sm font-medium text-gray-300 hover:text-white transition"
-          >
-            Pending Requests
-            {pendingCount > 0 && (
-              <span className="absolute -top-2 -right-5 w-6 h-6 bg-red-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                {pendingCount}
-              </span>
-            )}
-          </Link>
-
-          <Link
-            href="/partner/bookings"
-            className="relative text-sm font-medium text-gray-300 hover:text-white transition"
-          >
-            My Bookings
-            {activeCount > 0 && (
-              <span className="absolute -top-2 -right-5 w-6 h-6 bg-green-500 text-white text-xs rounded-full flex items-center justify-center font-bold">
-                {activeCount}
-              </span>
-            )}
-          </Link>
-
-          <Link
-            href="/partner/vehicle"
-            className="relative text-sm font-medium text-gray-300 hover:text-white transition"
-          >
-            My Vehicle
-          </Link>
-        </>
-      );
-    }
-
-    return NAV_ITEMS.map((item) => {
-      const href = item === "Home" ? "/" : `/${item.toLowerCase()}`;
-      const active = pathname === href;
-      if (item === "Bookings" && shouldGateBookings) {
+      if (link.gate) {
         return (
           <button
-            key={item}
+            key={link.label}
             type="button"
             onClick={handleBookingsClick}
-            className="text-sm font-medium text-gray-400 hover:text-white transition"
+            className="relative px-4 py-2 text-sm font-semibold text-gray-400 hover:text-white transition cursor-pointer"
           >
-            {item}
+            {link.label}
           </button>
         );
       }
 
       return (
         <Link
-          key={item}
-          href={href}
-          className={`text-sm font-medium transition ${
-            active
-              ? "text-white"
-              : "text-gray-400 hover:text-white"
+          key={link.label}
+          href={link.href}
+          className={`relative px-4 py-2 text-sm font-semibold transition-all duration-300 rounded-full ${
+            active ? "text-landing-accent" : "text-gray-400 hover:text-white"
           }`}
         >
-          {item}
+          <span className="relative z-10">{link.label}</span>
+          {link.badge !== undefined && (
+            <span className={`absolute -top-1 -right-3 min-w-5 h-5 px-1.5 ${link.badgeColor || "bg-red-500"} text-white text-[10px] rounded-full flex items-center justify-center font-bold z-20 shadow-md`}>
+              {link.badge}
+            </span>
+          )}
+          {active && (
+            <motion.span
+              layoutId="activeNavBg"
+              className="absolute inset-0 bg-white/10 border border-white/5 rounded-full -z-10 shadow-inner"
+              transition={{ type: "spring", stiffness: 380, damping: 30 }}
+            />
+          )}
         </Link>
       );
     });
@@ -288,11 +319,7 @@ export default function Nav() {
         initial={{ y: -60, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-        className={`fixed top-3 left-1/2 z-50 w-[94%] -translate-x-1/2 rounded-full text-white transition-all duration-500 md:w-[86%] ${
-          isLandingHome && !scrolled
-            ? "border border-white/10 bg-landing-bg/55 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.25)] backdrop-blur-xl"
-            : "bg-[#0B0B0B] shadow-[0_15px_50px_rgba(0,0,0,0.7)]"
-        } ${scrolled ? "py-2" : "py-3"}`}
+        className={`fixed top-3 left-1/2 z-50 w-[94%] -translate-x-1/2 rounded-full text-white transition-all duration-300 md:w-[86%] border border-white/10 bg-landing-bg/75 backdrop-blur-xl shadow-[0_8px_32px_rgba(0,0,0,0.45)] ${scrolled ? "py-2" : "py-3"}`}
       >
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex items-center justify-between">
 
@@ -425,78 +452,42 @@ export default function Nav() {
       >
         <div className="flex flex-col divide-y divide-white/10">
 
-          {userData?.role === "partner" ? (
-            <>
-            <Link
-                href="/partner/active-ride"
-                className="flex justify-between items-center px-6 py-4 text-gray-300 hover:bg-white/5"
-                onClick={() => setMenuOpen(false)}
-              >
-                <span>Active Ride</span>
-               
-              </Link>
-              <Link
-                href="/partner/pending-requests"
-                className="flex justify-between items-center px-6 py-4 text-gray-300 hover:bg-white/5"
-                onClick={() => setMenuOpen(false)}
-              >
-                <span>Pending Requests</span>
-                {pendingCount > 0 && (
-                  <span className="w-6 h-6 bg-red-500 text-xs rounded-full flex items-center justify-center font-bold text-white">
-                    {pendingCount}
-                  </span>
-                )}
-              </Link>
+          {getNavLinks().map((link) => {
+            const active = isLinkActive(link);
 
-              <Link
-                href="/partner/bookings"
-                className="flex justify-between items-center px-6 py-4 text-gray-300 hover:bg-white/5"
-                onClick={() => setMenuOpen(false)}
-              >
-                <span>My Bookings</span>
-                {activeCount > 0 && (
-                  <span className="w-6 h-6 bg-green-500 text-xs rounded-full flex items-center justify-center font-bold text-white">
-                    {activeCount}
-                  </span>
-                )}
-              </Link>
-
-              <Link
-                href="/partner/vehicle"
-                className="flex justify-between items-center px-6 py-4 text-gray-300 hover:bg-white/5"
-                onClick={() => setMenuOpen(false)}
-              >
-                <span>My Vehicle</span>
-              </Link>
-            </>
-          ) : (
-            NAV_ITEMS.map((item) => {
-              const href = item === "Home" ? "/" : `/${item.toLowerCase()}`;
-              if (item === "Bookings" && shouldGateBookings) {
-                return (
-                  <button
-                    key={item}
-                    type="button"
-                    className="px-6 py-4 text-left text-gray-300 hover:bg-white/5"
-                    onClick={handleBookingsClick}
-                  >
-                    {item}
-                  </button>
-                );
-              }
-
+            if (link.gate) {
               return (
-                <Link
-                  key={item}
-                  href={href}
-                  className="px-6 py-4 text-gray-300 hover:bg-white/5"
-                  onClick={() => setMenuOpen(false)}
+                <button
+                  key={link.label}
+                  type="button"
+                  className="flex justify-between items-center px-6 py-4 text-left text-gray-300 hover:bg-white/5 font-medium transition-colors cursor-pointer"
+                  onClick={handleBookingsClick}
                 >
-                  {item}
-                </Link>
+                  {link.label}
+                </button>
               );
-            })
-          )}
+            }
+
+            return (
+              <Link
+                key={link.label}
+                href={link.href}
+                className={`flex justify-between items-center px-6 py-4 transition-all duration-200 ${
+                  active 
+                    ? "text-landing-accent bg-white/5 font-bold" 
+                    : "text-gray-300 hover:bg-white/5 hover:text-white"
+                }`}
+                onClick={() => setMenuOpen(false)}
+              >
+                <span>{link.label}</span>
+                {link.badge !== undefined && (
+                  <span className={`w-5 h-5 ${link.badgeColor || "bg-red-500"} text-[10px] rounded-full flex items-center justify-center font-bold text-white shadow-sm`}>
+                    {link.badge}
+                  </span>
+                )}
+              </Link>
+            );
+          })}
 
         </div>
       </motion.div>

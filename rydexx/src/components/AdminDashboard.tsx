@@ -32,7 +32,7 @@ import ContentList from "./ContentList";
 import AdminEarningsChart from "./AdminEarning";
 import AdminLiveMap from "./AdminLiveMap";
 import { signOut, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { setUserData, stopImpersonation } from "@/redux/userSlice";
@@ -61,7 +61,19 @@ type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" |
 type QueueSubTab = "partner" | "kyc" | "vehicle";
 
 function AdminDashboardContent() {
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as TabType;
   const [activeTab, setActiveTab] = useState<TabType>("overview");
+
+  useEffect(() => {
+    if (tabParam && [
+      "overview", "analytics", "map", "queues", "users", "vehicles", 
+      "coupons", "notifications", "security", "health", "observability"
+    ].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
   const [queueTab, setQueueTab] = useState<QueueSubTab>("partner");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
