@@ -212,15 +212,38 @@ export default function ContactPage() {
             <AnimatePresence mode="wait">
               {status === "success" && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 flex items-start gap-3"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="p-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 flex flex-col items-center text-center gap-4 shadow-lg"
                 >
-                  <CheckCircle2 size={18} className="shrink-0 mt-0.5" />
+                  <div className="flex items-center justify-center bg-emerald-500/10 rounded-full p-2 border border-emerald-400/20">
+                    <svg className="w-10 h-10 text-emerald-400" viewBox="0 0 52 52" fill="none">
+                      <motion.circle 
+                        cx="26" 
+                        cy="26" 
+                        r="23" 
+                        stroke="currentColor" 
+                        strokeWidth="3"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 0.4 }}
+                      />
+                      <motion.path 
+                        d="M16 27l6.5 6.5L36 19" 
+                        stroke="currentColor" 
+                        strokeWidth="4" 
+                        strokeLinecap="round" 
+                        strokeLinejoin="round"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ delay: 0.3, duration: 0.4, ease: "easeOut" }}
+                      />
+                    </svg>
+                  </div>
                   <div>
-                    <h4 className="font-bold text-sm">Message Sent Successfully!</h4>
-                    <p className="text-xs text-emerald-400/80 mt-1">Thank you. Our dispatcher team will review and reply within 12 hours.</p>
+                    <h4 className="font-bold text-base text-white">Message Sent Successfully!</h4>
+                    <p className="text-xs text-neutral-400 mt-1.5 max-w-sm">Thank you. Our dispatcher team will review and reply within 12 hours.</p>
                   </div>
                 </motion.div>
               )}
