@@ -12,24 +12,22 @@ import Vehicle from "@/models/vehicle.model";
 import User from "@/models/user.model";
 import type { LngLat } from "@/lib/matching/geo";
 import { estimateRoadDistanceMeters } from "@/lib/matching/geo";
+import { nearbyVehiclesSchema } from "@/lib/validations/vehicle";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDb();
 
-    const { latitude, longitude, vehicleType } = await req.json();
-
-    if (
-      typeof latitude !== "number" ||
-      typeof longitude !== "number" ||
-      Number.isNaN(latitude) ||
-      Number.isNaN(longitude)
-    ) {
+    const body = await req.json();
+    const validation = nearbyVehiclesSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { message: "Valid coordinates required" },
+        { message: "Valid coordinates required", errors: validation.error.format() },
         { status: 400 },
       );
     }
+
+    const { latitude, longitude, vehicleType } = validation.data;
 
     const pickupCoordinates: LngLat = [longitude, latitude];
     const resolvedType = vehicleType || "car";

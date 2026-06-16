@@ -5,38 +5,23 @@ import bcrypt from "bcryptjs";
 import { getOtpEmailTemplate } from "@/lib/emailTemplate";
 import { NextRequest, NextResponse } from "next/server";
 import { logSystemEvent } from "@/lib/auditLogger";
+import { registerSchema } from "@/lib/validations/auth";
 
 export async function POST(req: NextRequest) {
   let requestEmail = "unknown";
   try {
     const body = await req.json();
-    const name = typeof body.name === "string" ? body.name.trim() : "";
-    const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
-    const password = typeof body.password === "string" ? body.password : "";
-    requestEmail = email || "unknown";
-
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { message: "Name, email, and password are required" },
-        { status: 400 },
-      );
+    
+    // Zod Validation
+    const validation = registerSchema.safeParse(body);
+    if (!validation.success) {
+      const errorMsg = validation.error.issues[0]?.message || "Validation failed";
+      return NextResponse.json({ message: errorMsg, errors: validation.error.format() }, { status: 400 });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { message: "Invalid email format" },
-        { status: 400 },
-      );
-    }
-
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-    if (!passwordRegex.test(password)) {
-      return NextResponse.json(
-        { message: "Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, one number, and one special character" },
-        { status: 400 },
-      );
-    }
+    const { name, email: rawEmail, password } = validation.data;
+    const email = rawEmail.toLowerCase();
+    requestEmail = email;
 
     await connectDb();
     let user = await User.findOne({ email });

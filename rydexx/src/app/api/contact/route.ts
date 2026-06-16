@@ -1,42 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { sendMail } from "@/lib/sendMail";
-
-// Helper to escape HTML characters and prevent XSS in emails
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
+import sanitizeHtml from "sanitize-html";
+import { contactSchema } from "@/lib/validations/contact";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name: rawName, email: rawEmail, subject: rawSubject, message: rawMessage } = body;
-
-    const name = escapeHtml((rawName || "").trim());
-    const email = (rawEmail || "").trim();
-    const subject = escapeHtml((rawSubject || "No Subject").trim());
-    const message = escapeHtml((rawMessage || "").trim());
-
-    // Basic Validation
-    if (!name || !email || !message) {
-      return NextResponse.json(
-        { message: "Required fields (Name, Email, Message) are missing." },
-        { status: 400 }
-      );
+    
+    // Zod Validation
+    const validation = contactSchema.safeParse(body);
+    if (!validation.success) {
+      const errorMsg = validation.error.issues[0]?.message || "Validation failed";
+      return NextResponse.json({ message: errorMsg, errors: validation.error.format() }, { status: 400 });
     }
 
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { message: "Invalid email address format." },
-        { status: 400 }
-      );
-    }
+    // Strict XSS Sanitization
+    const sanitizeConfig = { allowedTags: [], allowedAttributes: {} };
+    const name = sanitizeHtml(validation.data.name.trim(), sanitizeConfig);
+    const email = validation.data.email.trim();
+    const subject = sanitizeHtml(validation.data.subject.trim(), sanitizeConfig);
+    const message = sanitizeHtml(validation.data.message.trim(), sanitizeConfig);
 
     // HTML Template for Zuhaib (Receive the user's message)
     const zuhaibEmailHtml = `
