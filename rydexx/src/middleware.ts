@@ -12,23 +12,34 @@ const PUBLIC_ROUTES = [
 ];
 
 const PUBLIC_PREFIXES = ["/share/"];
+const PUBLIC_API_PREFIXES = [
+  "/api/auth",
+  "/api/contact",
+  "/api/payment/verify",
+  "/api/vehicles/nearby",
+  "/api/weather",
+  "/api/socket/connect",
+  "/api/booking/expire-stale",
+  "/api/booking/dispatch-scheduled",
+];
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // 1. Allow internal Next.js requests, public assets, and API routes
+  // 1. Allow internal Next.js requests and public assets
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon.ico") ||
-    pathname.startsWith("/api") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();
   }
 
-  // 2. Allow public routes
+  // 2. Allow public routes and public API routes
   if (
     PUBLIC_ROUTES.includes(pathname) ||
-    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+    PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)) ||
+    PUBLIC_API_PREFIXES.some((prefix) => pathname.startsWith(prefix))
   ) {
     return NextResponse.next();
   }
@@ -45,6 +56,10 @@ export async function middleware(req: NextRequest) {
   }
   
   if (!token) {
+    // If not logged in and it's an API route, return 401
+    if (pathname.startsWith("/api")) {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    }
     // If not logged in, redirect to home (or signin if we had one)
     return NextResponse.redirect(new URL("/", req.url));
   }
