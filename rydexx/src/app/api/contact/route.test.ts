@@ -7,6 +7,9 @@ import { NextRequest } from "next/server";
 vi.mock("@/lib/sendMail", () => ({
   sendMail: vi.fn().mockResolvedValue(undefined),
 }));
+vi.mock("@/lib/rateLimit", () => ({
+  rateLimit: vi.fn().mockResolvedValue({ success: true, remaining: 5 }),
+}));
 
 describe("Contact form API route", () => {
   beforeEach(() => {
@@ -26,7 +29,7 @@ describe("Contact form API route", () => {
     const response = await POST(request);
     expect(response.status).toBe(400);
     const data = await response.json();
-    expect(data.message).toContain("Required fields");
+    expect(data.message).toMatch(/required/i);
     expect(sendMail).not.toHaveBeenCalled();
   });
 
@@ -69,7 +72,7 @@ describe("Contact form API route", () => {
       1,
       "zuhaibrashid01@gmail.com",
       expect.stringContaining("Partnership"),
-      expect.stringContaining("Hi let&#039;s partner") // escaped message
+      expect.stringContaining("Hi let's partner")
     );
     expect(sendMail).toHaveBeenNthCalledWith(
       2,

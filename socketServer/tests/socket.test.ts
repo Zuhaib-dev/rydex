@@ -352,13 +352,12 @@ describe("WebSocket Realtime Integration Tests", () => {
             const dbUser = await User.findById(testUser._id);
             expect(dbUser.socketId).toBe(activeClientSocket.id);
 
-            let disconnected = false;
-            activeClientSocket.on("blocked", (data: any) => {
-              expect(data.message).toContain("suspended");
+            const disconnectPromise = new Promise<void>((res) => {
+              activeClientSocket.on("disconnect", () => res());
             });
 
-            activeClientSocket.on("disconnect", () => {
-              disconnected = true;
+            activeClientSocket.on("blocked", (data: any) => {
+              expect(data.message).toContain("suspended");
             });
 
             // Post a blocked event to /emit
@@ -370,11 +369,8 @@ describe("WebSocket Realtime Integration Tests", () => {
               headers: { "x-socket-secret": process.env.SOCKET_INTERNAL_SECRET || "" }
             });
 
-            // Wait briefly for Redis pub/sub to broadcast the disconnect command
-            await new Promise(resolve => setTimeout(resolve, 50));
-
-            // Verify client was disconnected
-            expect(disconnected).toBe(true);
+            // Wait for client to be disconnected
+            await disconnectPromise;
 
             clearTimeout(timeoutId);
             setTimeout(resolve, 50);
