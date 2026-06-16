@@ -5,46 +5,56 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Mail, Phone, MapPin, Send, CheckCircle2, AlertCircle } from "lucide-react";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
+import axios from "axios";
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
 
+  const [errorMessage, setErrorMessage] = useState("");
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.email || !formData.message) {
       setStatus("error");
+      setErrorMessage("Please fill in all required fields (Name, Email, Message) before sending.");
       return;
     }
     setIsSubmitting(true);
     setStatus("idle");
+    setErrorMessage("");
     
-    // Simulate API request delay
-    setTimeout(() => {
+    try {
+      await axios.post("/api/contact", formData);
       setIsSubmitting(false);
       setStatus("success");
       setFormData({ name: "", email: "", subject: "", message: "" });
-    }, 1500);
+    } catch (err: any) {
+      console.error("Contact form error:", err);
+      setIsSubmitting(false);
+      setStatus("error");
+      setErrorMessage(err.response?.data?.message || "An unexpected error occurred. Please try again.");
+    }
   };
 
   const contactDetails = [
     {
       title: "Email Support",
-      value: "support@rydexx.com",
-      desc: "For general queries, billing assistance, and partnership options.",
+      value: "zuhaibrashid01@gmail.com",
+      desc: "For general queries, driver verification, and user partnerships.",
       icon: Mail,
     },
     {
       title: "Phone Assistance",
-      value: "+1 (800) 555-RYDEX",
-      desc: "Mon - Fri, 9:00 AM - 6:00 PM EST. High priority booking assistance.",
+      value: "+91 6006414088",
+      desc: "Direct support line. Mon - Sat, 9:00 AM - 7:00 PM IST.",
       icon: Phone,
     },
     {
-      title: "Global Headquarters",
-      value: "100 Innovation Parkway, Suite 500, Tech City, TC 94043",
-      desc: "Our primary corporate office and development center.",
+      title: "Kashmir Headquarters",
+      value: "Mahanoora chadoora, Budgam, Kashmir",
+      desc: "Our primary regional operations and logistics coordination node.",
       icon: MapPin,
     },
   ];
@@ -115,8 +125,8 @@ export default function ContactPage() {
               <div className="absolute w-2 h-2 bg-blue-500 rounded-full animate-ping" />
               <div className="absolute w-2 h-2 bg-blue-500 rounded-full" />
               
-              <p className="text-xs text-neutral-400 font-medium z-10">Headquarters Active Monitoring Node</p>
-              <p className="text-[10px] text-neutral-500 mt-1 font-mono z-10">37.4043° N, 122.0083° W</p>
+              <p className="text-xs text-neutral-400 font-medium z-10">Kashmir Operations Hub</p>
+              <p className="text-[10px] text-neutral-500 mt-1 font-mono z-10">33.9168° N, 74.7973° E</p>
               <span className="mt-3 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] uppercase font-bold z-10">Active Telemetry</span>
             </div>
           </motion.div>
@@ -225,7 +235,7 @@ export default function ContactPage() {
                   <AlertCircle size={18} className="shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-bold text-sm">Submission Error</h4>
-                    <p className="text-xs text-rose-400/80 mt-1">Please fill in all required fields (Name, Email, Message) before sending.</p>
+                    <p className="text-xs text-rose-400/80 mt-1">{errorMessage}</p>
                   </div>
                 </motion.div>
               )}
