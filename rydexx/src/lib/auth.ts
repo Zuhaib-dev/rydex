@@ -5,6 +5,12 @@ import connectDb from "./db";
 import User from "../models/user.model";
 import bcrypt from "bcryptjs";
 
+if (process.env.NODE_ENV === "production" && (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32)) {
+  throw new Error("CRITICAL SECURITY VULNERABILITY: AUTH_SECRET is either missing or too weak. It must be at least 32 characters long to prevent JWT token forgery.");
+} else if (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32) {
+  console.warn("⚠️ WARNING: AUTH_SECRET is weak. Please use a strong 32+ character secret in production.");
+}
+
 export const authConfig: NextAuthConfig = {
   trustHost: true,
   providers: [

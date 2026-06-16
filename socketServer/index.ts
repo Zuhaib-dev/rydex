@@ -216,14 +216,8 @@ app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
       io.to(`user-${userId}`).emit(event as any, data);
       
       if (event === "blocked") {
-        // Disconnect all sockets in this user's room
-        const userRoom = io.sockets.adapter.rooms.get(`user-${userId}`);
-        if (userRoom) {
-          for (const socketId of userRoom) {
-            const socketToDisconnect = io.sockets.sockets.get(socketId);
-            if (socketToDisconnect) socketToDisconnect.disconnect(true);
-          }
-        }
+        // Disconnect all sockets in this user's room across ALL nodes via Redis adapter
+        io.in(`user-${userId}`).disconnectSockets(true);
       }
 
       // Send Push Notification if FCM tokens exist
