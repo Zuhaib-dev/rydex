@@ -87,13 +87,13 @@ export async function POST(request: NextRequest) {
       </div>
     `;
 
-    // Send emails in parallel
-    await Promise.all([
+    // Send emails asynchronously in the background (fire-and-forget) to prevent thread blocking
+    Promise.all([
       // Send message details to Zuhaib
       sendMail("zuhaibrashid01@gmail.com", `[Rydex Contact Form] ${subject}`, zuhaibEmailHtml),
       // Send automatic confirmation email to the sender
       sendMail(email, `We've received your request - Rydex`, senderEmailHtml)
-    ]);
+    ]).catch((err) => console.error("[Background Email Error]:", err));
 
     return NextResponse.json({ message: "Emails sent successfully." }, { status: 200 });
   } catch (error: any) {

@@ -62,11 +62,12 @@ export async function POST(req: NextRequest) {
         otpAttempts: 0,
       });
     }
-    await sendMail(
+    // Send OTP email asynchronously
+    sendMail(
       email,
       "Verify Your Email - Rydex",
       getOtpEmailTemplate(otp, "Thank you for registering with Rydex! Please use the following OTP to verify your email address.", "Verify Your Email")
-    );
+    ).catch((err) => console.error("[Background Email Error]:", err));
     
     await logSystemEvent({
       action: "user_signup",

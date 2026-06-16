@@ -77,15 +77,12 @@ export async function POST(req: NextRequest) {
     await user.save();
 
     // Send the email with the plain text OTP
-    await sendMail(
+    // Send OTP asynchronously to prevent blocking
+    sendMail(
       email,
       "Verify Your Email - Rydex",
-      getOtpEmailTemplate(
-        otp,
-        "Here is your new OTP. Please use it to verify your email address and complete registration.",
-        "New Verification OTP"
-      )
-    );
+      getOtpEmailTemplate(otp, "Please use the following OTP to verify your email address. It will expire in 10 minutes.", "Verify Your Email")
+    ).catch((err) => console.error("[Background Email Error]:", err));
 
     return NextResponse.json(
       { message: "OTP resent successfully" },
