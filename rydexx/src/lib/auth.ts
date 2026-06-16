@@ -1,11 +1,11 @@
-import NextAuth from "next-auth";
+import NextAuth, { type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import connectDb from "./db";
 import User from "../models/user.model";
 import bcrypt from "bcryptjs";
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
+export const authConfig: NextAuthConfig = {
   trustHost: true,
   providers: [
     Credentials({
@@ -96,19 +96,29 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.email = user.email;
         token.role = user.role;
         token.picture = user.image;
+        token.lastChecked = Date.now();
       } else if (token.email) {
-        await connectDb();
-        const dbUser = await User.findOne({ email: token.email })
-          .select("_id role isPartnerBlocked")
-          .lean();
-        if (dbUser) {
-          if (dbUser.isPartnerBlocked) {
-            token.blocked = true;
-          } else {
-            token.id = String(dbUser._id);
-            token.role = dbUser.role as string;
-            token.blocked = false;
+        const now = Date.now();
+        const lastChecked = (token.lastChecked as number) || 0;
+        const checkInterval = process.env.SESSION_VALIDATION_INTERVAL
+          ? parseInt(process.env.SESSION_VALIDATION_INTERVAL, 10)
+          : 60 * 1000;
+
+        if (now - lastChecked > checkInterval) {
+          await connectDb();
+          const dbUser = await User.findOne({ email: token.email })
+            .select("_id role isPartnerBlocked")
+            .lean();
+          if (dbUser) {
+            if (dbUser.isPartnerBlocked) {
+              token.blocked = true;
+            } else {
+              token.id = String(dbUser._id);
+              token.role = dbUser.role as string;
+              token.blocked = false;
+            }
           }
+          token.lastChecked = now;
         }
       }
 
@@ -138,9 +148,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
 
   session: {
-    strategy: "jwt",
+    strategy: "jwt" as const,
     maxAge: 10 * 24 * 60 * 60,
   },
 
   secret: process.env.AUTH_SECRET,
-});
+};
+
+export const { handlers, signIn, signOut, auth } = NextAuth(authConfig);
