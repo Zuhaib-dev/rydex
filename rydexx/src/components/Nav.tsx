@@ -21,8 +21,11 @@ import {
   CalendarDays,
   ClipboardList,
   Star,
+  Fingerprint,
 } from "lucide-react";
 import AuthModal from "./AuthModel";
+import { startRegistration } from "@simplewebauthn/browser";
+import toast from "react-hot-toast";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/redux/store";
 import { signOut, useSession } from "next-auth/react";
@@ -678,6 +681,40 @@ function ProfileContent({
           <ChevronRight size={16} className="ml-auto text-gray-400" />
         </button>
       )}
+
+      <button
+        onClick={async () => {
+          try {
+            const toastId = toast.loading("Connecting to biometric sensor...");
+            const resp = await fetch("/api/auth/webauthn/register/generate");
+            if (!resp.ok) throw new Error("Failed to generate challenge");
+            const options = await resp.json();
+            
+            const attResp = await startRegistration(options);
+            
+            const verificationResp = await fetch("/api/auth/webauthn/register/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(attResp),
+            });
+            
+            const data = await verificationResp.json();
+            
+            if (verificationResp.ok && data.verified) {
+              toast.success("Passkey registered! You can now log in with Touch ID / Face ID.", { id: toastId });
+            } else {
+              throw new Error(data.error || "Failed to verify passkey signature");
+            }
+          } catch (err: any) {
+            console.error("Passkey error:", err);
+            toast.error(err.message || "Passkey registration failed");
+          }
+        }}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
+      >
+        <Fingerprint size={16} />
+        Register Passkey (Biometrics)
+      </button>
 
       <button
         onClick={handleLogout}

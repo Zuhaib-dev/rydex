@@ -23,6 +23,8 @@
     "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/semantic-conventions": "^1.41.1",
     "@reduxjs/toolkit": "^2.11.2",
+    "@simplewebauthn/browser": "^9.0.1",
+    "@simplewebauthn/server": "^9.0.3",
     "@turf/turf": "^7.3.5",
     "@types/mapbox__mapbox-gl-draw": "^1.4.9",
     "@zegocloud/zego-uikit-prebuilt": "^2.17.3",

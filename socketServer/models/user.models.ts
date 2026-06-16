@@ -1,5 +1,14 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface Passkey {
+  credentialID: string;
+  credentialPublicKey: Buffer;
+  counter: number;
+  credentialDeviceType: string;
+  credentialBackedUp: boolean;
+  transports: string[];
+}
+
 export interface IUser extends Document {
   name: string;
   email: string;
@@ -15,6 +24,10 @@ export interface IUser extends Document {
   videoKycStatus: "not_required" | "pending" | "in_progress" | "approved" | "rejected";
   videoKycRoomId?: string;
   videoKycRejectionReason?: string;
+  isPremiumPartner?: boolean;
+  lifetimeRides?: number;
+  passkeys?: Passkey[];
+  currentChallenge?: string;
   isOnline: boolean;
   socketId?: string | null;
   currentVehicleType?: "bike" | "auto" | "car" | "loading" | "truck";
@@ -168,6 +181,22 @@ const UserSchema = new Schema<IUser>(
 
     otp: String,
     otpExpiresAt: Date,
+
+    passkeys: {
+      type: [{
+        credentialID: { type: String, required: true },
+        credentialPublicKey: { type: Buffer, required: true },
+        counter: { type: Number, required: true },
+        credentialDeviceType: { type: String, required: true },
+        credentialBackedUp: { type: Boolean, required: true },
+        transports: { type: [String], default: [] },
+      }],
+      default: [],
+    },
+    currentChallenge: {
+      type: String,
+      default: null,
+    }
   },
   { timestamps: true }
 );

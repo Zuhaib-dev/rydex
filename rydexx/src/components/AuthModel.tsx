@@ -1,10 +1,12 @@
 "use client";
 import axios from "axios";
-import { CircleDashed, Lock, Mail, User, X } from "lucide-react";
+import { CircleDashed, Lock, Mail, User, X, Fingerprint } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { signIn, useSession } from "next-auth/react";
+import { startAuthentication } from "@simplewebauthn/browser";
+import toast from "react-hot-toast";
 import { useScrollLock } from "@/hooks/useScrollLock";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useRouter } from "next/navigation";
@@ -134,6 +136,36 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
   const handleGoogleLogin = async () => {
     await signIn("google", { callbackUrl: redirectTo || "/" });
   };
+  const handlePasskeyLogin = async () => {
+    try {
+      const toastId = toast.loading("Waiting for biometric verification...");
+      const resp = await fetch("/api/auth/webauthn/login/generate");
+      if (!resp.ok) throw new Error("Failed to generate login challenge");
+      const options = await resp.json();
+      
+      const asseResp = await startAuthentication(options);
+      
+      const res = await signIn("passkey", {
+        response: JSON.stringify(asseResp),
+        redirect: false,
+      });
+
+      if (res?.error) {
+        toast.error("Invalid Passkey", { id: toastId });
+        setErr("Passkey login failed");
+      } else if (res?.ok) {
+        toast.success("Login successful!", { id: toastId });
+        router.refresh();
+        onClose();
+        if (redirectTo) router.push(redirectTo);
+      }
+    } catch (err: any) {
+      console.error("Passkey login error:", err);
+      toast.dismiss();
+      setErr(err.message || "Passkey login failed or cancelled");
+    }
+  };
+
   const handleChangeOtp = (index: number, value: string) => {
     const lastChar = value.slice(-1); 
     if (lastChar && !/^[0-9]$/.test(lastChar)) return;
@@ -187,18 +219,27 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                     Premium Vehicle Booking
                   </p>
                 </div>
-                <button
-                  className="w-full h-11 rounded-xl border border-black/20 flex items-center justify-center gap-3 text-sm font-semibold hover:bg-black hover:text-white transition"
-                  onClick={handleGoogleLogin}
-                >
-                  <Image
-                    src={"/google.png"}
-                    alt="Google Logo"
-                    width={20}
-                    height={20}
-                  />
-                  Continue With Google
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    className="w-full h-11 rounded-xl border border-black/20 flex items-center justify-center gap-3 text-sm font-semibold hover:bg-black hover:text-white transition"
+                    onClick={handleGoogleLogin}
+                  >
+                    <Image
+                      src={"/google.png"}
+                      alt="Google Logo"
+                      width={20}
+                      height={20}
+                    />
+                    Continue With Google
+                  </button>
+                  <button
+                    className="w-full h-11 rounded-xl border border-black/20 flex items-center justify-center gap-3 text-sm font-semibold hover:bg-black hover:text-white transition"
+                    onClick={handlePasskeyLogin}
+                  >
+                    <Fingerprint size={18} />
+                    Continue With Passkey
+                  </button>
+                </div>
                 <div className="flex items-center gap-4 my-6">
                   <div className="flex-1 h-px bg-black/20" />
                   <div className="text-xs text-gray-500">OR</div>
