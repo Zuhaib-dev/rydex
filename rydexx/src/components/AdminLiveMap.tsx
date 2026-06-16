@@ -107,7 +107,7 @@ function getBezierCurveCoordinates(start: [number, number], end: [number, number
   return coords;
 }
 
-export default function AdminLiveMap() {
+export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: boolean }) {
   const [mapLoaded, setMapLoaded] = useState(false);
   const mapRef = useRef<MapboxMap | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
@@ -480,7 +480,22 @@ export default function AdminLiveMap() {
   if (!MAPBOX_TOKEN) return <div>Mapbox token missing</div>;
 
   return (
-    <div className="flex h-[700px] w-full rounded-[2.5rem] overflow-hidden border border-gray-100 bg-white shadow-2xl relative text-black">
+    <div className={`flex w-full overflow-hidden relative text-black bg-gray-100 ${
+      isFullScreen 
+        ? "h-screen rounded-none border-none shadow-none" 
+        : "h-[700px] rounded-[2.5rem] border border-gray-100 shadow-2xl"
+    }`}>
+      {/* ── BACK NAVIGATION (FULL SCREEN ONLY) ── */}
+      {isFullScreen && (
+        <a 
+          href="/?tab=overview" 
+          className="absolute z-50 top-4 right-4 bg-black/90 backdrop-blur text-white px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 hover:bg-black transition-all shadow-xl hover:scale-105"
+        >
+          <ChevronLeft size={16} />
+          Exit Tower
+        </a>
+      )}
+
       {/* ── LEFT PANEL: ASSET DIRECTORY ── */}
       <aside className={`h-full border-r border-gray-100 flex flex-col bg-white transition-all duration-300 relative z-30 shrink-0 ${
         leftPanelOpen ? "w-[310px]" : "w-0 overflow-hidden border-r-0"

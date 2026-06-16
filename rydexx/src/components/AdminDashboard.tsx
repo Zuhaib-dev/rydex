@@ -30,7 +30,7 @@ import { motion, AnimatePresence } from "motion/react";
 import Image from "next/image";
 import ContentList from "./ContentList";
 import AdminEarningsChart from "./AdminEarning";
-import AdminLiveMap from "./AdminLiveMap";
+
 import { signOut, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
@@ -217,6 +217,10 @@ function AdminDashboardContent() {
             <button
               key={id}
               onClick={() => {
+                if (id === "map") {
+                  router.push("/admin/tower");
+                  return;
+                }
                 setActiveTab(id);
                 setMobileSidebarOpen(false);
               }}
@@ -668,8 +672,7 @@ function AdminDashboardContent() {
               {/* --- VIEW: ANALYTICS --- */}
               {activeTab === "analytics" && <AdminAnalyticsHub />}
 
-              {/* --- VIEW: LIVE MAP --- */}
-              {activeTab === "map" && <AdminLiveMap />}
+
 
               {/* --- VIEW: QUEUES --- */}
               {activeTab === "queues" && (
