@@ -39,42 +39,47 @@ export const authConfig: NextAuthConfig = {
         if (!expectedChallenge) throw new Error("Authentication challenge expired or missing");
 
         await connectDb();
-        // Since it's discoverable credentials, userHandle is the user ID
-        const userIdHex = Buffer.from(response.response.userHandle, "base64url").toString("utf-8");
-        const user = await User.findById(userIdHex);
-        
-        if (!user || user.isPartnerBlocked) {
-          throw new Error("User not found or blocked");
+        let user;
+        try {
+          // Look up user directly by the credential ID to bypass missing userHandle issues
+          user = await User.findOne({ "passkeys.credentialID": response.id });
+          
+          if (!user || user.isPartnerBlocked) {
+            throw new Error("User not found or blocked");
+          }
+
+          const passkey = user.passkeys?.find((pk: any) => pk.credentialID === response.id);
+          if (!passkey) {
+            throw new Error("Passkey not registered for this user");
+          }
+
+          const verification = await verifyAuthenticationResponse({
+            response,
+            expectedChallenge,
+            expectedOrigin: getExpectedOrigin(),
+            expectedRPID: getRpID(),
+            authenticator: {
+              credentialID: passkey.credentialID,
+              credentialPublicKey: new Uint8Array(passkey.credentialPublicKey),
+              counter: passkey.counter,
+              transports: passkey.transports,
+            },
+          });
+
+          if (!verification.verified) {
+            throw new Error("Passkey signature verification failed");
+          }
+
+          // Update counter to prevent replay attacks
+          passkey.counter = verification.authenticationInfo.newCounter;
+          await user.save();
+          
+          // Clean up challenge cookie
+          cookieStore.delete("webauthn_challenge");
+        } catch (error) {
+          console.error("Passkey Auth Verification Error:", error);
+          throw error;
         }
-
-        const passkey = user.passkeys?.find((pk: any) => pk.credentialID === response.id);
-        if (!passkey) {
-          throw new Error("Passkey not registered for this user");
-        }
-
-        const verification = await verifyAuthenticationResponse({
-          response,
-          expectedChallenge,
-          expectedOrigin: getExpectedOrigin(),
-          expectedRPID: getRpID(),
-          authenticator: {
-            credentialID: passkey.credentialID,
-            credentialPublicKey: passkey.credentialPublicKey,
-            counter: passkey.counter,
-            transports: passkey.transports,
-          },
-        });
-
-        if (!verification.verified) {
-          throw new Error("Passkey signature verification failed");
-        }
-
-        // Update counter to prevent replay attacks
-        passkey.counter = verification.authenticationInfo.newCounter;
-        await user.save();
-        
-        // Clean up challenge cookie
-        cookieStore.delete("webauthn_challenge");
 
         return {
           id: user._id.toString(),
