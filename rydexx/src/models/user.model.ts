@@ -53,6 +53,13 @@ export interface IUser extends Document {
   passkeys?: Passkey[];
   currentChallenge?: string;
   sessionVersion?: number;
+  activeSessions?: {
+    sessionId: string;
+    userAgent: string;
+    ipAddress: string;
+    lastActive: Date;
+    signedInAt: Date;
+  }[];
 }
 const userSchema = new mongoose.Schema<IUser>(
   {
@@ -211,6 +218,16 @@ const userSchema = new mongoose.Schema<IUser>(
     sessionVersion: {
       type: Number,
       default: 0,
+    },
+    activeSessions: {
+      type: [{
+        sessionId: { type: String, required: true },
+        userAgent: { type: String, required: true },
+        ipAddress: { type: String, required: true },
+        lastActive: { type: Date, required: true },
+        signedInAt: { type: Date, required: true },
+      }],
+      default: [],
     }
   },
   { timestamps: true },

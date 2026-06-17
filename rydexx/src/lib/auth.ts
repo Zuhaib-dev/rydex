@@ -5,8 +5,9 @@ import connectDb from "./db";
 import User from "../models/user.model";
 import bcrypt from "bcryptjs";
 import { verifyAuthenticationResponse } from "@simplewebauthn/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getExpectedOrigin, getRpID } from "./webauthn";
+import { UAParser } from "ua-parser-js";
 
 if (process.env.NODE_ENV === "production" && (!process.env.AUTH_SECRET || process.env.AUTH_SECRET.length < 32)) {
   throw new Error("CRITICAL SECURITY VULNERABILITY: AUTH_SECRET is either missing or too weak. It must be at least 32 characters long to prevent JWT token forgery.");
@@ -217,6 +218,50 @@ export const authConfig: NextAuthConfig = {
         token.role = user.role;
         token.picture = user.image;
         token.sessionVersion = (user as any).sessionVersion;
+        
+        let rawUserAgent = "Unknown Device";
+        let ipAddress = "Unknown";
+        
+        try {
+          const headersList = await headers();
+          rawUserAgent = headersList.get("user-agent") || "Unknown Device";
+          ipAddress = headersList.get("x-forwarded-for") || headersList.get("x-real-ip") || "Unknown";
+        } catch (e) {}
+
+        const parser = new UAParser(rawUserAgent);
+        const browser = parser.getBrowser();
+        const os = parser.getOS();
+        const device = parser.getDevice();
+        
+        let friendlyUserAgent = "Unknown Device";
+        if (browser.name) {
+          friendlyUserAgent = `${browser.name} on ${os.name || "Unknown OS"}`;
+          if (device.type === "mobile" || device.type === "tablet") {
+            friendlyUserAgent += ` (${device.vendor || ""} ${device.model || "Mobile"})`;
+          }
+        }
+
+        // Since we are inside auth callback, we can't always guarantee headers() is available outside edge.
+        // We'll generate a random sessionId.
+        const sessionId = crypto.randomUUID();
+        token.sessionId = sessionId;
+
+        await connectDb();
+        await User.updateOne(
+          { _id: user.id },
+          {
+            $push: {
+              activeSessions: {
+                sessionId,
+                userAgent: friendlyUserAgent,
+                ipAddress,
+                lastActive: new Date(),
+                signedInAt: new Date(),
+              }
+            }
+          }
+        );
+
         token.lastChecked = Date.now();
       } else if (token.email) {
         const now = Date.now();
@@ -228,17 +273,33 @@ export const authConfig: NextAuthConfig = {
         if (now - lastChecked > checkInterval) {
           await connectDb();
           const dbUser = await User.findOne({ email: token.email })
-            .select("_id role isPartnerBlocked sessionVersion")
+            .select("_id role isPartnerBlocked sessionVersion activeSessions")
             .lean();
           if (dbUser) {
-            // Block the session if user is suspended OR if the sessionVersion differs (logged in on another device)
-            if (dbUser.isPartnerBlocked || (token.sessionVersion && dbUser.sessionVersion !== token.sessionVersion)) {
+            // Check if user is suspended
+            if (dbUser.isPartnerBlocked) {
               token.blocked = true;
             } else {
-              token.id = String(dbUser._id);
-              token.role = dbUser.role as string;
-              token.sessionVersion = dbUser.sessionVersion;
-              token.blocked = false;
+              // Check if the current sessionId is still in the activeSessions array
+              const sessionExists = dbUser.activeSessions?.some(
+                (s: any) => s.sessionId === token.sessionId
+              );
+
+              if (!sessionExists) {
+                // The session was revoked from the UI
+                token.blocked = true;
+              } else {
+                token.id = String(dbUser._id);
+                token.role = dbUser.role as string;
+                token.sessionVersion = dbUser.sessionVersion;
+                token.blocked = false;
+
+                // Optionally update lastActive timestamp in background
+                User.updateOne(
+                  { _id: dbUser._id, "activeSessions.sessionId": token.sessionId },
+                  { $set: { "activeSessions.$.lastActive": new Date() } }
+                ).exec().catch(() => {});
+              }
             }
           }
           token.lastChecked = now;

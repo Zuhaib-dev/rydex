@@ -794,6 +794,15 @@ function ProfileContent({
       )}
 
       <button
+        onClick={() => router.push("/settings/security")}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
+      >
+        <ShieldCheck size={16} />
+        Security Settings
+        <ChevronRight size={16} className="ml-auto text-gray-400" />
+      </button>
+
+      <button
         onClick={passkeyState === "idle" ? handleRegisterPasskey : undefined}
         disabled={passkeyState === "loading"}
         className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
