@@ -159,7 +159,8 @@ graph TB
 | Maps | **Mapbox GL JS** + **React Map GL** | 3.x / 8.x | Live tracking, route display |
 | Draw | **@mapbox/mapbox-gl-draw** | 1.5 | Surge zone polygon editor |
 | State | **Redux Toolkit** | 2.x | Global user & booking state |
-| Auth | **NextAuth.js v5** | beta.30 | Google OAuth + Credentials |
+| Auth | **NextAuth.js v5** | beta.30 | Google OAuth + Credentials + Passkey (WebAuthn) |
+| Passkeys | **@simplewebauthn/server + browser** | 9.x | WebAuthn registration & authentication |
 | HTTP | **Axios** | 1.x | Client-side API calls |
 | Data Fetch | **SWR** | 2.x | Client-side data fetching with cache |
 | Charts | **Recharts** | 3.x | Partner earnings & analytics |
@@ -199,7 +200,13 @@ graph TB
 ├── Auth
 │   ├── Google OAuth (one-click)
 │   ├── Email + Password (bcrypt)
-│   └── OTP Email Verification
+│   ├── OTP Email Verification
+│   └── 🔑 Passkey (WebAuthn) — Touch ID, Face ID, fingerprint
+│       ├── Register biometric from your profile (once logged in)
+│       ├── Replaces password at next login — just a fingerprint tap
+│       ├── Device-local: works with any platform authenticator
+│       ├── Replay-attack safe (counter stored per credential)
+│       └── Update passkey anytime with inline confirmation prompt
 ├── Booking
 │   ├── Vehicle type selector (bike/car/SUV/van/truck/auto)
 │   ├── Mapbox address autocomplete
@@ -466,6 +473,35 @@ sequenceDiagram
     U->>IO: chat-message {rideId, message}
     IO->>P: chat-message
 
+    Note over NA, DB: Every request refreshes role from DB
+    U->>NA: getSession()
+    NA->>DB: findOne({email}).select("role")
+    NA->>U: Updated session with fresh role
+
+    alt Passkey Login (WebAuthn)
+        U->>NA: GET /api/auth/webauthn/login/generate
+        NA->>U: Challenge (stored in httpOnly cookie)
+        U->>Authenticator: navigator.credentials.get() — Touch ID / Face ID prompt
+        Authenticator->>U: Signed assertion
+        U->>NA: signIn("passkey", { response: assertion })
+        NA->>DB: findOne({ "passkeys.credentialID": response.id })
+        DB->>NA: user + stored credentialPublicKey
+        NA->>NA: verifyAuthenticationResponse() — signature check
+        NA->>DB: Update counter (replay-attack prevention)
+        NA->>U: JWT session (id, email, role)
+    end
+
+    alt Passkey Registration (after login)
+        U->>NA: GET /api/auth/webauthn/register/generate
+        NA->>U: PublicKeyCredentialCreationOptions + challenge
+        U->>Authenticator: navigator.credentials.create() — biometric prompt
+        Authenticator->>U: Attestation response
+        U->>NA: POST /api/auth/webauthn/register/verify
+        NA->>NA: verifyRegistrationResponse()
+        NA->>DB: user.passkeys.push({ credentialID, credentialPublicKey, counter })
+        NA->>U: { verified: true }
+    end
+
     Note over U, DB: On socket reconnect
     U->>IO: identity(userId)
     IO->>DB: Sync active booking state
@@ -545,7 +581,10 @@ Once configured, initiate a booking and view trace timelines at `http://localhos
 |---|---|---|
 | `POST` | `/api/auth/register` | Register with email + password |
 | `POST` | `/api/auth/verify-email` | Verify OTP from email |
-| `GET/POST` | `/api/auth/[...nextauth]` | NextAuth handlers (Google OAuth) |
+| `GET/POST` | `/api/auth/[...nextauth]` | NextAuth handlers (Google OAuth + Passkey) |
+| `GET` | `/api/auth/webauthn/register/generate` | Generate WebAuthn registration options |
+| `POST` | `/api/auth/webauthn/register/verify` | Verify & save passkey credential |
+| `GET` | `/api/auth/webauthn/login/generate` | Generate WebAuthn authentication challenge |
 
 ### Booking
 | Method | Endpoint | Description |

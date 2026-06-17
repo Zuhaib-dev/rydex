@@ -57,7 +57,13 @@ rydexx/
 │   │   ├── video-kyc/                  # Video KYC session page
 │   │   │
 │   │   └── api/                        # ← All API routes (40+)
-│   │       ├── auth/                   # Register, verify-email, NextAuth
+│   │       ├── auth/                   # Register, verify-email, NextAuth, WebAuthn passkey
+│   │       │   ├── webauthn/
+│   │       │   │   ├── register/
+│   │       │   │   │   ├── generate/   # GET: Create registration options + challenge
+│   │       │   │   │   └── verify/     # POST: Verify attestation + store credential
+│   │       │   │   └── login/
+│   │       │   │       └── generate/   # GET: Create authentication challenge
 │   │       ├── booking/                # Full booking CRUD & state machine
 │   │       ├── admin/                  # Admin endpoints
 │   │       ├── partner/                # Partner-specific endpoints
@@ -117,7 +123,8 @@ rydexx/
 │   │   └── InstallPWA.tsx              # Add-to-homescreen prompt
 │   │
 │   ├── lib/                            # Core server-side utilities
-│   │   ├── auth.ts                     # NextAuth config (Google + Credentials)
+│   │   ├── auth.ts                     # NextAuth config (Google + Credentials + Passkey)
+│   │   ├── webauthn.ts                 # WebAuthn helpers (rpID, expected origin)
 │   │   ├── db.ts                       # MongoDB connection singleton
 │   │   ├── matchmaker.ts               # Cascade booking algorithm
 │   │   ├── bookingEvents.ts            # Socket emit helpers
@@ -239,6 +246,7 @@ sequenceDiagram
     participant NA as NextAuth
     participant DB as MongoDB
     participant G as Google OAuth
+    participant Auth as Authenticator (Touch ID/Face ID)
 
     alt Google Login
         C->>NA: signIn("google")
@@ -254,6 +262,31 @@ sequenceDiagram
         DB->>NA: user document
         NA->>NA: bcrypt.compare(password, hash)
         NA->>C: JWT session (id, email, role)
+    end
+
+    alt 🔑 Passkey Login (WebAuthn — Touch ID / Face ID)
+        C->>NA: GET /api/auth/webauthn/login/generate
+        NA->>C: Challenge options (saved in httpOnly cookie)
+        C->>Auth: navigator.credentials.get() — biometric prompt
+        Auth->>C: Signed assertion (credentialID + signature)
+        C->>NA: signIn("passkey", { response: JSON.stringify(assertion) })
+        NA->>DB: findOne({ "passkeys.credentialID": assertion.id })
+        DB->>NA: user + stored credentialPublicKey
+        NA->>NA: verifyAuthenticationResponse() — ECDSA signature check
+        NA->>DB: Save updated counter (replay-attack prevention)
+        NA->>C: JWT session (id, email, role)
+    end
+
+    alt 🔑 Passkey Registration (one-time setup, while logged in)
+        C->>NA: GET /api/auth/webauthn/register/generate
+        NA->>DB: findOne({_id: session.user.id})
+        NA->>C: PublicKeyCredentialCreationOptions + challenge
+        C->>Auth: navigator.credentials.create() — biometric enrollment
+        Auth->>C: Attestation (credentialID + credentialPublicKey)
+        C->>NA: POST /api/auth/webauthn/register/verify
+        NA->>NA: verifyRegistrationResponse()
+        NA->>DB: user.passkeys.push({ credentialID (base64url), credentialPublicKey, counter })
+        NA->>C: { verified: true }
     end
 
     Note over NA, DB: Every request refreshes role from DB
@@ -311,6 +344,71 @@ Push notification system for offline users:
 - Multi-device support: Tokens stored per-device in `User.fcmTokens` array
 - Automatic cleanup: Invalid tokens are removed server-side
 - Events: Triggered on `new-booking`, `booking-updated`, and system notifications
+
+---
+
+## Passkey Authentication (WebAuthn)
+
+Rydex implements **passwordless biometric login** using the [WebAuthn API](https://www.w3.org/TR/webauthn-2/) via **@simplewebauthn/server** (v9) and **@simplewebauthn/browser** (v9).
+
+### How It Works
+
+Once logged in, a user clicks **"Register Passkey (Biometrics)"** from their profile menu. The browser prompts them to use their device authenticator — **Touch ID, Face ID, Windows Hello, or a fingerprint sensor**. From that point on, they can log in without a password — just a tap.
+
+### User Flow
+
+```
+1. Login with Google / Email+Password (one-time)
+2. Open profile menu → click "Register Passkey (Biometrics)"
+3. Browser shows biometric prompt (Touch ID / Face ID)
+4. Passkey is stored in MongoDB against your account
+5. Next time: click "Continue with Passkey" on the login screen
+6. Tap fingerprint → logged in instantly ✅
+```
+
+### Updating a Passkey
+
+If you register a new device or want to update your passkey, click **"Register Passkey"** again. An inline confirmation prompt appears:
+> **"You already have a passkey registered. Do you want to replace it with a new one?"**  
+> **Yes, Replace** / **Cancel**
+
+Confirming will remove the old credential and enroll the new one.
+
+### Security Details
+
+| Property | Detail |
+|---|---|
+| Standard | WebAuthn Level 2 (W3C) |
+| Library | `@simplewebauthn/server` v9 + `@simplewebauthn/browser` v9 |
+| Credential type | Platform authenticator only (Touch ID, Face ID, Windows Hello) |
+| Storage | `credentialID` (base64url string) + `credentialPublicKey` (Buffer) in MongoDB |
+| Challenge | Random, stored in **httpOnly + Secure cookie** (5-min TTL) |
+| Replay protection | Counter incremented on every authentication; server rejects stale counters |
+| Origin binding | Credentials locked to the domain (RPID = hostname) — phishing-proof |
+| User lookup | Credential ID matched in DB via `{ "passkeys.credentialID": response.id }` |
+
+### API Endpoints
+
+| Method | Endpoint | Auth | Description |
+|---|---|---|---|
+| `GET` | `/api/auth/webauthn/register/generate` | ✅ Required | Generate registration options + challenge |
+| `GET` | `/api/auth/webauthn/register/generate?check=true` | ✅ Required | Check if user has existing passkeys |
+| `GET` | `/api/auth/webauthn/register/generate?replace=true` | ✅ Required | Generate options without excluding existing credential |
+| `POST` | `/api/auth/webauthn/register/verify` | ✅ Required | Verify attestation + save credential to DB |
+| `GET` | `/api/auth/webauthn/login/generate` | ❌ Public | Generate authentication challenge (stored in cookie) |
+
+### Files Involved
+
+| File | Role |
+|---|---|
+| [`src/lib/webauthn.ts`](./src/lib/webauthn.ts) | `rpName`, `getRpID()`, `getExpectedOrigin()` helpers |
+| [`src/lib/auth.ts`](./src/lib/auth.ts) | NextAuth `"passkey"` credentials provider — verifies assertion |
+| [`src/app/api/auth/webauthn/register/generate/route.ts`](./src/app/api/auth/webauthn/register/generate/route.ts) | Generates registration options |
+| [`src/app/api/auth/webauthn/register/verify/route.ts`](./src/app/api/auth/webauthn/register/verify/route.ts) | Verifies attestation + stores credential |
+| [`src/app/api/auth/webauthn/login/generate/route.ts`](./src/app/api/auth/webauthn/login/generate/route.ts) | Generates authentication challenge |
+| [`src/components/Nav.tsx`](./src/components/Nav.tsx) | "Register Passkey" button in profile menu (replace flow) |
+| [`src/components/AuthModel.tsx`](./src/components/AuthModel.tsx) | "Continue With Passkey" login button in auth modal |
+| [`src/models/user.model.ts`](./src/models/user.model.ts) | `passkeys[]` and `currentChallenge` fields on User schema |
 
 ---
 

@@ -136,9 +136,33 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
   const handleGoogleLogin = async () => {
     await signIn("google", { callbackUrl: redirectTo || "/" });
   };
+  // Map raw WebAuthn DOMException names → friendly user-facing messages
+  const getPasskeyErrorMessage = (err: any): string => {
+    const name = err?.name || "";
+    const msg = (err?.message || "").toLowerCase();
+    if (name === "NotAllowedError" || msg.includes("timed out") || msg.includes("not allowed"))
+      return "Verification was cancelled or timed out. Please try again.";
+    if (name === "InvalidStateError")
+      return "This passkey is already registered on your account.";
+    if (name === "NotSupportedError")
+      return "Your browser or device doesn't support passkeys. Try Chrome or Safari.";
+    if (name === "SecurityError")
+      return "Security check failed. Make sure you're on the correct website.";
+    if (name === "AbortError")
+      return "Verification was cancelled.";
+    if (name === "TypeError" || msg.includes("failed to read"))
+      return "Something went wrong setting up the passkey. Please try again.";
+    if (msg.includes("challenge expired") || msg.includes("missing"))
+      return "The passkey session expired. Please try again.";
+    if (msg.includes("not registered") || msg.includes("not found"))
+      return "No passkey found for this device. Please register one first.";
+    return "Passkey login failed. Please try a different sign-in method.";
+  };
+
   const handlePasskeyLogin = async () => {
+    let toastId: string | undefined;
     try {
-      const toastId = toast.loading("Waiting for biometric verification...");
+      toastId = toast.loading("Waiting for biometric...", { duration: Infinity });
       const resp = await fetch("/api/auth/webauthn/login/generate");
       if (!resp.ok) throw new Error("Failed to generate login challenge");
       const options = await resp.json();
@@ -151,18 +175,23 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
       });
 
       if (res?.error) {
-        toast.error("Invalid Passkey", { id: toastId });
-        setErr("Passkey login failed");
+        const friendly = "No passkey found for this account. Register one first.";
+        toast.error(friendly, { id: toastId, duration: 3000 });
+        setErr(friendly);
       } else if (res?.ok) {
-        toast.success("Login successful!", { id: toastId });
+        toast.success("Logged in!", { id: toastId, duration: 3000 });
         router.refresh();
         onClose();
         if (redirectTo) router.push(redirectTo);
       }
     } catch (err: any) {
-      console.error("Passkey login error:", err);
-      toast.dismiss();
-      setErr(err.message || "Passkey login failed or cancelled");
+      const friendly = getPasskeyErrorMessage(err);
+      if (toastId) {
+        toast.error(friendly, { id: toastId, duration: 3000 });
+      } else {
+        toast.error(friendly, { duration: 3000 });
+      }
+      setErr(friendly);
     }
   };
 
