@@ -20,11 +20,15 @@ vi.mock("./db", () => ({
   default: vi.fn(),
 }));
 
-// Mock User.findOne
+// Mock User.findOne and User.updateOne
 vi.mock("../models/user.model", () => {
   return {
     default: {
       findOne: vi.fn(),
+      updateOne: vi.fn().mockReturnValue({
+        exec: vi.fn().mockResolvedValue({}),
+        catch: vi.fn().mockReturnValue({}),
+      }),
     },
   };
 });
@@ -85,6 +89,7 @@ describe("NextAuth JWT callback throttling", () => {
       role: "user",
       picture: "http://example.com/image.png",
       lastChecked: now - 350000, // 350 seconds ago (interval is 5 mins = 300s)
+      sessionId: "test-session-123",
     };
 
     // Setup User.findOne mock
@@ -94,6 +99,7 @@ describe("NextAuth JWT callback throttling", () => {
           _id: "user-id-123",
           role: "partner",
           isPartnerBlocked: false,
+          activeSessions: [{ sessionId: "test-session-123" }]
         }),
       }),
     });
@@ -125,6 +131,7 @@ describe("NextAuth JWT callback throttling", () => {
           _id: "user-id-123",
           role: "user",
           isPartnerBlocked: true,
+          activeSessions: [{ sessionId: "test-session-123" }]
         }),
       }),
     });
