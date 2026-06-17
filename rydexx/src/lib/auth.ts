@@ -117,7 +117,9 @@ export const authConfig: NextAuthConfig = {
 
         await connectDb();
 
-        const user = await User.findOne({ email });
+        // Select only fields needed — avoids loading passkeys[], fcmTokens[], etc.
+        const user = await User.findOne({ email })
+          .select("_id email name role image password isPartnerBlocked");
 
         if (!user) {
           throw new Error("User not found");
@@ -128,7 +130,7 @@ export const authConfig: NextAuthConfig = {
         }
 
         if (!user.password) {
-          throw new Error("Use Google login");
+          throw new Error("This account uses Google sign-in. Please use the Google button.");
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
@@ -158,26 +160,37 @@ export const authConfig: NextAuthConfig = {
       if (account?.provider === "google") {
         await connectDb();
 
-        let dbUser = await User.findOne({ email: user.email });
-        if (dbUser && dbUser.isPartnerBlocked) {
-          return false; // Reject Google sign-in
+        // Use findOneAndUpdate with upsert — one round-trip instead of findOne + create/save
+        const dbUser = await User.findOneAndUpdate(
+          { email: user.email },
+          {
+            $setOnInsert: {
+              name: user.name,
+              email: user.email,
+              image: user.image,
+              role: "user",
+            },
+          },
+          {
+            upsert: true,
+            new: true,
+            // Only fetch the fields we actually need
+            projection: { _id: 1, role: 1, image: 1, isPartnerBlocked: 1 },
+            lean: true,
+          }
+        );
+
+        if (!dbUser) return false;
+        if (dbUser.isPartnerBlocked) return false;
+
+        // If Google gave a new avatar and it's different, update in background (non-blocking)
+        if (user.image && dbUser.image !== user.image) {
+          User.updateOne({ _id: dbUser._id }, { $set: { image: user.image } }).exec().catch(() => {});
         }
 
-        if (!dbUser) {
-          dbUser = await User.create({
-            name: user.name,
-            email: user.email,
-            image: user.image,
-            role: "user",
-          });
-        } else if (user.image && dbUser.image !== user.image) {
-          dbUser.image = user.image;
-          await dbUser.save();
-        }
-
-        user.id = dbUser._id.toString();
+        user.id = (dbUser._id as any).toString();
         user.role = dbUser.role;
-        user.image = dbUser.image;
+        user.image = dbUser.image ?? user.image;
       }
 
       return true;
@@ -196,7 +209,7 @@ export const authConfig: NextAuthConfig = {
         const lastChecked = (token.lastChecked as number) || 0;
         const checkInterval = process.env.SESSION_VALIDATION_INTERVAL
           ? parseInt(process.env.SESSION_VALIDATION_INTERVAL, 10)
-          : 60 * 1000;
+          : 5 * 60 * 1000; // Default: revalidate role from DB every 5 minutes
 
         if (now - lastChecked > checkInterval) {
           await connectDb();

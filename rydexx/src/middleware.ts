@@ -74,23 +74,20 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // 3. Check for token
-  let token = await getToken({ req, secret: process.env.AUTH_SECRET });
-  
-  if (!token) {
-    token = await getToken({
-      req,
-      secret: process.env.AUTH_SECRET,
-      secureCookie: true,
-    });
-  }
-  
+  // 3. Check for token — try secure cookie first (handles both http and https)
+  const token = await getToken({
+    req,
+    secret: process.env.AUTH_SECRET,
+    // secureCookie: false allows the middleware to work in http (dev) and https (prod)
+    secureCookie: process.env.NODE_ENV === "production",
+  });
+
   if (!token) {
     // If not logged in and it's an API route, return 401
     if (pathname.startsWith("/api")) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    // If not logged in, redirect to home (or signin if we had one)
+    // If not logged in, redirect to home
     return NextResponse.redirect(new URL("/", req.url));
   }
 

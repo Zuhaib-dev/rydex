@@ -14,7 +14,11 @@ const connectDb = async () => {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(mongodbUrl);
+    cached.promise = mongoose.connect(mongodbUrl, {
+      bufferCommands: false,        // Don't buffer ops before connection — fail fast
+      serverSelectionTimeoutMS: 5000, // Give up selecting a server after 5s
+      socketTimeoutMS: 30000,       // Kill idle socket after 30s
+    });
   }
 
   cached.conn = await cached.promise;
