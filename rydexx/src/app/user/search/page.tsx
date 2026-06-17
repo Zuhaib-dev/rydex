@@ -8,7 +8,7 @@ import {
   ArrowLeft, MapPin,
   Bike, Car, Truck, Clock, Route,
   RefreshCw, Info,
-  Compass, CreditCard
+  Compass, CreditCard, Loader2
 } from "lucide-react";
 import VehicleBookingCard from "@/components/VehicleBookingCard";
 import { getSocket } from "@/lib/socket";
@@ -869,9 +869,16 @@ function SearchContent() {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleBooking}
                   disabled={lockingFare}
-                  className="w-full py-4 bg-zinc-950 hover:bg-black text-white font-black rounded-2xl text-xs transition"
+                  className="flex-1 bg-zinc-900 text-white text-sm font-black py-4 rounded-2xl flex items-center justify-center gap-2 hover:bg-black transition-colors disabled:opacity-70 disabled:cursor-wait"
                 >
-                  {lockingFare ? "Locking fare..." : "Book Ride"}
+                  {lockingFare ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      <span>Securing...</span>
+                    </>
+                  ) : (
+                    "Book Ride"
+                  )}
                 </motion.button>
               </div>
             ) : (

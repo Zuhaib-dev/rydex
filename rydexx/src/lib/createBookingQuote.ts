@@ -45,26 +45,26 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
   const pickupCoordinates: LngLat = [input.pickupLng, input.pickupLat];
   const dropCoordinates: LngLat = [input.dropLng, input.dropLat];
 
-  const vehicle = await Vehicle.findById(input.vehicleId).select(
-    "baseFare perKmRate type status isActive owner",
-  );
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 800);
+
+  // ── Parallelize independent external/DB calls to reduce latency ──
+  const [vehicle, route, surgeMultiplier] = await Promise.all([
+    Vehicle.findById(input.vehicleId)
+      .select("baseFare perKmRate type status isActive owner")
+      .lean(),
+    fetchDrivingRoute(
+      [pickupCoordinates, dropCoordinates],
+      { signal: controller.signal }
+    ).catch(() => null),
+    getSurgeMultiplier(input.pickupLat, input.pickupLng),
+  ]);
+
+  clearTimeout(timeoutId);
 
   if (!vehicle || vehicle.status !== "approved" || !vehicle.isActive) {
     return { success: false as const, message: "Vehicle not available" };
   }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 800);
-
-  const route = await fetchDrivingRoute(
-    [
-      [input.pickupLat, input.pickupLng],
-      [input.dropLat, input.dropLng],
-    ],
-    { signal: controller.signal }
-  ).catch(() => null);
-
-  clearTimeout(timeoutId);
 
   const tripDistanceKm = route
     ? Math.round(route.distanceKm * 100) / 100
@@ -94,9 +94,7 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
 
   const baseFareValue = calculateTripFare(vehicle, tripDistanceKm);
 
-  // ── Surge pricing check ───────────────────────────────────────
-  // Query active surge zones at the pickup point. Returns 1.0 if no zone matches.
-  const surgeMultiplier = await getSurgeMultiplier(input.pickupLat, input.pickupLng);
+  // Surge multiplier is already fetched in parallel above
   const surgedFareValue = surgeMultiplier > 1
     ? Math.round(baseFareValue * surgeMultiplier)
     : baseFareValue;
@@ -107,7 +105,7 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
 
   if (input.promoCode) {
     const normalizedCode = input.promoCode.trim().toUpperCase();
-    const coupon = await Coupon.findOne({ code: normalizedCode });
+    const coupon = await Coupon.findOne({ code: normalizedCode }).lean();
     if (coupon && coupon.isActive && new Date(coupon.expiryDate) >= new Date()) {
       const hasUsed = coupon.usedByUsers.some(
         (id: any) => id.toString() === input.userId

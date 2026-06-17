@@ -19,6 +19,7 @@ export const getRedisClient = (): Redis => {
     enableReadyCheck: false,
     lazyConnect: false,
     connectTimeout: 5000,
+    commandTimeout: 1500, // Fail any stuck command after 1.5 seconds so UI doesn't hang 10-15s
     retryStrategy(times) {
       // Retry up to 3 times with short backoff, then stop retrying
       if (times > 3) return null;

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Bike, Car, Truck, Zap,
   IndianRupee, Clock, Gauge,
-  ArrowRight, Star
+  ArrowRight, Star, Loader2
 } from "lucide-react";
 import { getOptimizedImageUrl } from "@/lib/imagekit-client";
 
@@ -217,16 +217,25 @@ export default function VehicleBookingCard({
             whileHover={{ scale: 1.04 }}
             disabled={bookingDisabled}
             onClick={onBook}
-            className="group/btn flex items-center gap-2 bg-zinc-900 hover:bg-black disabled:opacity-50 text-white text-sm font-black px-6 py-3.5 rounded-2xl transition-colors shadow-md"
+            className="group/btn flex items-center gap-2 bg-zinc-900 hover:bg-black disabled:opacity-70 disabled:cursor-wait text-white text-sm font-black px-6 py-3.5 rounded-2xl transition-colors shadow-md min-w-[120px] justify-center"
           >
-            {bookingDisabled ? "Locking fare…" : "Book"}
-            <motion.div
-              initial={{ x: 0 }}
-              whileHover={{ x: 3 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ArrowRight size={14} />
-            </motion.div>
+            {bookingDisabled ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Securing...</span>
+              </>
+            ) : (
+              <>
+                <span>Book</span>
+                <motion.div
+                  initial={{ x: 0 }}
+                  whileHover={{ x: 3 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ArrowRight size={14} />
+                </motion.div>
+              </>
+            )}
           </motion.button>
         </div>
       </div>
