@@ -84,7 +84,7 @@ describe("NextAuth JWT callback throttling", () => {
       email: "john@example.com",
       role: "user",
       picture: "http://example.com/image.png",
-      lastChecked: now - 70000, // 70 seconds ago (interval is 60s)
+      lastChecked: now - 350000, // 350 seconds ago (interval is 5 mins = 300s)
     };
 
     // Setup User.findOne mock
@@ -116,7 +116,7 @@ describe("NextAuth JWT callback throttling", () => {
       email: "john@example.com",
       role: "user",
       picture: "http://example.com/image.png",
-      lastChecked: now - 70000,
+      lastChecked: now - 350000,
     };
 
     const mockFindOne = vi.fn().mockReturnValue({
