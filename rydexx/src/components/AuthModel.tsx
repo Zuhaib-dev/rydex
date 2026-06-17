@@ -303,7 +303,7 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                             placeholder="Password"
                           />
                         </div>
-                        {err && <p className="text-red-500 text-xs">*{err}</p>}
+                        {err && <p className="text-red-500 text-xs leading-relaxed wrap-break-word">{err}</p>}
                         <button
                           onClick={handleLogin}
                           className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center "
@@ -426,7 +426,7 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
                           />
                         ))}
                       </div>
-                      {err && <p className="text-red-500 text-xs mt-2">*{err}</p>}
+                      {err && <p className="text-red-500 text-xs mt-2 leading-relaxed wrap-break-word">{err}</p>}
                       <button
                         className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center mt-5 "
                         onClick={handleVerifyEmail}

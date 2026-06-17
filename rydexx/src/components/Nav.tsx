@@ -558,12 +558,36 @@ function ProfileContent({
   const role = userData.role || "user";
   const email = userData.email || "Email not available";
 
+  // Map raw WebAuthn DOMException names → friendly user-facing messages
+  const getPasskeyErrorMessage = (err: any): string => {
+    const name = err?.name || "";
+    const msg = (err?.message || "").toLowerCase();
+    if (name === "NotAllowedError" || msg.includes("timed out") || msg.includes("not allowed"))
+      return "Biometric prompt was cancelled or timed out. Please try again.";
+    if (name === "InvalidStateError")
+      return "This passkey is already registered.";
+    if (name === "NotSupportedError")
+      return "Your device or browser doesn't support passkeys. Try Chrome or Safari.";
+    if (name === "SecurityError")
+      return "Security check failed. Make sure you're on the correct site.";
+    if (name === "AbortError")
+      return "Registration was cancelled.";
+    if (name === "TypeError" || msg.includes("failed to read"))
+      return "Setup failed. Please refresh and try again.";
+    if (msg.includes("challenge") || msg.includes("expired"))
+      return "The session expired. Please try again.";
+    return err.message?.split(".")?.[0] || "Passkey registration failed. Please try again.";
+  };
+
   // Passkey registration state
   const [passkeyState, setPasskeyState] = useState<"idle" | "confirming" | "loading">("idle");
 
   const doRegisterPasskey = async (replace: boolean) => {
     setPasskeyState("loading");
-    const toastId = toast.loading(replace ? "Updating passkey..." : "Connecting to biometric sensor...");
+    const toastId = toast.loading(
+      replace ? "Enrolling new biometric..." : "Connecting to biometric sensor...",
+      { duration: Infinity }
+    );
     try {
       const url = replace
         ? "/api/auth/webauthn/register/generate?replace=true"
@@ -588,16 +612,16 @@ function ProfileContent({
       if (verificationResp.ok && data.verified) {
         toast.success(
           replace
-            ? "Passkey updated! Your new biometric is active."
+            ? "Passkey updated! Log in with your fingerprint next time."
             : "Passkey registered! You can now log in with Touch ID / Face ID.",
-          { id: toastId }
+          { id: toastId, duration: 3000 }
         );
       } else {
         throw new Error(data.error || "Failed to verify passkey");
       }
     } catch (err: any) {
-      console.error("Passkey error:", err);
-      toast.error(err.message || "Passkey registration failed", { id: toastId });
+      const friendly = getPasskeyErrorMessage(err);
+      toast.error(friendly, { id: toastId, duration: 3000 });
     } finally {
       setPasskeyState("idle");
     }
