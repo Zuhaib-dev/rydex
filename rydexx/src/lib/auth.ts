@@ -41,7 +41,7 @@ export const authConfig: NextAuthConfig = {
         await connectDb();
         let user;
         try {
-          // Look up user directly by the credential ID to bypass missing userHandle issues
+          // response.id from the browser is a base64url string; DB stores credentialID as base64url
           user = await User.findOne({ "passkeys.credentialID": response.id });
           
           if (!user || user.isPartnerBlocked) {
@@ -53,14 +53,24 @@ export const authConfig: NextAuthConfig = {
             throw new Error("Passkey not registered for this user");
           }
 
+          // credentialPublicKey is stored as Buffer in Mongo — convert to Uint8Array for verification
+          const publicKeyBytes = new Uint8Array(
+            Buffer.isBuffer(passkey.credentialPublicKey)
+              ? passkey.credentialPublicKey
+              : Buffer.from(passkey.credentialPublicKey)
+          );
+
+          // v9: authenticator.credentialID must be Uint8Array — decode from base64url string stored in DB
+          const credentialIDBytes = new Uint8Array(Buffer.from(passkey.credentialID, "base64url"));
+
           const verification = await verifyAuthenticationResponse({
             response,
             expectedChallenge,
             expectedOrigin: getExpectedOrigin(),
             expectedRPID: getRpID(),
             authenticator: {
-              credentialID: passkey.credentialID,
-              credentialPublicKey: new Uint8Array(passkey.credentialPublicKey),
+              credentialID: credentialIDBytes,
+              credentialPublicKey: publicKeyBytes,
               counter: passkey.counter,
               transports: passkey.transports,
             },
@@ -72,6 +82,8 @@ export const authConfig: NextAuthConfig = {
 
           // Update counter to prevent replay attacks
           passkey.counter = verification.authenticationInfo.newCounter;
+          // markModified so Mongoose detects the change in the subdocument array
+          user.markModified("passkeys");
           await user.save();
           
           // Clean up challenge cookie

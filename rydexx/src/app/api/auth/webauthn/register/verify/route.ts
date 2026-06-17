@@ -32,20 +32,34 @@ export async function POST(req: Request) {
     });
 
     if (verification.verified && verification.registrationInfo) {
-      const { credentialPublicKey, credentialID, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+      const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+
+      // credentialID in v9 is a Uint8Array — convert to base64url string for consistent storage & lookup
+      const credentialIDBase64 = Buffer.from(credentialID).toString("base64url");
+
+      // Check if this credential is already registered to avoid duplicates
+      const alreadyExists = user.passkeys?.some(
+        (pk: any) => pk.credentialID === credentialIDBase64
+      );
+      if (alreadyExists) {
+        user.currentChallenge = null;
+        await user.save();
+        return NextResponse.json({ verified: true, message: "Passkey already registered" });
+      }
 
       const newPasskey = {
-        credentialID,
+        credentialID: credentialIDBase64,
         credentialPublicKey: Buffer.from(credentialPublicKey),
         counter,
         credentialDeviceType,
         credentialBackedUp,
-        transports: body.response.transports || [],
+        transports: body.response.response?.transports || body.response.transports || [],
       };
 
       if (!user.passkeys) user.passkeys = [];
       user.passkeys.push(newPasskey);
       user.currentChallenge = null;
+      user.markModified("passkeys");
       await user.save();
 
       return NextResponse.json({ verified: true });

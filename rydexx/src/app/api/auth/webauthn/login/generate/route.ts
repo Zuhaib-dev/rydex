@@ -8,6 +8,7 @@ export async function GET(req: Request) {
     const options = await generateAuthenticationOptions({
       rpID: getRpID(req),
       userVerification: "preferred",
+      timeout: 60000,
     });
 
     // Store the challenge in an HTTP-only secure cookie for 5 minutes

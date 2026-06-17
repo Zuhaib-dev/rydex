@@ -25,6 +25,7 @@ export async function GET(req: Request) {
       rpID,
       userID: user._id.toString(),
       userName: user.email,
+      userDisplayName: user.name || user.email,
       attestationType: "none",
       excludeCredentials: user.passkeys?.map((key: any) => ({
         id: key.credentialID,
