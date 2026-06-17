@@ -465,13 +465,15 @@ export default function LiveRideMap({
           </Source>
         )}
 
-        <Marker
-          longitude={pickupLocation[1]}
-          latitude={pickupLocation[0]}
-          anchor="bottom"
-        >
-          <PickupMarker />
-        </Marker>
+        {status !== "ongoing" && status !== "completed" && (
+          <Marker
+            longitude={pickupLocation[1]}
+            latitude={pickupLocation[0]}
+            anchor="bottom"
+          >
+            <PickupMarker />
+          </Marker>
+        )}
 
         <Marker
           longitude={dropLocation[1]}
