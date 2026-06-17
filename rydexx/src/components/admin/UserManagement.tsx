@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { 
   Users, UserCheck, Shield, Ban, Search, CheckCircle, RefreshCw, 
-  ChevronLeft, ChevronRight, Eye, ShieldAlert, Sparkles, AlertTriangle
+  ChevronLeft, ChevronRight, Eye, EyeOff, ShieldAlert, Sparkles, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useDispatch } from "react-redux";
@@ -50,6 +50,22 @@ export default function UserManagement() {
   const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [showSensitiveData, setShowSensitiveData] = useState(false);
+
+  // Masking helpers
+  const maskEmail = (email: string) => {
+    if (!email) return "";
+    if (showSensitiveData) return email;
+    const [name, domain] = email.split("@");
+    if (!domain) return "*******";
+    return `${name.charAt(0)}***@${domain}`;
+  };
+
+  const maskPhone = (phone?: string) => {
+    if (!phone) return "Not Linked";
+    if (showSensitiveData) return phone;
+    return phone.substring(0, 3) + "****" + phone.substring(phone.length - 3);
+  };
 
   const fetchUsers = useCallback(async (pageNum = 1, currentSearch = search, currentRole = role, currentStatus = status) => {
     setRefreshing(true);
@@ -136,13 +152,23 @@ export default function UserManagement() {
           <h2 className="text-xl font-bold text-gray-900">User Directory</h2>
           <p className="text-sm text-gray-400">Manage customer accounts, dispatch partners, and system permissions</p>
         </div>
-        <button
-          onClick={() => fetchUsers(page)}
-          disabled={refreshing}
-          className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-900 disabled:opacity-50"
-        >
-          <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowSensitiveData(!showSensitiveData)}
+            className="flex h-10 px-3 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-900"
+            title={showSensitiveData ? "Hide Sensitive Data" : "Show Sensitive Data"}
+          >
+            {showSensitiveData ? <EyeOff size={16} /> : <Eye size={16} />}
+            <span className="text-xs font-bold">{showSensitiveData ? "Hide" : "Show"} Data</span>
+          </button>
+          <button
+            onClick={() => fetchUsers(page)}
+            disabled={refreshing}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 transition hover:border-gray-300 hover:text-gray-900 disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={refreshing ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
 
       {/* Filters & Search */}
@@ -238,7 +264,7 @@ export default function UserManagement() {
                                 <span className="h-2 w-2 rounded-full bg-green-500 inline-block animate-pulse" title="Online" />
                               )}
                             </p>
-                            <p className="text-xs text-gray-400">{user.email}</p>
+                            <p className="text-xs text-gray-400">{maskEmail(user.email)}</p>
                           </div>
                         </div>
                       </td>
@@ -248,7 +274,7 @@ export default function UserManagement() {
                         </span>
                       </td>
                       <td className="px-6 py-4 text-gray-500 font-medium">
-                        {user.mobileNumber || "Not Linked"}
+                        {maskPhone(user.mobileNumber)}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider ${
@@ -376,7 +402,7 @@ export default function UserManagement() {
                         {selectedUser.role}
                       </span>
                     </h4>
-                    <p className="text-xs text-gray-400 mt-1">{selectedUser.email}</p>
+                    <p className="text-xs text-gray-400 mt-1">{maskEmail(selectedUser.email)}</p>
                     <p className="text-[10px] text-gray-400 mt-0.5">Joined: {new Date(selectedUser.createdAt).toLocaleDateString("en-IN")}</p>
                   </div>
                 </div>
@@ -384,7 +410,7 @@ export default function UserManagement() {
                 <div className="space-y-3">
                   <div className="flex justify-between py-2 border-b border-gray-50 text-sm">
                     <span className="text-gray-400 font-semibold">Mobile Number</span>
-                    <span className="text-gray-900 font-bold">{selectedUser.mobileNumber || "N/A"}</span>
+                    <span className="text-gray-900 font-bold">{selectedUser.mobileNumber ? maskPhone(selectedUser.mobileNumber) : "N/A"}</span>
                   </div>
                   <div className="flex justify-between py-2 border-b border-gray-50 text-sm">
                     <span className="text-gray-400 font-semibold">Email Verified</span>
