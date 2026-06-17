@@ -4,6 +4,7 @@ import { useSession } from "next-auth/react";
 import { useEffect, useRef } from "react";
 import { getSocket } from "@/lib/socket";
 import { PARTNER_GEO_PUSH_INTERVAL_MS } from "@/lib/matching/config";
+import { useSharedLocation } from "@/hooks/useSharedLocation";
 
 /**
  * Keeps partner GPS + availability synced on every partner route.
@@ -12,10 +13,10 @@ import { PARTNER_GEO_PUSH_INTERVAL_MS } from "@/lib/matching/config";
 export default function PartnerLiveTracker() {
   const { data: session, status } = useSession();
   const lastSentRef = useRef(0);
+  const { position, error } = useSharedLocation();
 
   useEffect(() => {
     if (status !== "authenticated" || !session?.user?.id) return;
-    if (!navigator.geolocation) return;
 
     const socket = getSocket();
     const userId = session.user.id;
@@ -28,32 +29,31 @@ export default function PartnerLiveTracker() {
     identify();
     socket.on("connect", identify);
 
-    const watcher = navigator.geolocation.watchPosition(
-      (pos) => {
-        const now = Date.now();
-        if (now - lastSentRef.current < PARTNER_GEO_PUSH_INTERVAL_MS) return;
-        lastSentRef.current = now;
-
-        socket.emit("update-location", {
-          userId,
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-        });
-      },
-      (err) => {
-        if (err.code !== err.POSITION_UNAVAILABLE) {
-          console.warn("Partner location unavailable:", err.message);
-        }
-      },
-      { enableHighAccuracy: true, maximumAge: 3000, timeout: 12000 },
-    );
-
     return () => {
       socket.emit("partner-availability", { available: false });
       socket.off("connect", identify);
-      navigator.geolocation.clearWatch(watcher);
     };
   }, [session?.user?.id, status]);
+
+  useEffect(() => {
+    if (!position || status !== "authenticated" || !session?.user?.id) return;
+    const now = Date.now();
+    if (now - lastSentRef.current < PARTNER_GEO_PUSH_INTERVAL_MS) return;
+    lastSentRef.current = now;
+
+    const socket = getSocket();
+    socket.emit("update-location", {
+      userId: session.user.id,
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    });
+  }, [position, session?.user?.id, status]);
+
+  useEffect(() => {
+    if (error && error.code !== error.POSITION_UNAVAILABLE) {
+      console.warn("Partner location unavailable:", error.message);
+    }
+  }, [error]);
 
   return null;
 }

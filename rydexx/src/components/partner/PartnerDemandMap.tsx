@@ -10,6 +10,7 @@ import { getSocket } from "@/lib/socket";
 import { motion, AnimatePresence } from "motion/react";
 import { Zap, Compass, MapPin, CheckCircle, Navigation, Play, RefreshCw, X } from "lucide-react";
 import toast from "react-hot-toast";
+import { useSharedLocation } from "@/hooks/useSharedLocation";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -43,37 +44,26 @@ export default function PartnerDemandMap() {
   const hotspots = demandData?.hotspots || [];
   const recommendation = demandData?.recommendation;
 
-  // Watch driver's real live GPS location
+  // Use singleton location hook instead of overlapping watchPosition
+  const { position: rawPosition } = useSharedLocation();
   const mapCenteredRef = useRef(false);
+
   useEffect(() => {
-    if (typeof window === "undefined" || !navigator.geolocation) return;
+    if (!rawPosition || isSimulating) return;
 
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        // Do not override simulated position updates
-        if (isSimulating) return;
+    const realPos: [number, number] = [rawPosition.coords.longitude, rawPosition.coords.latitude];
+    setDriverPos(realPos);
 
-        const realPos: [number, number] = [pos.coords.longitude, pos.coords.latitude];
-        setDriverPos(realPos);
-
-        // Center map on real coordinates upon initial lock
-        if (mapRef.current && !mapCenteredRef.current) {
-          mapRef.current.easeTo({
-            center: realPos,
-            zoom: 13,
-            duration: 1200,
-          });
-          mapCenteredRef.current = true;
-        }
-      },
-      (err) => {
-        console.warn("Demand map GPS tracking error:", err.message);
-      },
-      { enableHighAccuracy: true, maximumAge: 5000 }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [isSimulating]);
+    // Center map on real coordinates upon initial lock
+    if (mapRef.current && !mapCenteredRef.current) {
+      mapRef.current.easeTo({
+        center: realPos,
+        zoom: 13,
+        duration: 1200,
+      });
+      mapCenteredRef.current = true;
+    }
+  }, [rawPosition, isSimulating]);
 
   // Set driver initial position when API loads as a quick fallback before GPS resolves
   useEffect(() => {

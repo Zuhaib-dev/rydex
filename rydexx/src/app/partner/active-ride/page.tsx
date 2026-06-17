@@ -29,6 +29,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { IUser } from "@/models/user.model";
 import { IVehicle } from "@/models/vehicle.model";
 import RideChat from "@/components/RideChat";
+import { useSharedLocation } from "@/hooks/useSharedLocation";
 
 const LiveRideMap = dynamic(() => import("@/components/LiveTrackingMap"), {
   ssr: false,
@@ -290,72 +291,43 @@ export default function DriverRidePage() {
     };
   }, []);
 
-  /* ── GPS — only for active rides, uses ref to avoid stale closure ── */
+  /* ── GPS — only for active rides, uses shared location to avoid throttling ── */
+  const { position: rawPosition } = useSharedLocation();
+
   useEffect(() => {
-    if (!booking?._id) return;
-    if (TERMINAL.includes(booking.status)) return;
-    if (!navigator.geolocation) return;
+    const b = bookingRef.current;
+    if (!b?._id || TERMINAL.includes(b.status)) return;
+    if (!rawPosition) return;
 
     const socket = getSocket();
+    let lat = rawPosition.coords.latitude;
+    let lng = rawPosition.coords.longitude;
 
-    const handlePositionUpdate = (pos: GeolocationPosition) => {
-      const b = bookingRef.current;
-      if (!b?._id || TERMINAL.includes(b.status)) return;
-      let lat = pos.coords.latitude;
-      let lng = pos.coords.longitude;
-
-      if (b.routePolyline) {
-        const deviated = checkRouteDeviation([lat, lng], b.routePolyline, 50);
-        if (deviated) {
-          socket.emit("route-deviation", {
-            bookingId: b._id,
-            driverId: b.driver?._id,
-            latitude: lat,
-            longitude: lng,
-          });
-        }
-
-        // Snap for smooth visual rendering
-        const snapped = snapToRoute([lat, lng], b.routePolyline);
-        lat = snapped[0];
-        lng = snapped[1];
+    if (b.routePolyline) {
+      const deviated = checkRouteDeviation([lat, lng], b.routePolyline, 50);
+      if (deviated) {
+        socket.emit("route-deviation", {
+          bookingId: b._id,
+          driverId: b.driver?._id,
+          latitude: lat,
+          longitude: lng,
+        });
       }
 
-      setDriverPos([lat, lng]);
-      socket.emit("driver-location-update", {
-        bookingId: b._id,
-        latitude: lat,
-        longitude: lng,
-        status: b.status,
-      });
-    };
+      // Snap for smooth visual rendering
+      const snapped = snapToRoute([lat, lng], b.routePolyline);
+      lat = snapped[0];
+      lng = snapped[1];
+    }
 
-    const watchId = navigator.geolocation.watchPosition(
-      handlePositionUpdate,
-      (err) => {
-        console.warn("GPS watch position error:", err.code, err.message);
-      },
-      { enableHighAccuracy: true, maximumAge: 5000 },
-    );
-
-    // Fallback interval (getCurrentPosition) every 8 seconds to bypass OS suspension/throttling
-    const fallbackInterval = setInterval(() => {
-      const b = bookingRef.current;
-      if (!b?._id || TERMINAL.includes(b.status)) return;
-      navigator.geolocation.getCurrentPosition(
-        handlePositionUpdate,
-        (err) => {
-          console.warn("GPS fallback getCurrentPosition error:", err.code, err.message);
-        },
-        { enableHighAccuracy: true, maximumAge: 5000, timeout: 5000 }
-      );
-    }, 8000);
-
-    return () => {
-      navigator.geolocation.clearWatch(watchId);
-      clearInterval(fallbackInterval);
-    };
-  }, [booking?._id, booking?.status]);
+    setDriverPos([lat, lng]);
+    socket.emit("driver-location-update", {
+      bookingId: b._id,
+      latitude: lat,
+      longitude: lng,
+      status: b.status,
+    });
+  }, [rawPosition, booking?._id, booking?.status]);
 
   useBookingRealtime<IBooking>({
     bookingId: booking?._id,
