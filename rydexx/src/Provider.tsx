@@ -1,7 +1,21 @@
 "use client"
-import { SessionProvider } from 'next-auth/react'
-import React, { ReactNode } from 'react'
+import { SessionProvider, useSession, signOut } from 'next-auth/react'
+import React, { ReactNode, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
+
+function SessionGuard({ children }: { children: ReactNode }) {
+  const { data: session, status } = useSession()
+
+  useEffect(() => {
+    if (status === "authenticated" && session && (session as any).error === "SessionBlocked") {
+      toast.error("Your session was suspended or logged in from another device.", { duration: 6000 });
+      signOut({ callbackUrl: "/signin" });
+    }
+  }, [session, status])
+
+  return <>{children}</>
+}
 
 function Provider({ children }: { children: ReactNode }) {
   return (
@@ -22,7 +36,9 @@ function Provider({ children }: { children: ReactNode }) {
           },
         }}
       />
-      {children}
+      <SessionGuard>
+        {children}
+      </SessionGuard>
     </SessionProvider>
   )
 }

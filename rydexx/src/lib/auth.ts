@@ -250,10 +250,9 @@ export const authConfig: NextAuthConfig = {
 
     async session({ session, token }) {
       if (token.blocked) {
-        session.user = null as any;
-        return session;
-      }
-      if (session.user) {
+        (session as any).error = "SessionBlocked";
+        // Do NOT set session.user = null, as it breaks frontend types and causes default avatars to show
+      } else if (session.user) {
         session.user.id = token.id as string;
         session.user.name = token.name;
         session.user.email = token.email as string;
