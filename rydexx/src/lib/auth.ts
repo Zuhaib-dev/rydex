@@ -40,6 +40,7 @@ export const authConfig: NextAuthConfig = {
 
         await connectDb();
         let user;
+        let sessionVersion = Date.now();
         try {
           // response.id from the browser is a base64url string; DB stores credentialID as base64url
           user = await User.findOne({ "passkeys.credentialID": response.id });
@@ -82,6 +83,8 @@ export const authConfig: NextAuthConfig = {
 
           // Update counter to prevent replay attacks
           passkey.counter = verification.authenticationInfo.newCounter;
+          // Update session version for single active session
+          user.sessionVersion = sessionVersion;
           // markModified so Mongoose detects the change in the subdocument array
           user.markModified("passkeys");
           await user.save();
@@ -99,6 +102,7 @@ export const authConfig: NextAuthConfig = {
           name: user.name,
           role: user.role,
           image: user.image,
+          sessionVersion,
         };
       }
     }),
@@ -139,12 +143,16 @@ export const authConfig: NextAuthConfig = {
           throw new Error("Invalid password");
         }
 
+        const sessionVersion = Date.now();
+        await User.updateOne({ _id: user._id }, { $set: { sessionVersion } });
+
         return {
           id: user._id.toString(),
           email: user.email,
           name: user.name,
           role: user.role,
           image: user.image,
+          sessionVersion,
         };
       },
     }),
@@ -159,6 +167,7 @@ export const authConfig: NextAuthConfig = {
     async signIn({ user, account }) {
       if (account?.provider === "google") {
         await connectDb();
+        const sessionVersion = Date.now();
 
         // Use findOneAndUpdate with upsert — one round-trip instead of findOne + create/save
         const dbUser = await User.findOneAndUpdate(
@@ -170,6 +179,9 @@ export const authConfig: NextAuthConfig = {
               image: user.image,
               role: "user",
             },
+            $set: {
+              sessionVersion
+            }
           },
           {
             upsert: true,
@@ -191,6 +203,7 @@ export const authConfig: NextAuthConfig = {
         user.id = (dbUser._id as any).toString();
         user.role = dbUser.role;
         user.image = dbUser.image ?? user.image;
+        (user as any).sessionVersion = sessionVersion;
       }
 
       return true;
@@ -203,6 +216,7 @@ export const authConfig: NextAuthConfig = {
         token.email = user.email;
         token.role = user.role;
         token.picture = user.image;
+        token.sessionVersion = (user as any).sessionVersion;
         token.lastChecked = Date.now();
       } else if (token.email) {
         const now = Date.now();
@@ -214,14 +228,16 @@ export const authConfig: NextAuthConfig = {
         if (now - lastChecked > checkInterval) {
           await connectDb();
           const dbUser = await User.findOne({ email: token.email })
-            .select("_id role isPartnerBlocked")
+            .select("_id role isPartnerBlocked sessionVersion")
             .lean();
           if (dbUser) {
-            if (dbUser.isPartnerBlocked) {
+            // Block the session if user is suspended OR if the sessionVersion differs (logged in on another device)
+            if (dbUser.isPartnerBlocked || (token.sessionVersion && dbUser.sessionVersion !== token.sessionVersion)) {
               token.blocked = true;
             } else {
               token.id = String(dbUser._id);
               token.role = dbUser.role as string;
+              token.sessionVersion = dbUser.sessionVersion;
               token.blocked = false;
             }
           }

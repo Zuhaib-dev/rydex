@@ -52,6 +52,7 @@ export interface IUser extends Document {
   lifetimeRides?: number;
   passkeys?: Passkey[];
   currentChallenge?: string;
+  sessionVersion?: number;
 }
 const userSchema = new mongoose.Schema<IUser>(
   {
@@ -206,6 +207,10 @@ const userSchema = new mongoose.Schema<IUser>(
     currentChallenge: {
       type: String,
       default: null,
+    },
+    sessionVersion: {
+      type: Number,
+      default: 0,
     }
   },
   { timestamps: true },
