@@ -19,6 +19,26 @@ export async function GET(req: Request) {
     }
 
     const rpID = getRpID(req);
+    const url = new URL(req.url);
+
+    // ?replace=true → user is intentionally replacing their existing passkey.
+    // Skip excludeCredentials so the browser allows re-registration with the same authenticator.
+    // ?check=true → just return passkey count, don't generate options.
+    const isCheck = url.searchParams.get("check") === "true";
+    const isReplace = url.searchParams.get("replace") === "true";
+
+    if (isCheck) {
+      return NextResponse.json({ hasPasskeys: (user.passkeys?.length ?? 0) > 0 });
+    }
+
+    // Build excludeCredentials — MUST include type: 'public-key' per the WebAuthn spec
+    const excludeCredentials = (!isReplace && user.passkeys && user.passkeys.length > 0)
+      ? user.passkeys.map((key: any) => ({
+          id: key.credentialID,
+          type: "public-key" as const,
+          transports: key.transports ?? [],
+        }))
+      : [];
 
     const options = await generateRegistrationOptions({
       rpName,
@@ -27,14 +47,11 @@ export async function GET(req: Request) {
       userName: user.email,
       userDisplayName: user.name || user.email,
       attestationType: "none",
-      excludeCredentials: user.passkeys?.map((key: any) => ({
-        id: key.credentialID,
-        transports: key.transports,
-      })) || [],
+      excludeCredentials,
       authenticatorSelection: {
         residentKey: "preferred",
         userVerification: "preferred",
-        authenticatorAttachment: "platform", // Enforces built-in authenticators like Touch ID / Face ID
+        authenticatorAttachment: "platform",
       },
     });
 

@@ -557,6 +557,70 @@ function ProfileContent({
 }: ProfileContentProps) {
   const role = userData.role || "user";
   const email = userData.email || "Email not available";
+
+  // Passkey registration state
+  const [passkeyState, setPasskeyState] = useState<"idle" | "confirming" | "loading">("idle");
+
+  const doRegisterPasskey = async (replace: boolean) => {
+    setPasskeyState("loading");
+    const toastId = toast.loading(replace ? "Updating passkey..." : "Connecting to biometric sensor...");
+    try {
+      const url = replace
+        ? "/api/auth/webauthn/register/generate?replace=true"
+        : "/api/auth/webauthn/register/generate";
+
+      const resp = await fetch(url);
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || "Failed to generate challenge");
+      }
+      const options = await resp.json();
+
+      const attResp = await startRegistration(options);
+
+      const verificationResp = await fetch("/api/auth/webauthn/register/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...attResp, replace }),
+      });
+
+      const data = await verificationResp.json();
+      if (verificationResp.ok && data.verified) {
+        toast.success(
+          replace
+            ? "Passkey updated! Your new biometric is active."
+            : "Passkey registered! You can now log in with Touch ID / Face ID.",
+          { id: toastId }
+        );
+      } else {
+        throw new Error(data.error || "Failed to verify passkey");
+      }
+    } catch (err: any) {
+      console.error("Passkey error:", err);
+      toast.error(err.message || "Passkey registration failed", { id: toastId });
+    } finally {
+      setPasskeyState("idle");
+    }
+  };
+
+  const handleRegisterPasskey = async () => {
+    // Check if user already has a passkey registered
+    try {
+      const statusResp = await fetch("/api/auth/webauthn/register/generate?check=true");
+      if (statusResp.ok) {
+        const { hasPasskeys } = await statusResp.json();
+        if (hasPasskeys) {
+          // Show inline confirmation prompt
+          setPasskeyState("confirming");
+          return;
+        }
+      }
+    } catch {
+      // If check fails, just proceed with normal registration
+    }
+    await doRegisterPasskey(false);
+  };
+
   const joinedDate = userData.createdAt
     ? new Date(userData.createdAt).toLocaleDateString("en-US", {
         month: "short",
@@ -682,38 +746,36 @@ function ProfileContent({
         </button>
       )}
 
+      {/* Passkey confirmation prompt */}
+      {passkeyState === "confirming" && (
+        <div className="mx-3 mb-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+          <p className="text-xs font-semibold text-amber-800 mb-2">
+            You already have a passkey registered. Do you want to replace it with a new one?
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => doRegisterPasskey(true)}
+              className="flex-1 h-8 rounded-lg bg-black text-white text-xs font-semibold hover:bg-gray-800 transition"
+            >
+              Yes, Replace
+            </button>
+            <button
+              onClick={() => setPasskeyState("idle")}
+              className="flex-1 h-8 rounded-lg border border-gray-300 text-gray-600 text-xs font-semibold hover:bg-gray-100 transition"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       <button
-        onClick={async () => {
-          try {
-            const toastId = toast.loading("Connecting to biometric sensor...");
-            const resp = await fetch("/api/auth/webauthn/register/generate");
-            if (!resp.ok) throw new Error("Failed to generate challenge");
-            const options = await resp.json();
-            
-            const attResp = await startRegistration(options);
-            
-            const verificationResp = await fetch("/api/auth/webauthn/register/verify", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(attResp),
-            });
-            
-            const data = await verificationResp.json();
-            
-            if (verificationResp.ok && data.verified) {
-              toast.success("Passkey registered! You can now log in with Touch ID / Face ID.", { id: toastId });
-            } else {
-              throw new Error(data.error || "Failed to verify passkey signature");
-            }
-          } catch (err: any) {
-            console.error("Passkey error:", err);
-            toast.error(err.message || "Passkey registration failed");
-          }
-        }}
-        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
+        onClick={passkeyState === "idle" ? handleRegisterPasskey : undefined}
+        disabled={passkeyState === "loading"}
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
       >
         <Fingerprint size={16} />
-        Register Passkey (Biometrics)
+        {passkeyState === "loading" ? "Registering..." : "Register Passkey (Biometrics)"}
       </button>
 
       <button

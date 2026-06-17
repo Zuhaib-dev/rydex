@@ -12,7 +12,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // body contains the attestation response + optional replace flag
     const body = await req.json();
+    const { replace, ...attestation } = body;
 
     await connectDb();
     const user = await User.findById(session.user.id);
@@ -25,7 +27,7 @@ export async function POST(req: Request) {
     const expectedRPID = getRpID(req);
 
     const verification = await verifyRegistrationResponse({
-      response: body,
+      response: attestation,
       expectedChallenge,
       expectedOrigin,
       expectedRPID,
@@ -34,18 +36,8 @@ export async function POST(req: Request) {
     if (verification.verified && verification.registrationInfo) {
       const { credentialID, credentialPublicKey, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
 
-      // credentialID in v9 is a Uint8Array — convert to base64url string for consistent storage & lookup
+      // credentialID in v9 is a Uint8Array — convert to base64url string for storage & lookup
       const credentialIDBase64 = Buffer.from(credentialID).toString("base64url");
-
-      // Check if this credential is already registered to avoid duplicates
-      const alreadyExists = user.passkeys?.some(
-        (pk: any) => pk.credentialID === credentialIDBase64
-      );
-      if (alreadyExists) {
-        user.currentChallenge = null;
-        await user.save();
-        return NextResponse.json({ verified: true, message: "Passkey already registered" });
-      }
 
       const newPasskey = {
         credentialID: credentialIDBase64,
@@ -53,11 +45,23 @@ export async function POST(req: Request) {
         counter,
         credentialDeviceType,
         credentialBackedUp,
-        transports: body.response.response?.transports || body.response.transports || [],
+        transports: attestation.response?.transports ?? [],
       };
 
-      if (!user.passkeys) user.passkeys = [];
-      user.passkeys.push(newPasskey);
+      if (replace) {
+        // Replace mode: clear all existing passkeys and store only the new one
+        user.passkeys = [newPasskey] as any;
+      } else {
+        // Normal mode: append, but skip exact-same credential to prevent duplicates
+        if (!user.passkeys) user.passkeys = [];
+        const alreadyExists = user.passkeys.some(
+          (pk: any) => pk.credentialID === credentialIDBase64
+        );
+        if (!alreadyExists) {
+          user.passkeys.push(newPasskey);
+        }
+      }
+
       user.currentChallenge = null;
       user.markModified("passkeys");
       await user.save();
