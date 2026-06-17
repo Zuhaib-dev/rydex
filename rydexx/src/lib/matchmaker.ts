@@ -100,8 +100,9 @@ export async function cascadeBooking(bookingId: string, currentDriverId: string)
           radiusMeters = getRadiusTier(tierIndex);
           booking.matchRadiusTierIndex = tierIndex;
           booking.matchRadiusMeters = radiusMeters;
-          await booking.save();
 
+          // Emitting the update instantly (without blocking on DB save) keeps the UI perfectly real-time
+          // We will save the mutated booking object after the loop finishes.
           await emitBookingUpdated(booking, {
             bookingId: String(booking._id),
             status: "requested",

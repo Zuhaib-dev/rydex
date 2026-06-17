@@ -228,27 +228,33 @@ app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
         io.in(`user-${userId}`).disconnectSockets(true);
       }
 
-      // Send Push Notification if FCM tokens exist
+      // Send Push Notification asynchronously
       if (event === "new-booking" || event === "booking-updated" || event === "new-notification") {
-        const targetUser = await User.findById(userId).select("fcmTokens").lean();
-        if (targetUser && targetUser.fcmTokens && targetUser.fcmTokens.length > 0) {
+        // Fire and forget to avoid blocking the HTTP response
+        Promise.resolve().then(async () => {
+          try {
+            const targetUser = await User.findById(userId).select("fcmTokens").lean();
+            if (targetUser && targetUser.fcmTokens && targetUser.fcmTokens.length > 0) {
+              const { title, body, url } = buildPushContent(event, data, bookingRoomId);
 
-          const { title, body, url } = buildPushContent(event, data, bookingRoomId);
+              const pushResult = await sendPushNotification(targetUser.fcmTokens as string[], title, body, {
+                bookingId: String(bookingRoomId || ""),
+                event,
+                notificationId: data?._id ? String(data._id) : "",
+                url,
+              });
 
-          const pushResult = await sendPushNotification(targetUser.fcmTokens as string[], title, body, {
-            bookingId: String(bookingRoomId || ""),
-            event,
-            notificationId: data?._id ? String(data._id) : "",
-            url,
-          });
-
-          if (pushResult.invalidTokens.length > 0) {
-            await User.updateOne(
-              { _id: userId },
-              { $pull: { fcmTokens: { $in: pushResult.invalidTokens } } },
-            );
+              if (pushResult.invalidTokens.length > 0) {
+                await User.updateOne(
+                  { _id: userId },
+                  { $pull: { fcmTokens: { $in: pushResult.invalidTokens } } },
+                );
+              }
+            }
+          } catch (err) {
+            console.error("Background push notification failed:", err);
           }
-        }
+        });
       }
     }
 
@@ -326,6 +332,21 @@ app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
         activeTimers.delete(bookingId);
         redisPub.del(`dispatch:timer:${bookingId}`).catch(() => {});
         redisPub.del(`dispatch:driver:${bookingId}`).catch(() => {});
+      }
+
+      // Sync driver busy state in Redis
+      const driverId = data.driver?._id ? String(data.driver._id) : (data.driver ? String(data.driver) : null);
+      if (driverId) {
+        const activeStatuses = ["awaiting_payment", "confirmed", "arriving", "arrived", "started"];
+        try {
+          if (activeStatuses.includes(status)) {
+            await redisPub.set(`driver:busy:${driverId}`, "1", "EX", 86400); // 24 hours fallback
+          } else {
+            await redisPub.del(`driver:busy:${driverId}`);
+          }
+        } catch (err) {
+          console.warn("[RedisDispatch] Failed to update driver busy state:", err);
+        }
       }
     }
 

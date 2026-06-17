@@ -48,11 +48,27 @@ export async function createLockedBookingQuote(input: CreateQuoteInput) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 800);
 
+  const getCachedVehicle = async (id: string) => {
+    try {
+      const redis = getRedisClient();
+      const cached = await redis.get(`vehicle:cache:${id}`);
+      if (cached) return JSON.parse(cached);
+    } catch (e) {}
+    
+    const v = await Vehicle.findById(id).select("baseFare perKmRate type status isActive owner").lean();
+    if (v) {
+      try {
+        const redis = getRedisClient();
+        // Cache for 1 hour since vehicle base details rarely change
+        await redis.set(`vehicle:cache:${id}`, JSON.stringify(v), "EX", 3600);
+      } catch (e) {}
+    }
+    return v;
+  };
+
   // ── Parallelize independent external/DB calls to reduce latency ──
   const [vehicle, route, surgeMultiplier] = await Promise.all([
-    Vehicle.findById(input.vehicleId)
-      .select("baseFare perKmRate type status isActive owner")
-      .lean(),
+    getCachedVehicle(input.vehicleId),
     fetchDrivingRoute(
       [pickupCoordinates, dropCoordinates],
       { signal: controller.signal }

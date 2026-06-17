@@ -48,6 +48,28 @@ type FindOptions = {
 async function getBusyPartnerIds(candidateIds: mongoose.Types.ObjectId[]) {
   if (!candidateIds.length) return new Set<string>();
 
+  try {
+    const redis = getRedisClient();
+    const pipeline = redis.pipeline();
+    candidateIds.forEach((id) => pipeline.get(`driver:busy:${String(id)}`));
+    const results = await pipeline.exec();
+
+    if (results) {
+      const busySet = new Set<string>();
+      candidateIds.forEach((id, index) => {
+        const [err, val] = results[index] as [Error | null, string | null];
+        if (!err && val) {
+          busySet.add(String(id));
+        }
+      });
+      // If Redis succeeds, we return immediately.
+      return busySet;
+    }
+  } catch (err) {
+    console.warn("[getBusyPartnerIds] Redis failed, falling back to MongoDB:", err);
+  }
+
+  // MongoDB fallback
   const busy = await Booking.distinct("driver", {
     driver: { $in: candidateIds },
     status: { $in: [...ACTIVE_DRIVER_STATUSES] },
@@ -261,15 +283,55 @@ export async function findClosestEligiblePartner(
     .map((p) => p.activeVehicleId)
     .filter(Boolean);
 
-  const vehicles = await Vehicle.find({
-    _id: { $in: activeVehicleIds },
-    owner: { $in: partnerIds },
-    status: "approved",
-    isActive: true,
-    type: vehicleType,
-  })
-    .select("_id owner type")
-    .lean();
+  let vehicles: Array<{ _id: unknown; owner: unknown; type: string }> = [];
+
+  try {
+    const redis = getRedisClient();
+    const pipeline = redis.pipeline();
+    activeVehicleIds.forEach((id) => pipeline.get(`vehicle:cache:${String(id)}`));
+    const results = await pipeline.exec();
+    
+    if (results) {
+      const cachedVehicles = results
+        .map((r) => r[1])
+        .filter(Boolean)
+        .map((str) => JSON.parse(str as string));
+        
+      const missingIds = activeVehicleIds.filter((id, i) => !results[i][1]);
+      
+      let dbVehicles: any[] = [];
+      if (missingIds.length > 0) {
+        dbVehicles = await Vehicle.find({
+          _id: { $in: missingIds },
+          owner: { $in: partnerIds },
+          status: "approved",
+          isActive: true,
+          type: vehicleType,
+        })
+          .select("_id owner type baseFare perKmRate status isActive")
+          .lean();
+          
+        const setPipeline = redis.pipeline();
+        dbVehicles.forEach((v) => {
+          setPipeline.set(`vehicle:cache:${String(v._id)}`, JSON.stringify(v), "EX", 3600);
+        });
+        await setPipeline.exec().catch(() => {});
+      }
+      
+      vehicles = [...cachedVehicles, ...dbVehicles].filter((v) => String(v.type) === vehicleType);
+    }
+  } catch (err) {
+    console.warn("[findPartner] Vehicle Redis cache failed, falling back to DB:", err);
+    vehicles = await Vehicle.find({
+      _id: { $in: activeVehicleIds },
+      owner: { $in: partnerIds },
+      status: "approved",
+      isActive: true,
+      type: vehicleType,
+    })
+      .select("_id owner type")
+      .lean();
+  }
 
   const vehicleByOwner = new Map<string, (typeof vehicles)[0]>();
   for (const v of vehicles) {

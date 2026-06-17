@@ -23,14 +23,6 @@ export async function POST(req: Request) {
   if (!session?.user?.id)
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-  const currentUser = await User.findById(session.user.id).select("isPartnerBlocked");
-  if (currentUser?.isPartnerBlocked) {
-    return NextResponse.json(
-      { message: "Your account is suspended. You cannot book rides." },
-      { status: 403 }
-    );
-  }
-
   const body = await req.json();
   const validation = bookingCreateSchema.safeParse(body);
   if (!validation.success) {
@@ -48,7 +40,32 @@ export async function POST(req: Request) {
     ? String(rawMobile).replace(/\D/g, "")
     : undefined;
 
-  const quote = await loadValidQuote(quoteId, session.user.id);
+  // ── Parallelize Pre-Checks ──
+  const [currentUser, quote, existing] = await Promise.all([
+    User.findById(session.user.id).select("isPartnerBlocked"),
+    loadValidQuote(quoteId, session.user.id),
+    Booking.findOne({
+      user: session.user.id,
+      status: {
+        $in: [
+          "requested",
+          "awaiting_payment",
+          "confirmed",
+          "arriving",
+          "arrived",
+          "started",
+        ],
+      },
+    }),
+  ]);
+
+  if (currentUser?.isPartnerBlocked) {
+    return NextResponse.json(
+      { message: "Your account is suspended. You cannot book rides." },
+      { status: 403 }
+    );
+  }
+
   if (!quote) {
     return NextResponse.json(
       { message: "Quote expired or invalid. Please get a new fare." },
@@ -56,25 +73,11 @@ export async function POST(req: Request) {
     );
   }
 
-  const snapshot = quoteToSnapshot(quote);
-
-  const existing = await Booking.findOne({
-    user: session.user.id,
-    status: {
-      $in: [
-        "requested",
-        "awaiting_payment",
-        "confirmed",
-        "arriving",
-        "arrived",
-        "started",
-      ],
-    },
-  });
-
   if (existing) {
     return NextResponse.json({ success: true, booking: existing });
   }
+
+  const snapshot = quoteToSnapshot(quote);
 
   const pickupCoordinates = snapshot.pickupLocation.coordinates as LngLat;
 
