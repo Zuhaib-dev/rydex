@@ -817,9 +817,9 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
 
         <Map
           initialViewState={{
-            longitude: 72.8347, // South Mumbai / Gateway of India
-            latitude: 18.9220,
-            zoom: 16.5,
+            longitude: 74.7973, // Srinagar
+            latitude: 34.0837,
+            zoom: 14.5,
             pitch: 65,
             bearing: -17.6,
           }}
