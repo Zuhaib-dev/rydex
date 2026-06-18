@@ -14,6 +14,9 @@ import {
   XCircle,
   AlertCircle,
   CheckCircle2,
+  Heart,
+  Sparkles,
+  Download,
 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -746,6 +749,11 @@ function CompletedScreen({
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [tipAmount, setTipAmount] = useState<number>(0);
+  const [customTipInput, setCustomTipInput] = useState<string>("");
+  const [isCustomTip, setIsCustomTip] = useState(false);
+
+  const finalTotal = booking.fare + tipAmount;
 
   const DRIVER_PRAISE_TAGS = ["Clean Ride", "Safe Driver", "Punctual", "Polite", "Helpful", "Great Navigation"];
 
@@ -768,6 +776,7 @@ function CompletedScreen({
           rating: selectedRating,
           praiseTags: selectedTags,
           comment,
+          tipAmount,
         }),
       });
       const data = await res.json();
@@ -787,9 +796,9 @@ function CompletedScreen({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="h-screen w-full bg-zinc-950 flex flex-col overflow-y-auto"
+      className="h-screen w-full bg-zinc-950 flex flex-col overflow-y-auto print:bg-white print:text-black"
     >
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 print:hidden">
         {/* Icon */}
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
@@ -825,10 +834,21 @@ function CompletedScreen({
             <p className="text-zinc-500 text-[10px] uppercase tracking-widest font-semibold mb-1 text-center">
               Total Fare
             </p>
-            <p className="text-white text-5xl font-black flex items-center justify-center gap-1 mb-4">
-              <IndianRupee size={30} strokeWidth={2.5} /> {booking.fare}
+            <p className="text-white text-5xl font-black flex items-center justify-center gap-1 mb-2 transition-all">
+              <IndianRupee size={30} strokeWidth={2.5} /> {finalTotal}
             </p>
-            <div className="flex items-center justify-between text-xs border-t border-zinc-800 pt-3">
+            <AnimatePresence>
+              {tipAmount > 0 && (
+                <motion.p 
+                  initial={{ opacity: 0, height: 0 }} 
+                  animate={{ opacity: 1, height: 'auto' }} 
+                  className="text-emerald-400 text-xs font-bold text-center mb-4 flex items-center justify-center gap-1"
+                >
+                  <Sparkles size={12} className="fill-current" /> Includes ₹{tipAmount} tip
+                </motion.p>
+              )}
+            </AnimatePresence>
+            <div className="flex items-center justify-between text-xs border-t border-zinc-800 pt-3 mt-2">
               <span className="text-zinc-500">Payment</span>
               <span
                 className={`px-2.5 py-1 rounded-full font-semibold text-[11px] ${PAYMENT_LABEL[booking.paymentStatus]?.cls ?? "bg-zinc-700 text-zinc-300"}`}
@@ -838,6 +858,57 @@ function CompletedScreen({
               </span>
             </div>
           </div>
+
+          {/* Interactive Tipping UI */}
+          {!submitted && (
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 mb-4">
+              <p className="text-zinc-300 text-xs font-bold mb-3 flex items-center gap-2">
+                <Heart size={14} className="text-pink-500 fill-pink-500/20" /> Show your support (100% goes to driver)
+              </p>
+              <div className="flex gap-2 mb-3">
+                {[10, 20, 50].map((amt) => (
+                  <button
+                    key={amt}
+                    onClick={() => { setTipAmount(amt); setIsCustomTip(false); }}
+                    className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-colors border ${
+                      tipAmount === amt && !isCustomTip
+                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]"
+                        : "bg-zinc-800 border-transparent text-zinc-400 hover:text-white"
+                    }`}
+                  >
+                    ₹{amt}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setIsCustomTip(true)}
+                  className={`flex-1 py-2.5 rounded-xl font-bold text-sm transition-colors border ${
+                    isCustomTip
+                      ? "bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.1)]"
+                      : "bg-zinc-800 border-transparent text-zinc-400 hover:text-white"
+                  }`}
+                >
+                  Custom
+                </button>
+              </div>
+              
+              {isCustomTip && (
+                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-bold">₹</div>
+                  <input
+                    type="number"
+                    value={customTipInput}
+                    onChange={(e) => {
+                      setCustomTipInput(e.target.value);
+                      const parsed = parseInt(e.target.value) || 0;
+                      setTipAmount(parsed);
+                    }}
+                    placeholder="Enter custom tip amount..."
+                    className="w-full bg-zinc-950 border border-emerald-500/50 rounded-xl py-2.5 pl-8 pr-4 text-sm text-white font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all shadow-inner"
+                  />
+                </motion.div>
+              )}
+            </div>
+          )}
 
           {/* Driver card */}
           {booking.driver && (
@@ -1010,6 +1081,30 @@ function CompletedScreen({
                   </p>
                 </motion.div>
               )}
+
+              {submitted && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="flex flex-col items-center justify-center gap-1.5 py-4"
+                >
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center mb-1">
+                    <CheckCircle2 size={20} className="text-emerald-400" />
+                  </div>
+                  <p className="text-emerald-400 text-sm font-bold">
+                    Feedback Submitted!
+                  </p>
+                  <p className="text-zinc-500 text-[11px] text-center max-w-xs mb-4">
+                    Your rating and selected tags have been applied to the driver's profile.
+                  </p>
+                  <button
+                    onClick={() => window.print()}
+                    className="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white py-3 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 mb-2 shadow-lg"
+                  >
+                    <Download size={16} /> Download PDF Receipt
+                  </button>
+                </motion.div>
+              )}
             </AnimatePresence>
           </div>
 
@@ -1021,6 +1116,67 @@ function CompletedScreen({
           </button>
         </motion.div>
       </div>
+
+      {/* PRINT-ONLY RECEIPT TEMPLATE */}
+      {submitted && (
+        <div className="hidden print:flex flex-col p-8 text-black bg-white w-full max-w-2xl mx-auto h-screen font-sans">
+          <div className="flex items-center justify-between border-b-2 border-black pb-6 mb-6">
+            <div>
+              <h1 className="text-4xl font-black tracking-tighter">RYDEX</h1>
+              <p className="text-xs text-gray-500 font-mono mt-1">RECEIPT #{booking._id?.toString().slice(-8).toUpperCase()}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold text-gray-800">{new Date((booking as any).createdAt || Date.now()).toLocaleDateString()}</p>
+              <p className="text-xs text-gray-500">{new Date((booking as any).createdAt || Date.now()).toLocaleTimeString()}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-8 mb-8">
+            <div className="border border-gray-200 p-4 rounded-xl">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Driver</p>
+              <p className="text-lg font-black">{booking.driver?.name}</p>
+              <p className="text-sm text-gray-600 font-mono">{booking.vehicle?.number}</p>
+            </div>
+            <div className="border border-gray-200 p-4 rounded-xl">
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Payment</p>
+              <p className="text-lg font-black">{PAYMENT_LABEL[booking.paymentStatus]?.label ?? booking.paymentStatus}</p>
+            </div>
+          </div>
+
+          <div className="mb-8">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Trip Route</p>
+            <div className="flex flex-col gap-4 border-l-2 border-gray-200 ml-2 pl-4 py-1">
+              <div className="relative">
+                <div className="absolute -left-[23px] top-1.5 w-3 h-3 bg-gray-400 rounded-full border-2 border-white" />
+                <p className="text-sm font-bold text-gray-800">{booking.pickupAddress}</p>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[23px] top-1.5 w-3 h-3 bg-black rounded-sm border-2 border-white" />
+                <p className="text-sm font-bold text-gray-800">{booking.dropAddress}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-auto border-t-2 border-black pt-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-600">Base Fare</span>
+              <span className="font-bold">₹{booking.fare}</span>
+            </div>
+            {tipAmount > 0 && (
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">Driver Tip</span>
+                <span className="font-bold">₹{tipAmount}</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
+              <span className="text-2xl font-black">Total Paid</span>
+              <span className="text-3xl font-black">₹{finalTotal}</span>
+            </div>
+          </div>
+          
+          <p className="text-center text-xs text-gray-400 mt-12 font-bold tracking-widest uppercase">Thank you for riding with Rydex</p>
+        </div>
+      )}
     </motion.div>
   );
 }
