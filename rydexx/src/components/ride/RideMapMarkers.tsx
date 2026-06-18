@@ -46,26 +46,41 @@ export function DriverMarker({
       <motion.div
         initial={{ scale: 0.85, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="absolute -top-11 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-zinc-200/80 bg-white/95 px-3 py-1 text-[10px] font-bold text-zinc-900 shadow-lg backdrop-blur-md"
+        className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-2xl border border-white/10 bg-zinc-950/90 px-3.5 py-1.5 text-[11px] font-medium tracking-wide text-white shadow-[0_0_20px_rgba(16,185,129,0.15)] backdrop-blur-xl z-50"
       >
-        <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-emerald-500 align-middle" />
-        {label} · {etaLabel}
+        <span className="mr-2 inline-block h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)] animate-pulse align-middle" />
+        {label} <span className="text-zinc-600 mx-1.5">|</span> <span className="text-emerald-400 font-bold">{etaLabel}</span>
       </motion.div>
 
       <div
-        className="relative transition-transform duration-500 ease-out"
-        style={{ transform: `rotate(${bearing}deg)` }}
+        className="relative"
+        style={{ 
+          transform: `rotate(${bearing}deg)`,
+          transition: "transform 2s cubic-bezier(0.2, 0.8, 0.2, 1)"
+        }}
       >
-        <div className="absolute inset-0 rounded-full bg-emerald-400/20 blur-md scale-150" />
-        <svg width="52" height="52" viewBox="0 0 100 100" className="drop-shadow-xl">
-          <ellipse cx="50" cy="54" rx="22" ry="28" fill="rgba(0,0,0,0.25)" />
-          <path
-            d="M50 12 L62 78 L50 68 L38 78 Z"
-            fill="#0a0a0a"
-            stroke="#9eff6b"
-            strokeWidth="3"
-          />
-          <circle cx="50" cy="48" r="10" fill="#9eff6b" />
+        {/* Glow rings */}
+        <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-xl scale-[2.5]" />
+        <div className="absolute inset-0 rounded-full border border-emerald-500/30 scale-[1.7] animate-ping" style={{ animationDuration: '3s' }} />
+        
+        {/* Sleek Vehicle SVG */}
+        <svg width="48" height="48" viewBox="0 0 100 100" className="drop-shadow-[0_0_15px_rgba(16,185,129,0.5)] relative z-10">
+          {/* Shadow */}
+          <ellipse cx="50" cy="55" rx="18" ry="30" fill="rgba(0,0,0,0.4)" filter="blur(4px)" />
+          {/* Car Body Base */}
+          <rect x="36" y="20" width="28" height="60" rx="10" fill="#09090b" stroke="#10b981" strokeWidth="1.5" />
+          {/* Windshield */}
+          <path d="M40 40 L60 40 L56 30 L44 30 Z" fill="#18181b" stroke="#059669" strokeWidth="1" />
+          {/* Rear Window */}
+          <path d="M40 60 L60 60 L56 70 L44 70 Z" fill="#18181b" />
+          {/* Headlights */}
+          <circle cx="41" cy="23" r="2.5" fill="#34d399" filter="drop-shadow(0 0 5px #34d399)" />
+          <circle cx="59" cy="23" r="2.5" fill="#34d399" filter="drop-shadow(0 0 5px #34d399)" />
+          {/* Taillights */}
+          <rect x="39" y="76" width="6" height="2" rx="1" fill="#ef4444" />
+          <rect x="55" y="76" width="6" height="2" rx="1" fill="#ef4444" />
+          {/* Roof */}
+          <rect x="42" y="42" width="16" height="16" rx="4" fill="#18181b" />
         </svg>
       </div>
     </div>

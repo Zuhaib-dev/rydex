@@ -43,6 +43,7 @@ type Props = {
   pickupLocation: LatLng;
   dropLocation: LatLng;
   status: RideMapPhase;
+  smoothDuration?: number;
   onStats?: (data: {
     distanceToPickup: number;
     durationToPickup: number;
@@ -126,6 +127,7 @@ export default function LiveRideMap({
   pickupLocation,
   dropLocation,
   status,
+  smoothDuration = 1000,
   onStats,
   onPositionUpdate,
 }: Props) {
@@ -138,7 +140,7 @@ export default function LiveRideMap({
   const [bearing, setBearing] = useState(0);
   const [showSimControls, setShowSimControls] = useState(false);
 
-  const smoothDriver = useSmoothCoords(driverLocation, 1000);
+  const smoothDriver = useSmoothCoords(driverLocation, smoothDuration);
   const prevDriverRef = useRef<LatLng | null>(null);
   const routeAbortRef = useRef<AbortController | null>(null);
   const lastRouteFetchRef = useRef(0);

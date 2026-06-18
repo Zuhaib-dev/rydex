@@ -626,6 +626,7 @@ export default function DriverRidePage() {
           pickupLocation={pickupPos}
           dropLocation={dropPos}
           status={mapStatus}
+          smoothDuration={1000}
           onStats={({
             distanceToPickup,
             durationToPickup,

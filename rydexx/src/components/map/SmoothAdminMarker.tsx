@@ -49,7 +49,7 @@ export default function SmoothAdminMarker({
       <div 
         style={{ 
           transform: `rotate(${bearing}deg)`, 
-          transition: "transform 0.8s ease-out" 
+          transition: "transform 2s cubic-bezier(0.2, 0.8, 0.2, 1)" 
         }}
       >
         {/* Anti-rotate the SOS/status indicators if they exist inside children, or just let them rotate.
