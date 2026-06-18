@@ -95,7 +95,24 @@ export function useNavigationSimulator(
   const [isActive, setIsActive] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(15); // Default to 15x speed for snappy demo
-  const [voiceMuted, setVoiceMuted] = useState<boolean>(true); // Default to muted
+  const [voiceMuted, setVoiceMutedState] = useState<boolean>(true); // Default to muted
+
+  // Initialize from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("rydex_nav_muted");
+      if (saved !== null) {
+        setVoiceMutedState(saved === "true");
+      }
+    }
+  }, []);
+
+  const setVoiceMuted = useCallback((muted: boolean) => {
+    setVoiceMutedState(muted);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("rydex_nav_muted", String(muted));
+    }
+  }, []);
 
   const animationRef = useRef<number | null>(null);
   const currentDistanceRef = useRef<number>(0);

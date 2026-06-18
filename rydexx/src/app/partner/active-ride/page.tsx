@@ -292,7 +292,7 @@ export default function DriverRidePage() {
   }, []);
 
   /* ── GPS — only for active rides, uses shared location to avoid throttling ── */
-  const { position: rawPosition } = useSharedLocation();
+  const { position: rawPosition, speedKmh } = useSharedLocation();
 
   useEffect(() => {
     const b = bookingRef.current;
@@ -627,6 +627,7 @@ export default function DriverRidePage() {
           dropLocation={dropPos}
           status={mapStatus}
           smoothDuration={1000}
+          driverSpeedKmh={speedKmh}
           onStats={({
             distanceToPickup,
             durationToPickup,

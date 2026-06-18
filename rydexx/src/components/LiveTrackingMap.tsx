@@ -44,6 +44,7 @@ type Props = {
   dropLocation: LatLng;
   status: RideMapPhase;
   smoothDuration?: number;
+  driverSpeedKmh?: number;
   onStats?: (data: {
     distanceToPickup: number;
     durationToPickup: number;
@@ -128,6 +129,7 @@ export default function LiveRideMap({
   dropLocation,
   status,
   smoothDuration = 1000,
+  driverSpeedKmh,
   onStats,
   onPositionUpdate,
 }: Props) {
@@ -195,6 +197,7 @@ export default function LiveRideMap({
   // Dynamic values that switch between live GPS updates and simulator updates
   const displayPosition = (isSimActive && simPosition) ? [simPosition[1], simPosition[0]] as LatLng : smoothDriver;
   const displayBearing = (isSimActive && simPosition) ? simBearing : bearing;
+  const currentSpeed = isSimActive ? speedKmh : (driverSpeedKmh || 0);
 
   const simCompletedRouteFeature = useMemo(() => {
     if (!simPosition || !activeLegCoords) return null;
@@ -602,6 +605,41 @@ export default function LiveRideMap({
           <Sparkles size={14} className="text-landing-accent animate-pulse" />
           <span>Simulate Ride</span>
         </button>
+      )}
+
+      {/* Speedometer HUD */}
+      {(status === "ongoing" || status === "arriving") && displayPosition && (
+        <div className="absolute bottom-24 right-4 z-40 pointer-events-none flex flex-col items-end gap-2">
+          {/* Mute Toggle outside of Simulator for Real Drivers */}
+          {!showSimControls && (
+            <button
+              onClick={() => setVoiceMuted(!voiceMuted)}
+              className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-colors border backdrop-blur-md ${
+                voiceMuted 
+                  ? "bg-zinc-900/80 border-zinc-700/50 text-zinc-400 hover:text-white" 
+                  : "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+              }`}
+              title={voiceMuted ? "Unmute Navigation" : "Mute Navigation"}
+            >
+              {voiceMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            </button>
+          )}
+
+          <div 
+            className={`flex flex-col items-center justify-center w-16 h-16 rounded-full border-4 shadow-2xl backdrop-blur-xl transition-colors duration-500 ${
+              currentSpeed > 60 
+                ? "bg-red-500/10 border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.3)] text-red-50" 
+                : currentSpeed > 0
+                ? "bg-zinc-950/80 border-emerald-500 text-white shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+                : "bg-zinc-950/80 border-zinc-700 text-zinc-300"
+            }`}
+          >
+            <span className="text-xl font-black leading-none tracking-tighter">
+              {Math.round(currentSpeed)}
+            </span>
+            <span className="text-[9px] font-bold uppercase text-zinc-400 mt-0.5">km/h</span>
+          </div>
+        </div>
       )}
 
       {/* Vignette for depth */}
