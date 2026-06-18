@@ -62,21 +62,26 @@ describe("NextAuth JWT callback throttling", () => {
   });
 
   it("should bypass database query if validation interval has not elapsed", async () => {
-    const jwtCallback = authConfig.callbacks?.jwt;
-    if (!jwtCallback) throw new Error("jwtCallback is not defined");
-    const now = Date.now();
-    const token: any = {
-      id: "user-id-123",
-      email: "john@example.com",
-      role: "user",
-      picture: "http://example.com/image.png",
-      lastChecked: now - 30000, // 30 seconds ago (interval is 60s)
-    };
+    process.env.SESSION_VALIDATION_INTERVAL = "60000";
+    try {
+      const jwtCallback = authConfig.callbacks?.jwt;
+      if (!jwtCallback) throw new Error("jwtCallback is not defined");
+      const now = Date.now();
+      const token: any = {
+        id: "user-id-123",
+        email: "john@example.com",
+        role: "user",
+        picture: "http://example.com/image.png",
+        lastChecked: now - 30000, // 30 seconds ago (interval is 60s)
+      };
 
-    const result: any = await jwtCallback({ token, user: undefined as any });
+      const result: any = await jwtCallback({ token, user: undefined as any });
 
-    expect(result.lastChecked).toBe(now - 30000); // timestamp unchanged
-    expect(User.findOne).not.toHaveBeenCalled();
+      expect(result.lastChecked).toBe(now - 30000); // timestamp unchanged
+      expect(User.findOne).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.SESSION_VALIDATION_INTERVAL;
+    }
   });
 
   it("should query the database and update lastChecked when interval has elapsed", async () => {

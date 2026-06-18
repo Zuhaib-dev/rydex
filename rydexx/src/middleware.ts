@@ -82,12 +82,12 @@ export async function middleware(req: NextRequest) {
     secureCookie: process.env.NODE_ENV === "production",
   });
 
-  if (!token) {
-    // If not logged in and it's an API route, return 401
+  if (!token || token.blocked) {
+    // If not logged in or session is revoked and it's an API route, return 401
     if (pathname.startsWith("/api")) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-    // If not logged in, redirect to home
+    // Redirect to home page where AuthModal can prompt for login
     return NextResponse.redirect(new URL("/", req.url));
   }
 

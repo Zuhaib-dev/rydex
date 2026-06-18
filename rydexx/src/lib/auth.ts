@@ -268,7 +268,7 @@ export const authConfig: NextAuthConfig = {
         const lastChecked = (token.lastChecked as number) || 0;
         const checkInterval = process.env.SESSION_VALIDATION_INTERVAL
           ? parseInt(process.env.SESSION_VALIDATION_INTERVAL, 10)
-          : 5 * 60 * 1000; // Default: revalidate role from DB every 5 minutes
+          : 0; // Default: revalidate on every token check for real-time sign out
 
         if (now - lastChecked > checkInterval) {
           await connectDb();
@@ -312,7 +312,8 @@ export const authConfig: NextAuthConfig = {
     async session({ session, token }) {
       if (token.blocked) {
         (session as any).error = "SessionBlocked";
-        // Do NOT set session.user = null, as it breaks frontend types and causes default avatars to show
+        // Remove user property from session to force 401 Unauthorized in API routes
+        delete (session as any).user;
       } else if (session.user) {
         session.user.id = token.id as string;
         session.user.name = token.name;
