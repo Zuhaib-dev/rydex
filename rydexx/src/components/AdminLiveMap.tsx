@@ -943,6 +943,9 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
                 const isSosRide = sosDriverIds.has(String(driver._id));
                 const isSelected = selectedDriverId === driver._id;
 
+                const strokeColor = isSosRide ? "#ef4444" : isSelected ? "#fbbf24" : isOnRide ? "#3b82f6" : "#10b981";
+                const glowColor = isSosRide ? "rgba(239,68,68,0.5)" : isSelected ? "rgba(251,191,36,0.5)" : isOnRide ? "rgba(59,130,246,0.5)" : "rgba(16,185,129,0.3)";
+
                 return (
                   <SmoothAdminMarker 
                     key={driver._id} 
@@ -964,28 +967,33 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
                         }
                     }}
                   >
-                    <div
-                      className={`relative flex h-10 w-10 items-center justify-center rounded-full border-2 bg-black text-white shadow-lg transition-transform hover:scale-110 cursor-pointer ${
-                        isSosRide
-                          ? "border-red-500 shadow-red-500/60"
-                          : isSelected
-                          ? "border-amber-400 ring-4 ring-amber-400/25"
-                          : isOnRide
-                          ? "border-blue-500 shadow-blue-500/50"
-                          : "border-gray-500"
-                      }`}
-                    >
-                      {isSosRide && (
-                        <span className="absolute -inset-1.5 animate-ping rounded-full bg-red-500 opacity-40" />
+                    <div className="relative group cursor-pointer transition-transform hover:scale-110 flex items-center justify-center">
+                      {/* Glow rings */}
+                      <div className={`absolute inset-0 rounded-full blur-xl scale-[2.5] ${isSosRide ? 'bg-red-500/30 animate-pulse' : isOnRide ? 'bg-blue-500/20' : 'bg-emerald-500/10'}`} />
+                      {(isSosRide || isSelected) && (
+                        <div className={`absolute inset-0 rounded-full border scale-[1.7] animate-ping ${isSosRide ? 'border-red-500/40' : 'border-amber-400/40'}`} style={{ animationDuration: '2s' }} />
                       )}
-                      {isOnRide && !isSosRide && (
-                        <span className="absolute -inset-1 animate-ping rounded-full bg-blue-400 opacity-20" />
-                      )}
-                      {getVehicleIcon(driver.vehicleType)}
+
+                      {/* Sleek Vehicle SVG */}
+                      <svg width="40" height="40" viewBox="0 0 100 100" className="relative z-10" style={{ filter: `drop-shadow(0 0 10px ${glowColor})` }}>
+                        <ellipse cx="50" cy="55" rx="18" ry="30" fill="rgba(0,0,0,0.5)" filter="blur(4px)" />
+                        <rect x="36" y="20" width="28" height="60" rx="10" fill="#09090b" stroke={strokeColor} strokeWidth="2" />
+                        <path d="M40 40 L60 40 L56 30 L44 30 Z" fill="#18181b" stroke={strokeColor} strokeWidth="1" />
+                        <path d="M40 60 L60 60 L56 70 L44 70 Z" fill="#18181b" />
+                        <circle cx="41" cy="23" r="2.5" fill={strokeColor} filter={`drop-shadow(0 0 4px ${strokeColor})`} />
+                        <circle cx="59" cy="23" r="2.5" fill={strokeColor} filter={`drop-shadow(0 0 4px ${strokeColor})`} />
+                        <rect x="39" y="76" width="6" height="2" rx="1" fill="#ef4444" />
+                        <rect x="55" y="76" width="6" height="2" rx="1" fill="#ef4444" />
+                        <rect x="42" y="42" width="16" height="16" rx="4" fill="#18181b" />
+                      </svg>
+
                       {isSosRide && (
-                        <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center leading-none" style={{ transform: 'rotate(0deg)' }}>
-                          SOS
-                        </span>
+                        <div className="absolute -top-3 -right-3 z-50">
+                          <span className="relative flex h-5 w-5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-5 w-5 bg-red-500 items-center justify-center text-[8px] font-black text-white shadow-lg border border-white">SOS</span>
+                          </span>
+                        </div>
                       )}
                     </div>
                   </SmoothAdminMarker>
