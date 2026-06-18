@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Map, { Marker, Source, Layer, useMap } from "react-map-gl/mapbox";
-import type { MapRef } from "react-map-gl/mapbox";
-import "mapbox-gl/dist/mapbox-gl.css";
+import Map, { Marker, Source, Layer, useMap } from "react-map-gl/maplibre";
+import type { MapRef } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import {
   bearingDegrees,
   distanceMeters,
@@ -34,8 +34,7 @@ import {
   Clock,
 } from "lucide-react";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-const MAP_STYLE = "mapbox://styles/mapbox/navigation-night-v1";
+import { getMapProps, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
 
 export type RideMapPhase = "arriving" | "ongoing" | "completed" | "searching";
 
@@ -365,15 +364,14 @@ export default function LiveRideMap({
 
   return (
     <div className="relative h-full w-full bg-[#0c0f14]">
-      {!MAPBOX_TOKEN && (
+      {!OLA_MAPS_API_KEY && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-zinc-950 text-sm text-white/50">
-          Map token missing
+          Ola Maps API Key missing
         </div>
       )}
 
       <Map
         ref={mapRef}
-        mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={{
           longitude: pickupLocation[1],
           latitude: pickupLocation[0],
@@ -382,7 +380,7 @@ export default function LiveRideMap({
           bearing: -20,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle={MAP_STYLE}
+        {...getMapProps()}
         attributionControl={false}
         onLoad={() => setMapLoaded(true)}
       >

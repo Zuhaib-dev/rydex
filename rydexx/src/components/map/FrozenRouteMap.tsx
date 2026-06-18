@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState, useRef, useEffect } from "react";
-import Map, { Marker, Source, Layer, MapRef } from "react-map-gl/mapbox";
-import "mapbox-gl/dist/mapbox-gl.css";
+import Map, { Marker, Source, Layer, MapRef } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { routeToGeoJSON, distanceMeters } from "@/lib/mapboxRouting";
 import { useNavigationSimulator } from "@/hooks/useNavigationSimulator";
 import {
@@ -22,7 +22,7 @@ import {
   Sparkles
 } from "lucide-react";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+import { getMapProps } from "@/lib/mapConfig";
 
 type Props = {
   pickup: [number, number];
@@ -173,7 +173,6 @@ export default function FrozenRouteMap({
     <div className={`relative ${className} bg-[#0c0f14]`}>
       <Map
         ref={mapRef}
-        mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={{
           longitude: centerLng,
           latitude: centerLat,
@@ -182,7 +181,7 @@ export default function FrozenRouteMap({
           bearing: -15,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="mapbox://styles/mapbox/navigation-night-v1"
+        {...getMapProps()}
         interactive={interactive || isActive}
         scrollZoom={interactive || isActive}
         dragPan={interactive || isActive}

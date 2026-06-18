@@ -1,6 +1,8 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
+import { getMapProps, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
+import { sortKashmirResultsFirst } from "@/lib/kashmirBias";
 import { motion, AnimatePresence } from "framer-motion";
 import { Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
@@ -41,7 +43,7 @@ type NearbyVehicle = {
     | string;
 };
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
 
 type MapboxFeature = {
   place_name: string;
@@ -237,45 +239,23 @@ function SearchContent() {
       setDropLng(0);
     }
 
-    if (!query || query.trim().length < 1 || !MAPBOX_TOKEN) {
+    if (!query || query.trim().length < 1 || !OLA_MAPS_API_KEY) {
       setSuggestions([]);
       return;
     }
 
-    const isKashmirLocation = (name: string): boolean => {
-      const n = name.toLowerCase();
-      return (
-        n.includes("kashmir") ||
-        n.includes("srinagar") ||
-        n.includes("budgam") ||
-        n.includes("chadoora") ||
-        n.includes("humhama") ||
-        n.includes("chanapora") ||
-        n.includes("dal lake") ||
-        n.includes("j&k") ||
-        n.includes("jammu")
-      );
-    };
-
     try {
       setSuggestLoading(true);
       const res = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query.trim())}.json?access_token=${MAPBOX_TOKEN}&limit=12&proximity=74.7973,34.0837`
+        `https://api.olamaps.io/places/v1/autocomplete?input=${encodeURIComponent(query.trim())}&api_key=${OLA_MAPS_API_KEY}`
       );
       const data = await res.json();
-      if (data.features) {
-        const list = (data.features as MapboxFeature[]).map((f) => {
-          const [lng, lat] = f.center;
-          return { name: f.place_name, lat, lng };
+      if (data.predictions) {
+        const list: { name: string; lat: number; lng: number }[] = data.predictions.map((f: any) => {
+          return { name: f.description as string, lat: (f.geometry?.location?.lat || 0) as number, lng: (f.geometry?.location?.lng || 0) as number };
         });
 
-        const sorted = list.sort((a, b) => {
-          const aK = isKashmirLocation(a.name);
-          const bK = isKashmirLocation(b.name);
-          if (aK && !bK) return -1;
-          if (!aK && bK) return 1;
-          return 0;
-        }).slice(0, 5);
+        const sorted = sortKashmirResultsFirst(list).slice(0, 5);
 
         setSuggestions(sorted);
       }
@@ -331,14 +311,14 @@ function SearchContent() {
         setPickup("Current Coordinates Location");
         fetchNearbyVehicles(latitude, longitude, selectedType);
 
-        if (MAPBOX_TOKEN) {
+        if (OLA_MAPS_API_KEY) {
           try {
             const res = await fetch(
-              `https://api.mapbox.com/geocoding/v5/mapbox.places/${longitude},${latitude}.json?access_token=${MAPBOX_TOKEN}&limit=1`
+              `https://api.olamaps.io/places/v1/reverse-geocode?latlng=${latitude},${longitude}&api_key=${OLA_MAPS_API_KEY}`
             );
             const data = await res.json();
-            if (data.features?.length) {
-              setPickup(data.features[0].place_name);
+            if (data.results?.length) {
+              setPickup(data.results[0].formatted_address);
             }
           } catch {
             /* ignore */

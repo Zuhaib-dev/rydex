@@ -1,4 +1,4 @@
-import { Marker } from "react-map-gl/mapbox";
+import { Marker } from "react-map-gl/maplibre";
 import { useSmoothCoords } from "@/hooks/useSmoothCoords";
 import { useEffect, useRef, useState } from "react";
 import { bearingDegrees, type LatLng } from "@/lib/mapboxRouting";

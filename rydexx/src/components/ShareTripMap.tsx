@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Map, { Marker, Source, Layer, useMap } from "react-map-gl/mapbox";
-import "mapbox-gl/dist/mapbox-gl.css";
+import Map, { Marker, Source, Layer, useMap } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import {
   fetchDrivingRoute,
   routeToGeoJSON,
@@ -15,8 +15,7 @@ import {
   DriverMarker,
 } from "@/components/ride/RideMapMarkers";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-const MAP_STYLE = "mapbox://styles/mapbox/navigation-night-v1";
+import { getMapProps } from "@/lib/mapConfig";
 
 export type ShareTripMapProps = {
   driverLocation: LatLng | null;
@@ -74,7 +73,6 @@ export default function ShareTripMap({
   return (
     <div className="relative h-full w-full bg-[#0c0f14]">
       <Map
-        mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={{
           longitude: pickupLocation[1],
           latitude: pickupLocation[0],
@@ -82,7 +80,7 @@ export default function ShareTripMap({
           pitch: 48,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle={MAP_STYLE}
+        {...getMapProps()}
       >
         <AutoFollow pos={smoothDriver} />
 

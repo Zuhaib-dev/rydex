@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import Map, { Marker, Source, Layer, useMap } from "react-map-gl/mapbox";
-import "mapbox-gl/dist/mapbox-gl.css";
+import Map, { Marker, Source, Layer, useMap } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Navigation2, Plus, Minus } from "lucide-react";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+import { getMapProps, MAP_PROVIDER, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
+import { sortKashmirResultsFirst } from "@/lib/kashmirBias";
 
 type Props = {
   pickup: string;
@@ -107,50 +108,53 @@ export default function RouteMap({
   const [km,    setKm]    = useState<number | null>(null);
 
   const geocode = async (q: string): Promise<[number, number] | null> => {
-    if (!MAPBOX_TOKEN) return null;
+    if (!OLA_MAPS_API_KEY) return null;
     try {
-      const r = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(q)}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
+      const r = await fetch(`https://api.olamaps.io/places/v1/autocomplete?input=${encodeURIComponent(q)}&api_key=${OLA_MAPS_API_KEY}`);
       const d = await r.json();
-      if (!d?.features?.length) return null;
-      const [lon, lat] = d.features[0].center;
-      return [lat, lon];
+      const predictions: { name: string; lat: number; lon: number }[] = d.predictions.map((p: any) => ({
+        name: p.description as string,
+        lat: p.geometry?.location?.lat as number,
+        lon: p.geometry?.location?.lng as number,
+      })).filter((p: any) => p.lat && p.lon);
+
+      if (!predictions.length) return null;
+      const sorted = sortKashmirResultsFirst(predictions);
+      
+      return [sorted[0].lat, sorted[0].lon];
     } catch {
       return null;
     }
   };
 
   const reverseGeocode = async (lat: number, lon: number): Promise<string> => {
-    if (!MAPBOX_TOKEN) return "";
+    if (!OLA_MAPS_API_KEY) return "";
     try {
-      const r = await fetch(`https://api.mapbox.com/geocoding/v5/mapbox.places/${lon},${lat}.json?access_token=${MAPBOX_TOKEN}&limit=1`);
+      const r = await fetch(`https://api.olamaps.io/places/v1/reverse-geocode?latlng=${lat},${lon}&api_key=${OLA_MAPS_API_KEY}`);
       const d = await r.json();
-      if (!d?.features?.length) return "";
-      return d.features[0].place_name;
+      if (!d?.results?.length) return "";
+      return d.results[0].formatted_address;
     } catch {
       return "";
     }
   };
 
   const loadRoute = async (a: [number, number], b: [number, number]) => {
-    if (!MAPBOX_TOKEN) return;
     try {
-      const r = await fetch(
-        `https://api.mapbox.com/directions/v5/mapbox/driving/${a[1]},${a[0]};${b[1]},${b[0]}?geometries=geojson&access_token=${MAPBOX_TOKEN}`
-      );
+      const r = await fetch(`/api/routing/directions?start=${a[0]},${a[1]}&end=${b[0]},${b[1]}`);
       const d = await r.json();
-      if (!d?.routes?.length) return;
+      if (d.error) return;
       
       setRoute({
         type: "Feature",
         properties: {},
-        geometry: d.routes[0].geometry,
+        geometry: d.geometry,
       });
       
-      const distKm = +((d.routes[0].distance / 1000).toFixed(2));
-      setKm(distKm);
-      onDistance?.(distKm);
+      setKm(d.distanceKm);
+      onDistance?.(d.distanceKm);
     } catch (err) {
-      console.warn("Mapbox Route failed", err);
+      console.warn("Ola Maps Route failed", err);
     }
   };
 
@@ -225,7 +229,6 @@ export default function RouteMap({
 
       {/* ── MAP ── */}
       <Map
-        mapboxAccessToken={MAPBOX_TOKEN}
         initialViewState={{
           longitude: p1 ? p1[1] : 74.7973, // Srinagar coordinates fallback
           latitude: p1 ? p1[0] : 34.0837,
@@ -234,28 +237,9 @@ export default function RouteMap({
           bearing: -20,
         }}
         style={{ width: "100%", height: "100%" }}
-        mapStyle="mapbox://styles/mapbox/streets-v12"
-        terrain={{ source: "mapbox-dem", exaggeration: 1.5 }}
+        {...getMapProps()}
         interactive={true}
       >
-        <Source
-          id="mapbox-dem"
-          type="raster-dem"
-          url="mapbox://mapbox.mapbox-terrain-dem-v1"
-          tileSize={512}
-          maxzoom={14}
-        />
-        
-        {/* Sky for 3D realism */}
-        <Layer
-          id="sky"
-          type="sky"
-          paint={{
-            "sky-type": "atmosphere",
-            "sky-atmosphere-sun": [0.0, 90.0],
-            "sky-atmosphere-sun-intensity": 15
-          }}
-        />
 
         {p1 && !p2 && <RecenterMap p1={p1} />}
         {p1 && p2 && <FitBounds p1={p1} p2={p2} />}

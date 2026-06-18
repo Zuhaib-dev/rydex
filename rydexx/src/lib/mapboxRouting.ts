@@ -60,25 +60,24 @@ export async function fetchDrivingRoute(
       const endLng = end[1];
 
       const kashmirAdjusted = isInKashmir(startLat, startLng) || isInKashmir(endLat, endLng);
-      
+      const MAP_PROVIDER = process.env.NEXT_PUBLIC_ACTIVE_MAP_PROVIDER || "ola";
+      const OLA_API_KEY = process.env.NEXT_PUBLIC_OLA_MAPS_API_KEY;
       const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
-      const ORS_TOKEN = process.env.NEXT_PUBLIC_OPENROUTE_TOKEN;
-      const USE_ORS = process.env.NEXT_PUBLIC_USE_OPENROUTE === "true";
 
-      // 1. Try OpenRouteService if enabled
-      if (USE_ORS && ORS_TOKEN) {
-        const url = `https://api.openrouteservice.org/v2/directions/driving-car?api_key=${ORS_TOKEN}&start=${startLng},${startLat}&end=${endLng},${endLat}`;
+      // Try Mapbox if selected
+      if (MAP_PROVIDER === "mapbox" && MAPBOX_TOKEN) {
+        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
         const res = await fetch(url, { signal: options?.signal });
         if (res.ok) {
           const data = await res.json();
-          const feature = data?.features?.[0];
-          if (feature) {
-            const rawDuration = feature.properties.summary.duration as number;
-            const distanceMeters = feature.properties.summary.distance as number;
+          if (data?.routes?.length) {
+            const route = data.routes[0];
+            const rawDuration = route.duration;
+            const distanceMeters = route.distance;
             const adjustedDuration = kashmirAdjusted ? rawDuration * KASHMIR_DURATION_FACTOR : rawDuration;
 
             return {
-              geometry: feature.geometry,
+              geometry: route.geometry,
               distanceMeters,
               durationSeconds: adjustedDuration,
               durationMinutes: adjustedDuration / 60,
@@ -89,30 +88,32 @@ export async function fetchDrivingRoute(
         }
       }
 
-      // 2. Fall back to Mapbox
-      if (MAPBOX_TOKEN) {
-        const coordStr = `${startLng},${startLat};${endLng},${endLat}`;
-        const params = new URLSearchParams({
-          geometries: "geojson",
-          overview: "full",
-          steps: "false",
-          access_token: MAPBOX_TOKEN,
-        });
-        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${coordStr}?${params}`;
-        const res = await fetch(url, { signal: options?.signal });
+      // Try Ola Maps
+      if (OLA_API_KEY) {
+        const url = `https://api.olamaps.io/routing/v1/directions?origin=${startLat},${startLng}&destination=${endLat},${endLng}&api_key=${OLA_API_KEY}`;
+        const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, signal: options?.signal });
+        
         if (res.ok) {
           const data = await res.json();
           if (data?.routes?.length) {
             const route = data.routes[0];
-            const rawDuration = route.duration as number;
+            const leg = route.legs?.[0];
+            const rawDuration = leg?.duration || 0;
+            const distanceMeters = leg?.distance || 0;
             const adjustedDuration = kashmirAdjusted ? rawDuration * KASHMIR_DURATION_FACTOR : rawDuration;
 
+            const polyline = require("@mapbox/polyline");
+            const coords = polyline.decode(route.overview_polyline).map((c: number[]) => [c[1], c[0]]);
+
             return {
-              geometry: route.geometry,
-              distanceMeters: route.distance,
+              geometry: {
+                type: "LineString",
+                coordinates: coords
+              },
+              distanceMeters,
               durationSeconds: adjustedDuration,
               durationMinutes: adjustedDuration / 60,
-              distanceKm: route.distance / 1000,
+              distanceKm: distanceMeters / 1000,
               kashmirAdjusted,
             };
           }

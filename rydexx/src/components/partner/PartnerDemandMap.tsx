@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useRef, useMemo } from "react";
-import Map, { Marker, Source, Layer } from "react-map-gl/mapbox";
-import "mapbox-gl/dist/mapbox-gl.css";
+import Map, { Marker, Source, Layer } from "react-map-gl/maplibre";
+import "maplibre-gl/dist/maplibre-gl.css";
 import useSWR from "swr";
 import axios from "axios";
 import { useSession } from "next-auth/react";
@@ -12,7 +12,7 @@ import { Zap, Compass, MapPin, CheckCircle, Navigation, Play, RefreshCw, X } fro
 import toast from "react-hot-toast";
 import { useSharedLocation } from "@/hooks/useSharedLocation";
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+import { getMapProps } from "@/lib/mapConfig";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function PartnerDemandMap() {
@@ -242,13 +242,7 @@ export default function PartnerDemandMap() {
     void refreshDemand();
   };
 
-  if (!MAPBOX_TOKEN) {
-    return (
-      <div className="bg-red-50 text-red-700 p-6 rounded-2xl border border-red-200 text-sm font-semibold">
-        Mapbox credentials are not configured in environment variables.
-      </div>
-    );
-  }
+  // Handled universally by getMapProps and MapLibre warnings now
 
   // Calculate current dynamic message
   const displayDistance = useMemo(() => {
@@ -274,8 +268,7 @@ export default function PartnerDemandMap() {
           pitch: 30,
         }}
         onLoad={() => setMapLoaded(true)}
-        mapboxAccessToken={MAPBOX_TOKEN}
-        mapStyle="mapbox://styles/mapbox/dark-v11"
+        {...getMapProps()}
         style={{ width: "100%", height: "100%" }}
       >
         {mapLoaded && (

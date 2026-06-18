@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
-import Map, { Marker, Source, Layer } from "react-map-gl/mapbox";
-import type { Map as MapboxMap } from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+import Map, { Marker, Source, Layer } from "react-map-gl/maplibre";
+import type { Map as MapLibreMap } from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 import useSWR from "swr";
 import { useAdminRealtimeRefresh } from "@/hooks/useAdminRealtime";
 import { getSocket } from "@/lib/socket";
+import { mapboxDrawTheme } from "@/lib/mapboxDrawTheme";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import { motion, AnimatePresence } from "motion/react";
 import { 
@@ -19,8 +20,7 @@ import {
 import axios from "axios";
 import toast from "react-hot-toast";
 import SmoothAdminMarker from "@/components/map/SmoothAdminMarker";
-
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+import { getMapProps, MAP_PROVIDER, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 interface Driver {
@@ -109,7 +109,7 @@ function getBezierCurveCoordinates(start: [number, number], end: [number, number
 
 export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: boolean }) {
   const [mapLoaded, setMapLoaded] = useState(false);
-  const mapRef = useRef<MapboxMap | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
   const drawRef = useRef<MapboxDraw | null>(null);
   const [sosBlink, setSosBlink] = useState(false);
 
@@ -253,7 +253,7 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
     return () => clearInterval(interval);
   }, [hasSos]);
 
-  const handleMapLoad = useCallback((e: { target: MapboxMap }) => {
+  const handleMapLoad = useCallback((e: { target: any }) => {
     setMapLoaded(true);
     mapRef.current = e.target;
 
@@ -261,6 +261,7 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
       displayControlsDefault: false,
       controls: { polygon: true, trash: true },
       defaultMode: "draw_polygon",
+      styles: mapboxDrawTheme,
     });
 
     e.target.addControl(draw, "top-right");
@@ -490,7 +491,7 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
     return { speed, battery };
   }, [selectedDriverId, selectedDriverRide]);
 
-  if (!MAPBOX_TOKEN) return <div>Mapbox token missing</div>;
+  if (!OLA_MAPS_API_KEY) return <div>Ola Maps API Key missing</div>;
 
   return (
     <div className={`flex w-full overflow-hidden relative text-black bg-gray-100 ${
@@ -822,31 +823,11 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
             pitch: 65,
             bearing: -17.6,
           }}
-          mapStyle={mapStyle}
-          mapboxAccessToken={MAPBOX_TOKEN}
+          {...getMapProps()}
           onLoad={handleMapLoad}
-          terrain={{ source: "mapbox-dem", exaggeration: 1.5 }}
         >
           {mapLoaded && (
             <>
-              {/* 3D Terrain & Atmosphere */}
-              <Source
-                id="mapbox-dem"
-                type="raster-dem"
-                url="mapbox://mapbox.mapbox-terrain-dem-v1"
-                tileSize={512}
-                maxzoom={14}
-              />
-              <Layer
-                id="sky"
-                type="sky"
-                paint={{
-                  "sky-type": "atmosphere",
-                  "sky-atmosphere-sun": [0.0, 0.0],
-                  "sky-atmosphere-sun-intensity": 15,
-                }}
-              />
-
               {/* 3D Buildings Layer (Control Center Hologram Style) */}
               <Layer
                 id="3d-buildings"

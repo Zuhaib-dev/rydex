@@ -3,14 +3,15 @@
 import { useMemo, useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { getMapProps, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
+import { sortKashmirResultsFirst } from "@/lib/kashmirBias";
 import dynamic from "next/dynamic";
 import {
   ArrowLeft, ArrowRight, MapPin, Navigation,
   Bike, Car, Truck, LocateFixed, Phone,
   Calendar, User, FileText, Info, Compass, Clock
 } from "lucide-react";
-import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder';
-import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css';
+
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
 import WeatherWidget from "@/components/WeatherWidget";
@@ -52,7 +53,7 @@ const VEHICLES = [
   { id: "truck",   label: "Truck",   Icon: Truck, desc: "Heavy transport",    capacity: "2 tons" },
 ];
 
-const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+
 
 const stepVariants = {
   hidden: { opacity: 0, y: 16 },
@@ -117,8 +118,6 @@ export default function BookPage() {
   // Geocoder Refs
   const pickupContainerRef = useRef<HTMLDivElement>(null);
   const dropContainerRef = useRef<HTMLDivElement>(null);
-  const pickupGeocoderRef = useRef<MapboxGeocoder | null>(null);
-  const dropGeocoderRef = useRef<MapboxGeocoder | null>(null);
 
   // Status & Validation Error states
   const [locating, setLocating] = useState(false);
@@ -167,48 +166,43 @@ export default function BookPage() {
       return;
     }
 
-    if (!MAPBOX_TOKEN) {
-      setSearchError("Mapbox token is missing.");
+    if (!OLA_MAPS_API_KEY) {
+      setSearchError("Ola Maps token is missing.");
       return;
     }
 
     try {
       setSearchError(null);
-      const url = new URL(`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query.trim())}.json`);
-      url.searchParams.append("access_token", MAPBOX_TOKEN);
-      url.searchParams.append("country", "in"); // Restrict to India
-      url.searchParams.append("bbox", "73.5,32.2,80.3,35.5"); // J&K approximate bounding box
-      url.searchParams.append("proximity", "74.7973,34.0837"); // Srinagar center
-      url.searchParams.append("types", "address,poi,place,locality,neighborhood");
-      url.searchParams.append("limit", "5");
+      const url = new URL(`https://api.olamaps.io/places/v1/autocomplete`);
+      url.searchParams.append("input", query.trim());
+      url.searchParams.append("api_key", OLA_MAPS_API_KEY);
 
       const res = await fetch(url.toString(), {
         headers: { 'Accept': 'application/json' },
       });
 
       if (!res.ok) {
-        throw new Error(`Mapbox API error: ${res.status}`);
+        throw new Error(`Ola Maps API error: ${res.status}`);
       }
 
-      const data: MapboxGeocodingResponse = await res.json();
+      const data = await res.json();
       
-      if (!data.features || data.features.length === 0) {
+      if (!data.predictions || data.predictions.length === 0) {
         setResults([]);
         setSearchError("No results found in operational area.");
         return;
       }
 
-      const results: LocationData[] = data.features.map((f) => {
-        const [lng, lat] = f.center;
+      const results: LocationData[] = data.predictions.map((f: any) => {
         return {
-          id: f.id,
-          address: f.place_name,
-          lat,
-          lng,
+          id: f.place_id,
+          address: f.description,
+          lat: f.geometry?.location?.lat || 0,
+          lng: f.geometry?.location?.lng || 0,
         };
       });
 
-      setResults(results);
+      setResults(sortKashmirResultsFirst(results));
     } catch (error) {
       console.error("Address search failed:", error);
       setSearchError("Network error. Could not fetch suggestions.");
@@ -285,13 +279,13 @@ export default function BookPage() {
     navigator.geolocation.getCurrentPosition(
       async ({ coords }) => {
         try {
-          if (MAPBOX_TOKEN) {
+          if (OLA_MAPS_API_KEY) {
             const res = await fetch(
-              `https://api.mapbox.com/geocoding/v5/mapbox.places/${coords.longitude},${coords.latitude}.json?access_token=${MAPBOX_TOKEN}&limit=1`
+              `https://api.olamaps.io/places/v1/reverse-geocode?latlng=${coords.latitude},${coords.longitude}&api_key=${OLA_MAPS_API_KEY}`
             );
             const data = await res.json();
-            if (data?.features?.length) {
-              const placeName = data.features[0].place_name;
+            if (data?.results?.length) {
+              const placeName = data.results[0].formatted_address;
               setPickup(placeName);
               setPickupLat(coords.latitude);
               setPickupLng(coords.longitude);
