@@ -25,10 +25,17 @@ messaging.onBackgroundMessage((payload) => {
     payload
   );
   
-  // Customize notification here
-  const notificationTitle = payload.notification?.title || "New Message";
+  // If the payload already has a notification object, the browser will automatically
+  // display it. Do not show another one to prevent duplicates!
+  if (payload.notification) {
+    console.log("[firebase-messaging-sw.js] Browser will display this notification automatically. Skipping manual display.");
+    return;
+  }
+
+  // Customize notification here (for data-only messages)
+  const notificationTitle = payload.data?.title || "New Message";
   const notificationOptions = {
-    body: payload.notification?.body || "You have a new update",
+    body: payload.data?.body || payload.data?.message || "You have a new update",
     icon: "/icon-192x192.png", // Use the app's icon
     badge: "/icon-96x96.png",
     data: payload.data || {}, // Optional data payload

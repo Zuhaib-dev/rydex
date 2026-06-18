@@ -231,8 +231,15 @@ export async function handleEmitPayload(payload: {
       io.in(`user-${userId}`).disconnectSockets(true);
     }
 
-    // Send Push Notification asynchronously
-    if (event === "new-booking" || event === "booking-updated" || event === "new-notification") {
+    // Send Push Notification asynchronously (filter out spammy/noisy updates)
+    const shouldSendPush =
+      event === "new-booking" ||
+      event === "new-notification" ||
+      (event === "booking-updated" &&
+        data?.status &&
+        ["awaiting_payment", "confirmed", "arrived", "completed", "cancelled", "rejected"].includes(String(data.status)));
+
+    if (shouldSendPush) {
       // Fire and forget to avoid blocking the HTTP response
       Promise.resolve().then(async () => {
         try {

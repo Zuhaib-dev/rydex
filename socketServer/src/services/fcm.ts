@@ -62,6 +62,12 @@ export async function sendPushNotification(
         body,
       },
       data: data || {},
+      webpush: {
+        notification: {
+          icon: "/icon-192x192.png",
+          badge: "/icon-96x96.png",
+        },
+      },
       tokens: uniqueTokens,
     };
 
