@@ -3,7 +3,7 @@ import connectDb from "@/lib/db";
 import User from "@/models/user.model";
 import { auth } from "@/lib/auth";
 
-// Add an FCM token to the user's fcmTokens array
+// Add an FCM token to the user's active session and fcmTokens array
 export async function POST(req: Request) {
   try {
     await connectDb();
@@ -17,8 +17,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: "Invalid token" }, { status: 400 });
     }
 
-    await User.findByIdAndUpdate(
-      session.user.id,
+    const sessionId = (session.user as any).sessionId;
+    if (!sessionId) {
+      return NextResponse.json({ message: "No active session ID found" }, { status: 400 });
+    }
+
+    // 1. Clear this fcmToken from all other sessions of all users
+    await User.updateMany(
+      { "activeSessions.fcmToken": token },
+      { $set: { "activeSessions.$[elem].fcmToken": null } },
+      { arrayFilters: [{ "elem.fcmToken": token }] }
+    );
+
+    // 2. Set the token on the current active session
+    await User.updateOne(
+      { _id: session.user.id, "activeSessions.sessionId": sessionId },
+      { $set: { "activeSessions.$.fcmToken": token } }
+    );
+
+    // 3. Sync legacy fcmTokens array: pull from all other users first, then add to current
+    await User.updateMany(
+      { _id: { $ne: session.user.id } },
+      { $pull: { fcmTokens: token } }
+    );
+
+    await User.updateOne(
+      { _id: session.user.id },
       { $addToSet: { fcmTokens: token } }
     );
 
@@ -29,7 +53,7 @@ export async function POST(req: Request) {
   }
 }
 
-// Remove an FCM token from the user's fcmTokens array
+// Remove an FCM token from the user's active session and fcmTokens array
 export async function DELETE(req: Request) {
   try {
     await connectDb();
@@ -43,8 +67,19 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ message: "Invalid token" }, { status: 400 });
     }
 
-    await User.findByIdAndUpdate(
-      session.user.id,
+    const sessionId = (session.user as any).sessionId;
+
+    // 1. Remove fcmToken from the current session
+    if (sessionId) {
+      await User.updateOne(
+        { _id: session.user.id, "activeSessions.sessionId": sessionId },
+        { $set: { "activeSessions.$.fcmToken": null } }
+      );
+    }
+
+    // 2. Also remove from legacy fcmTokens array
+    await User.updateOne(
+      { _id: session.user.id },
       { $pull: { fcmTokens: token } }
     );
 

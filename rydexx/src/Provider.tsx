@@ -10,6 +10,7 @@ function SessionGuard({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status === "authenticated" && session && (session as any).error === "SessionBlocked") {
       toast.error("Your session was suspended or logged in from another device.", { duration: 6000 });
+      localStorage.removeItem("fcm_token");
       signOut({ callbackUrl: "/signin" });
     }
   }, [session, status])

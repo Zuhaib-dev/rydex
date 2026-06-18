@@ -45,6 +45,14 @@ export interface IUser extends Document {
   otpExpiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  activeSessions?: {
+    sessionId: string;
+    userAgent: string;
+    ipAddress: string;
+    lastActive: Date;
+    signedInAt: Date;
+    fcmToken?: string | null;
+  }[];
 }
 
 const UserSchema = new Schema<IUser>(
@@ -196,6 +204,17 @@ const UserSchema = new Schema<IUser>(
     currentChallenge: {
       type: String,
       default: null,
+    },
+    activeSessions: {
+      type: [{
+        sessionId: { type: String, required: true },
+        userAgent: { type: String, required: true },
+        ipAddress: { type: String, required: true },
+        lastActive: { type: Date, required: true },
+        signedInAt: { type: Date, required: true },
+        fcmToken: { type: String, default: null },
+      }],
+      default: [],
     }
   },
   { timestamps: true }

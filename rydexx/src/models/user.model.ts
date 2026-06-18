@@ -59,6 +59,7 @@ export interface IUser extends Document {
     ipAddress: string;
     lastActive: Date;
     signedInAt: Date;
+    fcmToken?: string | null;
   }[];
 }
 const userSchema = new mongoose.Schema<IUser>(
@@ -226,6 +227,7 @@ const userSchema = new mongoose.Schema<IUser>(
         ipAddress: { type: String, required: true },
         lastActive: { type: Date, required: true },
         signedInAt: { type: Date, required: true },
+        fcmToken: { type: String, default: null },
       }],
       default: [],
     }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getToken, onMessage } from "firebase/messaging";
 import { initMessaging, VAPID_KEY } from "@/lib/firebase";
+import { useSession } from "next-auth/react";
 
 /**
  * useFCM — requests notification permission and registers an FCM token.
@@ -13,9 +14,11 @@ import { initMessaging, VAPID_KEY } from "@/lib/firebase";
  */
 export function useFCM({ enabled = true }: { enabled?: boolean } = {}) {
   const [fcmToken, setFcmToken] = useState<string | null>(null);
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!enabled || !userId) return;
 
     let unsubscribe: (() => void) | undefined;
 
@@ -39,6 +42,7 @@ export function useFCM({ enabled = true }: { enabled?: boolean } = {}) {
 
             if (token) {
               setFcmToken(token);
+              localStorage.setItem("fcm_token", token);
               // Send token to backend
               await fetch("/api/user/fcm-token", {
                 method: "POST",
@@ -57,7 +61,10 @@ export function useFCM({ enabled = true }: { enabled?: boolean } = {}) {
                 const notification = new Notification(title, {
                   body,
                   icon: "/icon-192x192.png",
-                  data: payload.data,
+                  data: {
+                    ...payload.data,
+                    isForeground: true, // Flag to indicate this click was handled in the foreground
+                  },
                 });
 
                 notification.onclick = () => {
@@ -80,7 +87,7 @@ export function useFCM({ enabled = true }: { enabled?: boolean } = {}) {
     return () => {
       unsubscribe?.();
     };
-  }, [enabled]);
+  }, [enabled, userId]);
 
   return { fcmToken };
 }

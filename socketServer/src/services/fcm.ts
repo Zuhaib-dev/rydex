@@ -56,6 +56,13 @@ export async function sendPushNotification(
 
   try {
     const uniqueTokens = [...new Set(tokens.filter(Boolean))];
+    
+    let clickLink = data?.url || "/";
+    if (clickLink.startsWith("/")) {
+      const baseUrl = (process.env.NEXT_BASE_URL || "http://localhost:3000").replace(/\/+$/, "");
+      clickLink = `${baseUrl}${clickLink}`;
+    }
+
     const message: admin.messaging.MulticastMessage = {
       notification: {
         title,
@@ -66,6 +73,9 @@ export async function sendPushNotification(
         notification: {
           icon: "/icon-192x192.png",
           badge: "/icon-96x96.png",
+        },
+        fcmOptions: {
+          link: clickLink,
         },
       },
       tokens: uniqueTokens,

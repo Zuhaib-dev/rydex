@@ -243,11 +243,17 @@ export async function handleEmitPayload(payload: {
       // Fire and forget to avoid blocking the HTTP response
       Promise.resolve().then(async () => {
         try {
-          const targetUser = await User.findById(userId).select("fcmTokens").lean();
-          if (targetUser && targetUser.fcmTokens && targetUser.fcmTokens.length > 0) {
+          const targetUser = await User.findById(userId).select("activeSessions").lean();
+          const sessionTokens = (targetUser?.activeSessions || [])
+            .map((s: any) => s.fcmToken)
+            .filter((t: any) => typeof t === "string" && t.trim().length > 0) as string[];
+
+          const uniqueTokens = [...new Set(sessionTokens)];
+
+          if (uniqueTokens.length > 0) {
             const { title, body, url } = buildPushContent(event, data, bookingRoomId);
 
-            const pushResult = await sendPushNotification(targetUser.fcmTokens as string[], title, body, {
+            const pushResult = await sendPushNotification(uniqueTokens, title, body, {
               bookingId: String(bookingRoomId || ""),
               event,
               notificationId: data?._id ? String(data._id) : "",
@@ -257,7 +263,12 @@ export async function handleEmitPayload(payload: {
             if (pushResult.invalidTokens.length > 0) {
               await User.updateOne(
                 { _id: userId },
-                { $pull: { fcmTokens: { $in: pushResult.invalidTokens } } },
+                {
+                  $pull: {
+                    fcmTokens: { $in: pushResult.invalidTokens },
+                    activeSessions: { fcmToken: { $in: pushResult.invalidTokens } }
+                  }
+                },
               );
             }
           }

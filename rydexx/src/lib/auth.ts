@@ -320,6 +320,7 @@ export const authConfig: NextAuthConfig = {
         session.user.email = token.email as string;
         session.user.role = token.role as string;
         session.user.image = token.picture as string | null;
+        (session.user as any).sessionId = token.sessionId as string;
       }
 
       return session;

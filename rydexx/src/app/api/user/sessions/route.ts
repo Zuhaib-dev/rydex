@@ -68,13 +68,27 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ message: "Cannot revoke current session" }, { status: 400 });
     }
 
+    // Find the session to check if it has an FCM token
+    const userObj = await User.findOne(
+      { _id: session.user.id, "activeSessions.sessionId": sessionId },
+      { "activeSessions.$": 1 }
+    ).lean();
+
+    const fcmTokenToRemove = userObj?.activeSessions?.[0]?.fcmToken;
+
+    const updateObj: any = {
+      $pull: {
+        activeSessions: { sessionId }
+      }
+    };
+
+    if (fcmTokenToRemove) {
+      updateObj.$pull.fcmTokens = fcmTokenToRemove;
+    }
+
     await User.updateOne(
       { _id: session.user.id },
-      {
-        $pull: {
-          activeSessions: { sessionId }
-        }
-      }
+      updateObj
     );
 
     return NextResponse.json({ success: true, message: "Session revoked successfully" }, { status: 200 });

@@ -15,8 +15,19 @@ function InitUser() {
     const socket = getSocket();
     const identify = () => socket.emit("identity", session.user.id);
 
-    const handleBlocked = (data: { message?: string }) => {
+    const handleBlocked = async (data: { message?: string }) => {
       alert(data?.message || "Your account has been suspended.");
+      try {
+        const token = localStorage.getItem("fcm_token");
+        if (token) {
+          await fetch("/api/user/fcm-token", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ token }),
+          });
+          localStorage.removeItem("fcm_token");
+        }
+      } catch (err) {}
       signOut({ callbackUrl: "/signin" });
     };
 

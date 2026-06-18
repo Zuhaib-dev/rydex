@@ -110,6 +110,19 @@ function AdminDashboardContent() {
   }, []);
 
   const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("fcm_token");
+      if (token) {
+        await fetch("/api/user/fcm-token", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        localStorage.removeItem("fcm_token");
+      }
+    } catch (err) {
+      console.error("Error clearing FCM token on admin logout:", err);
+    }
     await signOut({ redirect: false });
     dispatch(setUserData(null));
     setProfileOpen(false);

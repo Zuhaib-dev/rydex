@@ -44,8 +44,28 @@ messaging.onBackgroundMessage((payload) => {
   return self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
+self.addEventListener("install", (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
+
+  // If this is a native FCM background notification, let the Firebase SDK handler do the redirect
+  if (event.notification.data && event.notification.data.FCM_MSG) {
+    console.log("[firebase-messaging-sw.js] Native FCM click. Firebase SDK will handle the click action.");
+    return;
+  }
+
+  // If this is a custom foreground notification click, let the page script handle the redirect
+  if (event.notification.data && event.notification.data.isForeground) {
+    console.log("[firebase-messaging-sw.js] Foreground notification click. Page script will handle the click action.");
+    return;
+  }
 
   const targetUrl = event.notification.data?.url || "/";
   const urlToOpen = new URL(targetUrl, self.location.origin).href;
