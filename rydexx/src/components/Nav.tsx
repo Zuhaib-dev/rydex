@@ -147,6 +147,7 @@ function NavContent() {
         { href: "/partner/pending-requests", label: "Pending Requests", badge: pendingCount > 0 ? pendingCount : undefined, badgeColor: "bg-red-500" },
         { href: "/partner/bookings", label: "My Bookings", badge: activeCount > 0 ? activeCount : undefined, badgeColor: "bg-emerald-500" },
         { href: "/partner/vehicle", label: "My Vehicle" },
+        { href: "/partner/analytics", label: "Analytics Hub" },
       ];
     }
 

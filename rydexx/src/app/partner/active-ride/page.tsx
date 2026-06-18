@@ -304,7 +304,7 @@ export default function DriverRidePage() {
     let lng = rawPosition.coords.longitude;
 
     if (b.routePolyline) {
-      const deviated = checkRouteDeviation([lat, lng], b.routePolyline, 50);
+      const deviated = checkRouteDeviation([lat, lng], b.routePolyline, 500);
       if (deviated) {
         socket.emit("route-deviation", {
           bookingId: b._id,

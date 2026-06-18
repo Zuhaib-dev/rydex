@@ -219,8 +219,21 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
     };
 
     socket.on("admin-driver-location", handleDriverLocation);
+    
+    const handleTelemetryUpdate = (data: any) => {
+      if (data.type === "ROUTE_DEVIATION") {
+        toast.error(`🚨 Driver ${data.driverId.slice(-6).toUpperCase()} went 500m off-route!`, { 
+          duration: 10000,
+          id: `deviation-${data.bookingId}`, // prevent duplicate spam
+          style: { background: '#fee2e2', color: '#991b1b', fontWeight: 'bold' }
+        });
+      }
+    };
+    socket.on("system-telemetry-update", handleTelemetryUpdate);
+
     return () => {
       socket.off("admin-driver-location", handleDriverLocation);
+      socket.off("system-telemetry-update", handleTelemetryUpdate);
     };
   }, [mutateLive, followMode, selectedDriverId]);
 

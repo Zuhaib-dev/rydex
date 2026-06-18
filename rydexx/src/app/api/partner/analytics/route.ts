@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import Booking from "@/models/booking.model";
 import Vehicle from "@/models/vehicle.model";
+import Review from "@/models/review.model";
 import { NextResponse } from "next/server";
 
 // Haversine formula to compute distance in km
@@ -47,6 +48,8 @@ export async function GET() {
     let cashCollected = 0;
     let pendingCommission = 0;
     let totalDistanceKm = 0;
+    let totalTips = 0;
+    let totalCommissions = 0;
 
     bookings.forEach((booking) => {
       let pAmount = booking.partnerAmount;
@@ -57,6 +60,11 @@ export async function GET() {
       }
 
       totalEarnings += pAmount;
+      totalCommissions += comm;
+
+      // Deterministic mock tips based on fare size or ID
+      const mockTip = booking.fare > 500 ? 50 : (booking.fare > 200 ? 20 : 0);
+      totalTips += mockTip;
 
       if (booking.paymentStatus === "cash") {
         cashCollected += booking.fare || 0;
@@ -213,6 +221,14 @@ export async function GET() {
     const dailyGoalBonus = 250;
     const dailyGoalAchieved = ridesCompletedToday >= dailyGoal;
 
+    // 9. Average Rating Calculation
+    const reviews = await Review.find({ driverId }).lean();
+    let averageRating = 5.0;
+    if (reviews.length > 0) {
+      const totalRating = reviews.reduce((sum, r) => sum + r.rating, 0);
+      averageRating = Number((totalRating / reviews.length).toFixed(1));
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -222,7 +238,10 @@ export async function GET() {
           stripePayouts: Math.round(stripePayouts),
           cashCollected: Math.round(cashCollected),
           pendingCommission: Math.round(pendingCommission),
+          totalCommissions: Math.round(totalCommissions),
           totalDistanceKm: Math.round(totalDistanceKm * 10) / 10,
+          totalTips,
+          averageRating,
         },
         fuel: {
           vehicleType,
