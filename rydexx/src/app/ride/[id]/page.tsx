@@ -1097,17 +1097,18 @@ function CompletedScreen({
                   <p className="text-zinc-500 text-[11px] text-center max-w-xs mb-4">
                     Your rating and selected tags have been applied to the driver's profile.
                   </p>
-                  <button
-                    onClick={() => window.print()}
-                    className="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white py-3 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 mb-2 shadow-lg"
-                  >
-                    <Download size={16} /> Download PDF Receipt
-                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
+          <button
+            onClick={() => window.print()}
+            className="w-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white py-3 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2 mb-3 shadow-lg"
+          >
+            <Download size={16} /> Download PDF Receipt
+          </button>
+          
           <button
             onClick={() => router.push("/")}
             className="w-full border border-zinc-700 text-zinc-400 py-3.5 rounded-2xl text-sm font-semibold hover:bg-zinc-900 transition-colors"
@@ -1118,8 +1119,7 @@ function CompletedScreen({
       </div>
 
       {/* PRINT-ONLY RECEIPT TEMPLATE */}
-      {submitted && (
-        <div className="hidden print:flex flex-col p-8 text-black bg-white w-full max-w-2xl mx-auto h-screen font-sans">
+      <div className="hidden print:flex flex-col p-8 text-black bg-white w-full max-w-2xl mx-auto h-screen font-sans">
           <div className="flex items-center justify-between border-b-2 border-black pb-6 mb-6">
             <div>
               <h1 className="text-4xl font-black tracking-tighter">RYDEX</h1>
@@ -1176,7 +1176,6 @@ function CompletedScreen({
           
           <p className="text-center text-xs text-gray-400 mt-12 font-bold tracking-widest uppercase">Thank you for riding with Rydex</p>
         </div>
-      )}
     </motion.div>
   );
 }
