@@ -803,32 +803,73 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
 
         <Map
           initialViewState={{
-            longitude: 78.9629,
-            latitude: 20.5937,
-            zoom: 4,
-            pitch: 45,
+            longitude: 72.8347, // South Mumbai / Gateway of India
+            latitude: 18.9220,
+            zoom: 16.5,
+            pitch: 65,
+            bearing: -17.6,
           }}
           mapStyle={mapStyle}
           mapboxAccessToken={MAPBOX_TOKEN}
           onLoad={handleMapLoad}
+          terrain={{ source: "mapbox-dem", exaggeration: 1.5 }}
         >
           {mapLoaded && (
             <>
+              {/* 3D Terrain & Atmosphere */}
+              <Source
+                id="mapbox-dem"
+                type="raster-dem"
+                url="mapbox://mapbox.mapbox-terrain-dem-v1"
+                tileSize={512}
+                maxzoom={14}
+              />
+              <Layer
+                id="sky"
+                type="sky"
+                paint={{
+                  "sky-type": "atmosphere",
+                  "sky-atmosphere-sun": [0.0, 0.0],
+                  "sky-atmosphere-sun-intensity": 15,
+                }}
+              />
+
+              {/* 3D Buildings Layer (Control Center Hologram Style) */}
+              <Layer
+                id="3d-buildings"
+                source="composite"
+                source-layer="building"
+                filter={["==", "extrude", "true"]}
+                type="fill-extrusion"
+                minzoom={15}
+                paint={{
+                  "fill-extrusion-color": [
+                    "interpolate",
+                    ["linear"],
+                    ["get", "height"],
+                    0, "#0f172a", // Very dark slate at base
+                    50, "#1e293b",
+                    150, "#3b82f6", // Blue glow higher up
+                    300, "#8b5cf6", // Purple/Neon at top of skyscrapers
+                  ],
+                  "fill-extrusion-height": ["get", "height"],
+                  "fill-extrusion-base": ["get", "min_height"],
+                  "fill-extrusion-opacity": 0.85,
+                }}
+              />
+
               {/* Glowing Dynamic Surge Heatmap Layer */}
               <Source id="heatmap-data" type="geojson" data={heatmapGeoJSON}>
                 <Layer
                   id="search-heatmap"
                   type="heatmap"
                   paint={{
-                    // Increase weight for more intense glow
                     "heatmap-weight": ["interpolate", ["linear"], ["get", "weight"], 0, 0, 1, 1],
-                    // Increase intensity as you zoom in
                     "heatmap-intensity": [
                       "interpolate", ["linear"], ["zoom"],
                       0, 1,
                       15, 3
                     ],
-                    // Deep Red to Bright Yellow glowing gradient
                     "heatmap-color": [
                       "interpolate", ["linear"], ["heatmap-density"],
                       0, "rgba(255, 0, 0, 0)",
@@ -838,12 +879,11 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
                       0.8, "rgba(250, 204, 21, 0.9)", // Yellow 400
                       1, "rgba(254, 240, 138, 1)", // Yellow 200 (Core Heat)
                     ],
-                    // Adjust radius dynamically by zoom level
                     "heatmap-radius": [
                       "interpolate", ["linear"], ["zoom"],
                       0, 4,
                       9, 25,
-                      15, 60
+                      15, 75 // Increased radius for more vibrant glow
                     ],
                     "heatmap-opacity": 0.9,
                   }}
