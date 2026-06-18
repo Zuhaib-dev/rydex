@@ -78,26 +78,90 @@ async function getBusyPartnerIds(candidateIds: mongoose.Types.ObjectId[]) {
   return new Set(busy.map((id) => String(id)));
 }
 
+async function fetchVehiclesForPartners(
+  partnerIds: mongoose.Types.ObjectId[],
+  activeVehicleIds: unknown[],
+  vehicleType: string
+) {
+  let vehicles: Array<{ _id: unknown; owner: unknown; type: string }> = [];
+
+  if (!activeVehicleIds.length) return vehicles;
+
+  try {
+    const redis = getRedisClient();
+    const pipeline = redis.pipeline();
+    activeVehicleIds.forEach((id) => pipeline.get(`vehicle:cache:${String(id)}`));
+    const results = await pipeline.exec();
+    
+    if (results) {
+      const cachedVehicles = results
+        .map((r) => r[1])
+        .filter(Boolean)
+        .map((str) => JSON.parse(str as string));
+        
+      const missingIds = activeVehicleIds.filter((id, i) => !results[i][1]);
+      
+      let dbVehicles: any[] = [];
+      if (missingIds.length > 0) {
+        dbVehicles = await Vehicle.find({
+          _id: { $in: missingIds },
+          owner: { $in: partnerIds },
+          status: "approved",
+          isActive: true,
+          type: vehicleType,
+        })
+          .select("_id owner type baseFare perKmRate status isActive")
+          .lean();
+          
+        const setPipeline = redis.pipeline();
+        dbVehicles.forEach((v) => {
+          setPipeline.set(`vehicle:cache:${String(v._id)}`, JSON.stringify(v), "EX", 3600);
+        });
+        await setPipeline.exec().catch(() => {});
+      }
+      
+      vehicles = [...cachedVehicles, ...dbVehicles].filter((v) => String(v.type) === vehicleType);
+    }
+  } catch (err) {
+    console.warn("[findPartner] Vehicle Redis cache failed, falling back to DB:", err);
+    vehicles = await Vehicle.find({
+      _id: { $in: activeVehicleIds },
+      owner: { $in: partnerIds },
+      status: "approved",
+      isActive: true,
+      type: vehicleType,
+    })
+      .select("_id owner type")
+      .lean();
+  }
+
+  return vehicles;
+}
+
+type RedisGeoResult<T> = {
+  success: boolean;
+  data: T;
+};
+
 /**
  * Try to get nearby driver IDs from Redis GeoSet.
- * Returns null if Redis is unavailable or GeoSet is empty —
- * callers should fall back to MongoDB $near.
+ * Returns success: true with the results (even if empty), or success: false on failure.
  */
 async function getNearbyIdsFromRedis(
   pickupCoordinates: LngLat,
   radiusMeters: number,
   withDist: true
-): Promise<Map<string, number> | null>;
+): Promise<RedisGeoResult<Map<string, number>>>;
 async function getNearbyIdsFromRedis(
   pickupCoordinates: LngLat,
   radiusMeters: number,
   withDist: false
-): Promise<string[] | null>;
+): Promise<RedisGeoResult<string[]>>;
 async function getNearbyIdsFromRedis(
   pickupCoordinates: LngLat,
   radiusMeters: number,
   withDist: boolean
-): Promise<Map<string, number> | string[] | null> {
+): Promise<RedisGeoResult<Map<string, number>> | RedisGeoResult<string[]>> {
   try {
     const redis = getRedisClient();
 
@@ -112,15 +176,15 @@ async function getNearbyIdsFromRedis(
         "m",
         "ASC",
         "WITHDIST"
-      )) as Array<[string, string]>;
-
-      if (!results || results.length === 0) return null;
+      )) as Array<[string, string]> | null;
 
       const map = new Map<string, number>();
-      for (const [id, dist] of results) {
-        map.set(id, parseFloat(dist));
+      if (results) {
+        for (const [id, dist] of results) {
+          map.set(id, parseFloat(dist));
+        }
       }
-      return map;
+      return { success: true, data: map };
     } else {
       const results = (await redis.geosearch(
         "driver:locations:active",
@@ -131,14 +195,17 @@ async function getNearbyIdsFromRedis(
         radiusMeters,
         "m",
         "ASC"
-      )) as string[];
+      )) as string[] | null;
 
-      if (!results || results.length === 0) return null;
-      return results;
+      return { success: true, data: results || [] };
     }
   } catch (err) {
     console.warn("[findPartner] Redis GeoSearch failed, will use MongoDB fallback:", err);
-    return null;
+    if (withDist) {
+      return { success: false, data: new Map<string, number>() } as RedisGeoResult<Map<string, number>>;
+    } else {
+      return { success: false, data: [] as string[] } as RedisGeoResult<string[]>;
+    }
   }
 }
 
@@ -207,12 +274,12 @@ export async function findClosestEligiblePartner(
 
   const redisResult = await getNearbyIdsFromRedis(pickupCoordinates, radiusMeters, true);
 
-  if (redisResult !== null) {
+  if (redisResult.success) {
     // Redis fast-path succeeded
-    driverGeoMap = redisResult;
-    nearbyDriverIds = Array.from(redisResult.keys());
+    driverGeoMap = redisResult.data;
+    nearbyDriverIds = Array.from(driverGeoMap.keys());
   } else {
-    // Redis unavailable or empty — fall back to MongoDB
+    // Redis unavailable — fall back to MongoDB
     console.log("[findPartner] Using MongoDB $near fallback for candidate lookup");
     nearbyDriverIds = await getNearbyIdsFromMongo(pickupCoordinates, radiusMeters, excludePartnerIds);
   }
@@ -275,63 +342,16 @@ export async function findClosestEligiblePartner(
   scored.sort((a, b) => a.score - b.score);
   const sortedPartners = scored.map((s) => s.partner);
 
-  // --- Step 4: Check busy partners and fetch vehicles ---
+  // --- Step 4: Check busy partners and fetch vehicles (in parallel) ---
   const partnerIds = sortedPartners.map((p) => p._id as mongoose.Types.ObjectId);
-  const busyIds = await getBusyPartnerIds(partnerIds);
-
   const activeVehicleIds = sortedPartners
     .map((p) => p.activeVehicleId)
     .filter(Boolean);
 
-  let vehicles: Array<{ _id: unknown; owner: unknown; type: string }> = [];
-
-  try {
-    const redis = getRedisClient();
-    const pipeline = redis.pipeline();
-    activeVehicleIds.forEach((id) => pipeline.get(`vehicle:cache:${String(id)}`));
-    const results = await pipeline.exec();
-    
-    if (results) {
-      const cachedVehicles = results
-        .map((r) => r[1])
-        .filter(Boolean)
-        .map((str) => JSON.parse(str as string));
-        
-      const missingIds = activeVehicleIds.filter((id, i) => !results[i][1]);
-      
-      let dbVehicles: any[] = [];
-      if (missingIds.length > 0) {
-        dbVehicles = await Vehicle.find({
-          _id: { $in: missingIds },
-          owner: { $in: partnerIds },
-          status: "approved",
-          isActive: true,
-          type: vehicleType,
-        })
-          .select("_id owner type baseFare perKmRate status isActive")
-          .lean();
-          
-        const setPipeline = redis.pipeline();
-        dbVehicles.forEach((v) => {
-          setPipeline.set(`vehicle:cache:${String(v._id)}`, JSON.stringify(v), "EX", 3600);
-        });
-        await setPipeline.exec().catch(() => {});
-      }
-      
-      vehicles = [...cachedVehicles, ...dbVehicles].filter((v) => String(v.type) === vehicleType);
-    }
-  } catch (err) {
-    console.warn("[findPartner] Vehicle Redis cache failed, falling back to DB:", err);
-    vehicles = await Vehicle.find({
-      _id: { $in: activeVehicleIds },
-      owner: { $in: partnerIds },
-      status: "approved",
-      isActive: true,
-      type: vehicleType,
-    })
-      .select("_id owner type")
-      .lean();
-  }
+  const [busyIds, vehicles] = await Promise.all([
+    getBusyPartnerIds(partnerIds),
+    fetchVehiclesForPartners(partnerIds, activeVehicleIds, vehicleType),
+  ]);
 
   const vehicleByOwner = new Map<string, (typeof vehicles)[0]>();
   for (const v of vehicles) {
@@ -415,12 +435,12 @@ export async function countEligiblePartners(
   radiusMeters: number,
 ): Promise<number> {
   // Try Redis first
-  const redisIds = await getNearbyIdsFromRedis(pickupCoordinates, radiusMeters, false);
+  const redisResult = await getNearbyIdsFromRedis(pickupCoordinates, radiusMeters, false);
 
   let candidateIds: string[];
 
-  if (redisIds !== null) {
-    candidateIds = redisIds as string[];
+  if (redisResult.success) {
+    candidateIds = redisResult.data;
   } else {
     // Redis unavailable — fall back to MongoDB $near
     console.log("[countEligiblePartners] Using MongoDB $near fallback");

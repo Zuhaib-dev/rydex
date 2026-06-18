@@ -12,6 +12,7 @@ type BookingDoc = {
   _id?: unknown;
   user?: unknown;
   driver?: unknown;
+  vehicle?: unknown;
   populate?: (path: string | string[]) => Promise<unknown>;
   populated?: (path: string) => boolean;
 };
@@ -32,14 +33,24 @@ const toId = (value: unknown) => {
 };
 
 async function ensurePopulated(booking: BookingDoc) {
-  const bookingId = toId(booking._id);
-  if (bookingId) {
-    const fresh = await Booking.findById(bookingId).populate([
-      "user",
-      "driver",
-      "vehicle",
-    ]);
-    if (fresh) return fresh;
+  const hasUser = typeof booking.populated === "function"
+    ? !!booking.populated("user")
+    : !!(booking.user && typeof booking.user === "object" && "_id" in booking.user);
+
+  const hasDriver = booking.driver
+    ? (typeof booking.populated === "function"
+        ? !!booking.populated("driver")
+        : !!(typeof booking.driver === "object" && "_id" in booking.driver))
+    : true;
+
+  const hasVehicle = booking.vehicle
+    ? (typeof booking.populated === "function"
+        ? !!booking.populated("vehicle")
+        : !!(typeof booking.vehicle === "object" && "_id" in booking.vehicle))
+    : true;
+
+  if (hasUser && hasDriver && hasVehicle) {
+    return booking;
   }
 
   if (typeof booking.populate === "function") {
@@ -48,6 +59,17 @@ async function ensurePopulated(booking: BookingDoc) {
       "driver",
       "vehicle",
     ]);
+    return booking;
+  }
+
+  const bookingId = toId(booking._id);
+  if (bookingId) {
+    const fresh = await Booking.findById(bookingId).populate([
+      "user",
+      "driver",
+      "vehicle",
+    ]);
+    if (fresh) return fresh;
   }
 
   return booking;

@@ -78,7 +78,7 @@ setIoForLogging(io);
 setIoForNotifications(io);
 
 // Setup handlers
-setupRedisSub();
+setupRedisSub(handleEmitPayload);
 setupSocketHandlers(io);
 
 // Express HTTP Routes
@@ -205,151 +205,159 @@ function buildPushContent(
 }
 
 
-// Express route for booking and notification updates
-app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
-  const { userId, event, data, bookingId: roomFromBody } = req.body;
+export async function handleEmitPayload(payload: {
+  userId?: string;
+  event: string;
+  data: any;
+  bookingId?: string;
+}) {
+  const { userId, event, data, bookingId: roomFromBody } = payload;
   const bookingRoomId = roomFromBody || data?.bookingId;
 
-  try {
-    // Emit to personal user room
-    if (userId) {
-      io.to(`user-${userId}`).emit(event as any, data);
-      
-      if (event === "blocked") {
-        // Instantly disconnect local sockets in this room (also bypasses ioredis-mock limitations in tests)
-        const userRoom = io.sockets.adapter.rooms.get(`user-${userId}`);
-        if (userRoom) {
-          for (const socketId of userRoom) {
-            const socketToDisconnect = io.sockets.sockets.get(socketId);
-            if (socketToDisconnect) socketToDisconnect.disconnect(true);
-          }
+  // Emit to personal user room
+  if (userId) {
+    io.to(`user-${userId}`).emit(event as any, data);
+    
+    if (event === "blocked") {
+      // Instantly disconnect local sockets in this room (also bypasses ioredis-mock limitations in tests)
+      const userRoom = io.sockets.adapter.rooms.get(`user-${userId}`);
+      if (userRoom) {
+        for (const socketId of userRoom) {
+          const socketToDisconnect = io.sockets.sockets.get(socketId);
+          if (socketToDisconnect) socketToDisconnect.disconnect(true);
         }
-        // Disconnect all sockets in this user's room across ALL nodes via Redis adapter
-        io.in(`user-${userId}`).disconnectSockets(true);
       }
-
-      // Send Push Notification asynchronously
-      if (event === "new-booking" || event === "booking-updated" || event === "new-notification") {
-        // Fire and forget to avoid blocking the HTTP response
-        Promise.resolve().then(async () => {
-          try {
-            const targetUser = await User.findById(userId).select("fcmTokens").lean();
-            if (targetUser && targetUser.fcmTokens && targetUser.fcmTokens.length > 0) {
-              const { title, body, url } = buildPushContent(event, data, bookingRoomId);
-
-              const pushResult = await sendPushNotification(targetUser.fcmTokens as string[], title, body, {
-                bookingId: String(bookingRoomId || ""),
-                event,
-                notificationId: data?._id ? String(data._id) : "",
-                url,
-              });
-
-              if (pushResult.invalidTokens.length > 0) {
-                await User.updateOne(
-                  { _id: userId },
-                  { $pull: { fcmTokens: { $in: pushResult.invalidTokens } } },
-                );
-              }
-            }
-          } catch (err) {
-            console.error("Background push notification failed:", err);
-          }
-        });
-      }
+      // Disconnect all sockets in this user's room across ALL nodes via Redis adapter
+      io.in(`user-${userId}`).disconnectSockets(true);
     }
 
-    if (bookingRoomId) {
-      emitToBookingRoom(bookingRoomId, event, data);
-    }
-
-    // Matchmaker queue countdown hook
-    if (event === "new-booking" && data?._id && data?.driver) {
-      const bookingId = String(data._id);
-      const driverId = String(data.driver);
-
-      // Clear any existing timers for this booking
-      if (activeTimers.has(bookingId)) {
-        clearTimeout(activeTimers.get(bookingId)!);
-        activeTimers.delete(bookingId);
-      }
-
-      console.log(`Starting 40s matchmaker countdown for booking ${bookingId}, targeting driver ${driverId}`);
-
-      // Primary: Redis key expiration (crash-resilient across server restarts)
-      let redisTimerSet = false;
-      try {
-        await redisPub.set(`dispatch:timer:${bookingId}`, "1", "EX", 40);
-        await redisPub.set(`dispatch:driver:${bookingId}`, driverId, "EX", 45);
-        redisTimerSet = true;
-        console.log(`[RedisDispatch] Set dispatch:timer:${bookingId} (40s TTL)`);
-      } catch (err: any) {
-        console.warn(`[RedisDispatch] Redis timer unavailable, using in-memory fallback:`, err.message);
-      }
-
-      // Fallback: in-memory setTimeout (works when Redis keyspace events unavailable)
-      const timer = setTimeout(async () => {
+    // Send Push Notification asynchronously
+    if (event === "new-booking" || event === "booking-updated" || event === "new-notification") {
+      // Fire and forget to avoid blocking the HTTP response
+      Promise.resolve().then(async () => {
         try {
-          const cascadeLockKey = `cascade:lock:${bookingId}`;
-          let lockAcquired = false;
-          try {
-            const result = await redisPub.set(cascadeLockKey, "1", "EX", 30, "NX");
-            lockAcquired = result === "OK";
-          } catch {
-            lockAcquired = true;
-          }
+          const targetUser = await User.findById(userId).select("fcmTokens").lean();
+          if (targetUser && targetUser.fcmTokens && targetUser.fcmTokens.length > 0) {
+            const { title, body, url } = buildPushContent(event, data, bookingRoomId);
 
-          if (!lockAcquired) {
-            console.log(`[InMemoryTimer] Cascade already handled by Redis path for ${bookingId}. Skipping.`);
-            return;
-          }
+            const pushResult = await sendPushNotification(targetUser.fcmTokens as string[], title, body, {
+              bookingId: String(bookingRoomId || ""),
+              event,
+              notificationId: data?._id ? String(data._id) : "",
+              url,
+            });
 
-          console.log(`[InMemoryTimer] Booking ${bookingId} dispatch timed out. Triggering cascade...`);
-          const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
-          const cascadeSecret = process.env.CASCADE_INTERNAL_SECRET;
-          await axios.post(
-            `${nextBaseUrl.replace(/\/+$/, "")}/api/booking/${bookingId}/cascade`,
-            { driverId },
-            {
-              timeout: 10000,
-              ...(cascadeSecret ? { headers: { "x-cascade-secret": cascadeSecret } } : {}),
+            if (pushResult.invalidTokens.length > 0) {
+              await User.updateOne(
+                { _id: userId },
+                { $pull: { fcmTokens: { $in: pushResult.invalidTokens } } },
+              );
             }
-          );
-        } catch (err: any) {
-          console.warn(`[InMemoryTimer] Cascade error for booking ${bookingId}:`, err.message);
-        } finally {
-          activeTimers.delete(bookingId);
-        }
-      }, 40000);
-
-      activeTimers.set(bookingId, timer);
-    } else if (event === "booking-updated" && data?.bookingId && data?.status) {
-      const bookingId = String(data.bookingId);
-      const status = String(data.status);
-
-      if (status !== "requested" && activeTimers.has(bookingId)) {
-        console.log(`Clearing matchmaking timer for booking ${bookingId} (status updated to ${status})`);
-        clearTimeout(activeTimers.get(bookingId)!);
-        activeTimers.delete(bookingId);
-        redisPub.del(`dispatch:timer:${bookingId}`).catch(() => {});
-        redisPub.del(`dispatch:driver:${bookingId}`).catch(() => {});
-      }
-
-      // Sync driver busy state in Redis
-      const driverId = data.driver?._id ? String(data.driver._id) : (data.driver ? String(data.driver) : null);
-      if (driverId) {
-        const activeStatuses = ["awaiting_payment", "confirmed", "arriving", "arrived", "started"];
-        try {
-          if (activeStatuses.includes(status)) {
-            await redisPub.set(`driver:busy:${driverId}`, "1", "EX", 86400); // 24 hours fallback
-          } else {
-            await redisPub.del(`driver:busy:${driverId}`);
           }
         } catch (err) {
-          console.warn("[RedisDispatch] Failed to update driver busy state:", err);
+          console.error("Background push notification failed:", err);
         }
-      }
+      });
+    }
+  }
+
+  if (bookingRoomId) {
+    emitToBookingRoom(bookingRoomId, event, data);
+  }
+
+  // Matchmaker queue countdown hook
+  if (event === "new-booking" && data?._id && data?.driver) {
+    const bookingId = String(data._id);
+    const driverId = String(data.driver);
+
+    // Clear any existing timers for this booking
+    if (activeTimers.has(bookingId)) {
+      clearTimeout(activeTimers.get(bookingId)!);
+      activeTimers.delete(bookingId);
     }
 
+    console.log(`Starting 40s matchmaker countdown for booking ${bookingId}, targeting driver ${driverId}`);
+
+    // Primary: Redis key expiration (crash-resilient across server restarts)
+    let redisTimerSet = false;
+    try {
+      await redisPub.set(`dispatch:timer:${bookingId}`, "1", "EX", 40);
+      await redisPub.set(`dispatch:driver:${bookingId}`, driverId, "EX", 45);
+      redisTimerSet = true;
+      console.log(`[RedisDispatch] Set dispatch:timer:${bookingId} (40s TTL)`);
+    } catch (err: any) {
+      console.warn(`[RedisDispatch] Redis timer unavailable, using in-memory fallback:`, err.message);
+    }
+
+    // Fallback: in-memory setTimeout (works when Redis keyspace events unavailable)
+    const timer = setTimeout(async () => {
+      try {
+        const cascadeLockKey = `cascade:lock:${bookingId}`;
+        let lockAcquired = false;
+        try {
+          const result = await redisPub.set(cascadeLockKey, "1", "EX", 30, "NX");
+          lockAcquired = result === "OK";
+        } catch {
+          lockAcquired = true;
+        }
+
+        if (!lockAcquired) {
+          console.log(`[InMemoryTimer] Cascade already handled by Redis path for ${bookingId}. Skipping.`);
+          return;
+        }
+
+        console.log(`[InMemoryTimer] Booking ${bookingId} dispatch timed out. Triggering cascade...`);
+        const nextBaseUrl = process.env.NEXT_BASE_URL || "http://localhost:3000";
+        const cascadeSecret = process.env.CASCADE_INTERNAL_SECRET;
+        await axios.post(
+          `${nextBaseUrl.replace(/\/+$/, "")}/api/booking/${bookingId}/cascade`,
+          { driverId },
+          {
+            timeout: 10000,
+            ...(cascadeSecret ? { headers: { "x-cascade-secret": cascadeSecret } } : {}),
+          }
+        );
+      } catch (err: any) {
+        console.warn(`[InMemoryTimer] Cascade error for booking ${bookingId}:`, err.message);
+      } finally {
+        activeTimers.delete(bookingId);
+      }
+    }, 40000);
+
+    activeTimers.set(bookingId, timer);
+  } else if (event === "booking-updated" && data?.bookingId && data?.status) {
+    const bookingId = String(data.bookingId);
+    const status = String(data.status);
+
+    if (status !== "requested" && activeTimers.has(bookingId)) {
+      console.log(`Clearing matchmaking timer for booking ${bookingId} (status updated to ${status})`);
+      clearTimeout(activeTimers.get(bookingId)!);
+      activeTimers.delete(bookingId);
+      redisPub.del(`dispatch:timer:${bookingId}`).catch(() => {});
+      redisPub.del(`dispatch:driver:${bookingId}`).catch(() => {});
+    }
+
+    // Sync driver busy state in Redis
+    const driverId = data.driver?._id ? String(data.driver._id) : (data.driver ? String(data.driver) : null);
+    if (driverId) {
+      const activeStatuses = ["awaiting_payment", "confirmed", "arriving", "arrived", "started"];
+      try {
+        if (activeStatuses.includes(status)) {
+          await redisPub.set(`driver:busy:${driverId}`, "1", "EX", 86400); // 24 hours fallback
+        } else {
+          await redisPub.del(`driver:busy:${driverId}`);
+        }
+      } catch (err) {
+        console.warn("[RedisDispatch] Failed to update driver busy state:", err);
+      }
+    }
+  }
+}
+
+// Express route for booking and notification updates
+app.post("/emit", requireSocketSecret, async (req: Request, res: Response) => {
+  try {
+    await handleEmitPayload(req.body);
     res.json({ success: true });
   } catch (error) {
     console.error("Emit handler error:", error);

@@ -98,34 +98,40 @@ export async function POST(req: Request) {
     matchedVehicleId = snapshot.vehicleId;
 
     if (matchedDriverId) {
-      const driver = await User.findById(matchedDriverId).select(
-        "mobileNumber isOnline isPartnerAvailable partnerStatus",
-      );
+      const targetDriverId = matchedDriverId;
+      const [driver, acquired] = await Promise.all([
+        User.findById(targetDriverId).select(
+          "mobileNumber isOnline isPartnerAvailable partnerStatus",
+        ),
+        (async () => {
+          try {
+            const redis = getRedisClient();
+            const lockKey = `lock:driver:${targetDriverId}`;
+            return await redis.set(lockKey, "locked", "EX", 45, "NX");
+          } catch (err) {
+            console.warn("[booking/create] Redis lock unavailable:", err);
+            return "ERROR";
+          }
+        })()
+      ]);
 
-      let acquired: string | null = null;
-      try {
-        const redis = getRedisClient();
-        const lockKey = `lock:driver:${matchedDriverId}`;
-        acquired = await redis.set(lockKey, "locked", "EX", 45, "NX");
-
+      if (acquired === "OK") {
         if (
           driver &&
           driver.partnerStatus === "approved" &&
           driver.isOnline &&
-          driver.isPartnerAvailable !== false &&
-          acquired === "OK"
+          driver.isPartnerAvailable !== false
         ) {
           matchedDriverMobile = driver.mobileNumber || "";
         } else {
-          if (acquired === "OK") {
-            await redis.del(`lock:driver:${matchedDriverId}`);
-          }
+          try {
+            const redis = getRedisClient();
+            await redis.del(`lock:driver:${targetDriverId}`);
+          } catch (e) {}
           matchedDriverId = undefined;
           matchedVehicleId = undefined;
         }
-      } catch (err) {
-        console.warn("[booking/create] Redis lock unavailable, proceeding without lock:", err);
-        // If Redis is down, still proceed if driver looks valid in MongoDB
+      } else if (acquired === "ERROR") {
         if (
           driver &&
           driver.partnerStatus === "approved" &&
@@ -137,6 +143,9 @@ export async function POST(req: Request) {
           matchedDriverId = undefined;
           matchedVehicleId = undefined;
         }
+      } else {
+        matchedDriverId = undefined;
+        matchedVehicleId = undefined;
       }
     }
 

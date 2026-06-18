@@ -5,7 +5,7 @@ import { activeTimers } from "../services/timers.js";
 import { logSocketEvent } from "../services/logger.js";
 import { notifyAdminMapThrottled, notifyPublicAvailabilityThrottled } from "../services/notifications.js";
 
-export function setupRedisSub() {
+export function setupRedisSub(onSocketEmit?: (payload: any) => Promise<void>) {
   redisSub.subscribe("__keyevent@0__:expired", (err: Error | null | undefined) => {
     if (err) {
       console.error("Failed to subscribe to Redis expiration channel:", err.message);
@@ -14,7 +14,27 @@ export function setupRedisSub() {
     }
   });
 
+  redisSub.subscribe("socket:emit", (err: Error | null | undefined) => {
+    if (err) {
+      console.error("Failed to subscribe to socket:emit channel:", err.message);
+    } else {
+      console.log("Subscribed to socket:emit channel.");
+    }
+  });
+
   redisSub.on("message", async (channel: string, message: string) => {
+    if (channel === "socket:emit") {
+      if (onSocketEmit) {
+        try {
+          const payload = JSON.parse(message);
+          await onSocketEmit(payload);
+        } catch (err) {
+          console.error("Failed to process socket:emit message:", err);
+        }
+      }
+      return;
+    }
+
     if (channel !== "__keyevent@0__:expired") return;
 
     // Presence heartbeat expiration → mark partner offline

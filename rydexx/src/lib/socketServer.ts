@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getRedisClient } from "./redis";
 
 const SOCKET_SERVER =
   process.env.SOCKET_SERVER_URL ||
@@ -13,12 +14,19 @@ export async function emitToSocketServer(payload: {
   bookingId?: string;
 }) {
   try {
-    const socketSecret = process.env.SOCKET_INTERNAL_SECRET;
-    await axios.post(`${SOCKET_SERVER.replace(/\/+$/, "")}/emit`, payload, {
-      timeout: 8000,
-      ...(socketSecret ? { headers: { "x-socket-secret": socketSecret } } : {}),
-    });
+    const redis = getRedisClient();
+    await redis.publish("socket:emit", JSON.stringify(payload));
   } catch (error) {
-    console.warn("Socket emit failed:", error);
+    console.warn("Redis publish failed, falling back to HTTP POST emit:", error);
+    try {
+      const socketSecret = process.env.SOCKET_INTERNAL_SECRET;
+      await axios.post(`${SOCKET_SERVER.replace(/\/+$/, "")}/emit`, payload, {
+        timeout: 5000,
+        ...(socketSecret ? { headers: { "x-socket-secret": socketSecret } } : {}),
+      });
+    } catch (httpError) {
+      console.warn("Socket HTTP fallback emit failed:", httpError);
+    }
   }
 }
+
