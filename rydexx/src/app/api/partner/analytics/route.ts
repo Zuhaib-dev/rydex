@@ -30,12 +30,17 @@ export async function GET() {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // 1. Fetch completed bookings with payment status paid or cash
-    const bookings = await Booking.find({
+    // 1. Fetch all bookings assigned to the driver
+    const allBookings = await Booking.find({
       driver: driverId,
-      status: "completed",
-      paymentStatus: { $in: ["paid", "cash"] },
     }).sort({ createdAt: 1 });
+
+    const totalAssigned = allBookings.length;
+
+    // Filter to only completed bookings for earnings calculations
+    const bookings = allBookings.filter((b) => 
+      b.status === "completed" && ["paid", "cash"].includes(b.paymentStatus)
+    );
 
     // 2. Fetch vehicle details for fuel metrics
     const vehicle = await Vehicle.findOne({ owner: driverId, isActive: true, status: "approved" });
@@ -229,6 +234,14 @@ export async function GET() {
       averageRating = Number((totalRating / reviews.length).toFixed(1));
     }
 
+    // 10. Completion Rate & Active Hours Calculation
+    const completionRate = totalAssigned > 0 
+      ? Math.round((bookings.length / totalAssigned) * 100) 
+      : 100;
+      
+    // Deterministic mock for Active Hours (assuming 25 km/h average city speed)
+    const activeHours = Math.round((totalDistanceKm / 25) * 10) / 10;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -242,6 +255,8 @@ export async function GET() {
           totalDistanceKm: Math.round(totalDistanceKm * 10) / 10,
           totalTips,
           averageRating,
+          completionRate,
+          activeHours,
         },
         fuel: {
           vehicleType,

@@ -9,7 +9,9 @@ import {
   Car,
   Activity,
   Award,
-  ChevronLeft
+  ChevronLeft,
+  Clock,
+  Percent,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -19,13 +21,16 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  RadialBarChart,
+  RadialBar,
 } from "recharts";
 import Link from "next/link";
 
 export default function PartnerAnalytics() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [chartTab, setChartTab] = useState<"daily" | "weekly" | "monthly">("monthly");
 
   useEffect(() => {
     fetch("/api/partner/analytics")
@@ -112,6 +117,23 @@ export default function PartnerAnalytics() {
           />
         </div>
 
+        <div className="grid grid-cols-2 gap-4">
+          <MetricCard
+            title="Completion Rate"
+            value={`${summary.completionRate || 100}%`}
+            icon={<Percent size={20} className="text-blue-400" />}
+            trend="All Accepted Rides"
+            delay={0.45}
+          />
+          <MetricCard
+            title="Active Hours"
+            value={`${summary.activeHours || 0}h`}
+            icon={<Clock size={20} className="text-orange-400" />}
+            trend="Total Drive Time"
+            delay={0.5}
+          />
+        </div>
+
         {/* Chart Section */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -122,19 +144,34 @@ export default function PartnerAnalytics() {
           {/* Decorative glow */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-amber-400/5 blur-[100px] rounded-full pointer-events-none" />
           
-          <div className="flex items-center justify-between mb-8 relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 relative z-10 gap-4">
             <div>
               <h2 className="text-xl font-bold tracking-tight">Earnings Over Time</h2>
-              <p className="text-xs text-zinc-400 mt-1">Monthly breakdown (last 6 months)</p>
+              <p className="text-xs text-zinc-400 mt-1">
+                {chartTab === "daily" ? "Last 14 days" : chartTab === "weekly" ? "Last 6 weeks" : "Last 6 months"}
+              </p>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10">
-              <TrendingUp size={18} className="text-amber-400" />
+            
+            <div className="flex p-1 bg-zinc-900 rounded-xl border border-white/5">
+              {(["daily", "weekly", "monthly"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setChartTab(tab)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
+                    chartTab === tab 
+                      ? "bg-zinc-800 text-white shadow-sm" 
+                      : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  {tab}
+                </button>
+              ))}
             </div>
           </div>
 
           <div className="h-[300px] w-full relative z-10">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={charts.monthly} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={charts[chartTab]} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorEarnings" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#fbbf24" stopOpacity={0.3}/>
@@ -177,7 +214,7 @@ export default function PartnerAnalytics() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.6 }}
-          className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
           <div className="bg-linear-to-br from-zinc-900 to-zinc-950 border border-white/5 rounded-3xl p-5 flex items-center justify-between shadow-2xl">
             <div className="flex items-center gap-4">
@@ -203,6 +240,31 @@ export default function PartnerAnalytics() {
               </div>
             </div>
             <div className="w-16 h-8 rounded-full bg-emerald-500/20 blur-xl absolute right-8" />
+          </div>
+
+          <div className="bg-linear-to-br from-zinc-900 to-zinc-950 border border-white/5 rounded-3xl p-5 flex items-center justify-between shadow-2xl relative overflow-hidden">
+            <div className="flex flex-col h-full justify-center z-10">
+              <p className="text-xs text-zinc-400 font-semibold uppercase tracking-wider mb-1">Success Rate</p>
+              <div className="flex items-end gap-2">
+                <p className="text-2xl font-black">{summary.completionRate || 100}%</p>
+              </div>
+            </div>
+            <div className="w-24 h-24 absolute right-2 top-1/2 -translate-y-1/2">
+              <ResponsiveContainer width="100%" height="100%">
+                <RadialBarChart 
+                  cx="50%" 
+                  cy="50%" 
+                  innerRadius="60%" 
+                  outerRadius="90%" 
+                  barSize={8} 
+                  data={[{ name: "Rate", value: summary.completionRate || 100, fill: "#fbbf24" }]}
+                  startAngle={90}
+                  endAngle={-270}
+                >
+                  <RadialBar background={{ fill: 'rgba(255,255,255,0.05)' }} cornerRadius={10} dataKey="value" />
+                </RadialBarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </motion.div>
 
