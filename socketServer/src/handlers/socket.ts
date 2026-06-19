@@ -29,6 +29,7 @@ export interface ServerToClientEvents {
   "validation:failure": (data: { message: string }) => void;
   "pass-token-response": (data: { token: string; expiresAt: number }) => void;
   "pass-token-error": (data: { message: string }) => void;
+  "audio-token-received": (token: string) => void;
 }
 
 export interface ClientToServerEvents {
@@ -46,6 +47,8 @@ export interface ClientToServerEvents {
   "join-validator": () => void;
   "verify-pass": (token: string) => void;
   "request-pass-token": (data: { passId: string }) => void;
+  "audio-broadcast-start": (token: string) => void;
+  "audio-receive-trigger": () => void;
 }
 
 export interface InterServerEvents {}
