@@ -6,9 +6,11 @@ import { useNfc } from "@/hooks/useNfc";
 import { useAudioChirp } from "@/hooks/useAudioChirp";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "motion/react";
-import { Loader2, ShieldCheck, CreditCard, X, QrCode, Radio, SmartphoneNfc, AlertCircle, CheckCircle } from "lucide-react";
+import { Loader2, ShieldCheck, CreditCard, X, QrCode, Radio, SmartphoneNfc, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function PassPage() {
+  const router = useRouter();
   const [passes, setPasses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
@@ -145,68 +147,74 @@ export default function PassPage() {
   return (
     <div className="min-h-screen bg-neutral-950 text-white font-sans p-6">
       <div className="max-w-md mx-auto space-y-8 mt-12">
-        <header className="text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-white/90">My Passes</h1>
-          <p className="text-neutral-400 mt-2">Manage your active subscriptions</p>
+        <header className="relative text-center flex items-center justify-center">
+          <button 
+            onClick={() => router.back()} 
+            className="absolute left-0 p-2 bg-neutral-900 rounded-full hover:bg-neutral-800 transition text-neutral-400 hover:text-white"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-white/90">My Passes</h1>
+            <p className="text-neutral-400 mt-2">Manage your active subscriptions</p>
+          </div>
         </header>
 
-        {passes.length === 0 ? (
-          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 text-center space-y-6 shadow-xl">
-            <div className="w-20 h-20 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto">
-              <ShieldCheck size={40} className="text-indigo-400" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-white mb-2">7-Day Commuter</h2>
-              <p className="text-neutral-400 text-sm">Get 10 rides to use anytime within 7 days. Skip the payment process and simply tap your phone with the driver to ride.</p>
-            </div>
-            <div className="text-3xl font-black text-indigo-400 border-y border-neutral-800 py-4">
-              ₹500 <span className="text-sm font-medium text-neutral-500 tracking-wide uppercase">/ 10 rides</span>
-            </div>
-            <button 
-              onClick={handleBuyPass}
-              disabled={buying}
-              className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
-            >
-              {buying ? <Loader2 size={20} className="animate-spin" /> : <CreditCard size={20} />}
-              {buying ? "Processing..." : "Purchase Pass Now"}
-            </button>
-          </div>
-        ) : (
-          passes.map(pass => (
-            <motion.div 
-              key={pass._id}
-              className="bg-linear-to-br from-indigo-500/20 to-purple-600/20 border border-white/10 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl"
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            >
-              <div className="absolute top-0 left-0 w-full h-full bg-noise opacity-10 pointer-events-none"></div>
-              <div className="flex justify-between items-start mb-8">
-                <div>
-                  <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-indigo-300 to-purple-300">{pass.type}</h2>
-                  <p className="text-indigo-200/60 text-sm mt-1">Expires: {new Date(pass.expiresAt).toLocaleDateString()}</p>
-                </div>
-                <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                  Active
-                </div>
+        {passes.map(pass => (
+          <motion.div 
+            key={pass._id}
+            className="bg-linear-to-br from-indigo-500/20 to-purple-600/20 border border-white/10 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            <div className="absolute top-0 left-0 w-full h-full bg-noise opacity-10 pointer-events-none"></div>
+            <div className="flex justify-between items-start mb-8">
+              <div>
+                <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-indigo-300 to-purple-300">{pass.type}</h2>
+                <p className="text-indigo-200/60 text-sm mt-1">Expires: {new Date(pass.expiresAt).toLocaleDateString()}</p>
               </div>
+              <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                Active
+              </div>
+            </div>
 
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-3xl font-mono tracking-tighter">{pass.balance}</p>
-                  <p className="text-xs text-neutral-400 uppercase tracking-widest mt-1">Rides Left</p>
-                </div>
-                <button 
-                  onClick={() => { setActivePassId(pass._id); setIsBoarding(true); }}
-                  disabled={pass.balance <= 0}
-                  className="bg-white text-black font-semibold px-6 py-3 rounded-full hover:bg-neutral-200 transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Tap to Board
-                </button>
+            <div className="flex justify-between items-end">
+              <div>
+                <p className="text-3xl font-mono tracking-tighter">{pass.balance}</p>
+                <p className="text-xs text-neutral-400 uppercase tracking-widest mt-1">Rides Left</p>
               </div>
-            </motion.div>
-          ))
-        )}
+              <button 
+                onClick={() => { setActivePassId(pass._id); setIsBoarding(true); }}
+                disabled={pass.balance <= 0}
+                className="bg-white text-black font-semibold px-6 py-3 rounded-full hover:bg-neutral-200 transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Tap to Board
+              </button>
+            </div>
+          </motion.div>
+        ))}
+
+        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 text-center space-y-6 shadow-xl mt-8">
+          <div className="w-20 h-20 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto">
+            <ShieldCheck size={40} className="text-indigo-400" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-white mb-2">7-Day Commuter</h2>
+            <p className="text-neutral-400 text-sm">Get 10 rides to use anytime within 7 days. Skip the payment process and simply tap your phone with the driver to ride.</p>
+          </div>
+          <div className="text-3xl font-black text-indigo-400 border-y border-neutral-800 py-4">
+            ₹500 <span className="text-sm font-medium text-neutral-500 tracking-wide uppercase">/ 10 rides</span>
+          </div>
+          <button 
+            onClick={handleBuyPass}
+            disabled={buying}
+            className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
+          >
+            {buying ? <Loader2 size={20} className="animate-spin" /> : <CreditCard size={20} />}
+            {buying ? "Processing..." : "Purchase Pass Now"}
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>
