@@ -412,6 +412,28 @@ Confirming will remove the old credential and enroll the new one.
 
 ---
 
+## Smart Passes & Contactless Validation 🚇 (The "Look Ma, No Cash!" Feature)
+
+Rydex now supports **Smart Passes**, allowing users to buy bulk rides (e.g., "10 rides for $50") and skip the Razorpay/Cash checkout completely! When a user reaches their destination, they are prompted to validate their pass with the driver's terminal using pure, unadulterated futuristic magic. 
+
+### Validation Modes
+Because we live in the future, we built three wild ways to validate a pass:
+
+1. **QR Code Scanning 📷**
+   - **How:** The user’s screen shows a massive QR code, the driver points their camera at it. 
+   - **Tech:** Uses `Html5Qrcode` locked to the rear-facing camera on mobile. The QR code contains a short-lived JSON Web Token (JWT).
+2. **NFC Tap-to-Pay 📳**
+   - **How:** User literally just taps their phone against the driver's phone.
+   - **Tech:** Utilizes the experimental Web NFC API (`NDEFReader`). Writes the JWT payload directly to the passenger's NFC chip, and the driver reads it. Android only, obviously (sorry Apple).
+3. **Audio Chirp Validation 🔊 (A.K.A. The Bat Signal)**
+   - **How:** The user taps "Audio", their phone plays a loud frequency *beep*. The driver's phone "hears" it and validates the ticket automatically.
+   - **Tech:** A brilliant hybrid PWA proxy! Since doing pure FSK demodulation in a noisy car using WebAudio is a recipe for disaster, we proxy the JWT payload over a WebSocket channel (`audio-broadcast-start`). The driver's phone uses the `AnalyserNode` to detect peak audio frequencies. The moment it hears the loud beep, it triggers `audio-receive-trigger` to fetch the token from the cloud. *Chef's kiss!* 🤌
+
+### Security
+Pass tokens are short-lived JWTs generated strictly via WebSockets (`request-pass-token`). They cycle every 10 seconds. You can't screenshot them, and you can't record the audio. Take that, fare evaders!
+
+---
+
 ## Environment Setup
 
 ```env

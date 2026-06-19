@@ -176,6 +176,21 @@ The socket server is modularized into specialized services for horizontal scalin
 
 ---
 
+## Smart Passes & Contactless Proxy 📡
+
+The socket server acts as a high-speed data proxy for **Smart Pass Validation**. To bypass the unreliability of native browser WebAudio API demodulation in loud environments (like moving cars), we route the JWT pass token through WebSockets while using physical audio only as a sync trigger!
+
+| Event | Direction | Payload | Description |
+|---|---|---|---|
+| `request-pass-token` | Client → Server | `{ passId: string }` | Generates a short-lived signed JWT for the active pass. |
+| `pass-token-response` | Server → Client | `{ token, expiresAt }` | Sends the JWT to the passenger. Re-issued every 10 seconds. |
+| `audio-broadcast-start` | Client → Server | `token` | Passenger begins emitting a physical 18kHz audio chirp while proxying the token to the server's memory map. |
+| `audio-receive-trigger` | Client → Server | — | Driver's phone detects the audio spike and requests the active token. |
+| `audio-token-received` | Server → Client | `token` | Server delivers the proxied token to the driver for validation. |
+| `verify-pass` | Client → Server | `token` | Terminal submits the token. Server verifies JWT signature and pass balance, emitting `validation:success` or `validation:failure`. |
+
+---
+
 ## HTTP Endpoints
 
 ### `GET /health`
