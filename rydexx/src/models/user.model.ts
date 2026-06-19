@@ -61,6 +61,12 @@ export interface IUser extends Document {
     signedInAt: Date;
     fcmToken?: string | null;
   }[];
+  savedPlaces?: {
+    label: string;
+    address: string;
+    lat: number;
+    lng: number;
+  }[];
 }
 const userSchema = new mongoose.Schema<IUser>(
   {
@@ -230,6 +236,15 @@ const userSchema = new mongoose.Schema<IUser>(
         fcmToken: { type: String, default: null },
       }],
       default: [],
+    },
+    savedPlaces: {
+      type: [{
+        label: { type: String, required: true },
+        address: { type: String, required: true },
+        lat: { type: Number, required: true },
+        lng: { type: Number, required: true },
+      }],
+      default: []
     }
   },
   { timestamps: true },
