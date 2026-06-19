@@ -14,12 +14,12 @@ export function useAudioChirp() {
       const gainNode = audioCtx.createGain();
 
       oscillator.type = 'sine';
-      // Start at 18kHz (sub-audible for most adults)
-      oscillator.frequency.setValueAtTime(18000, audioCtx.currentTime); 
+      // Audible chirp
+      oscillator.frequency.setValueAtTime(2000, audioCtx.currentTime); 
       
       // Basic frequency modulation simulation
-      oscillator.frequency.linearRampToValueAtTime(19000, audioCtx.currentTime + 0.2);
-      oscillator.frequency.linearRampToValueAtTime(18000, audioCtx.currentTime + 0.4);
+      oscillator.frequency.linearRampToValueAtTime(3000, audioCtx.currentTime + 0.2);
+      oscillator.frequency.linearRampToValueAtTime(2000, audioCtx.currentTime + 0.4);
 
       gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
       gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);

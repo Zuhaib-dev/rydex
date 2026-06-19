@@ -6,14 +6,13 @@ import { useNfc } from "@/hooks/useNfc";
 import { useAudioChirp } from "@/hooks/useAudioChirp";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "motion/react";
-import { Radio, SmartphoneNfc, AlertCircle } from "lucide-react";
+import { QrCode, Radio, SmartphoneNfc, AlertCircle } from "lucide-react";
 
 export default function PassValidationOverlay({ bookingId }: { bookingId: string }) {
   const [activePassId, setActivePassId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [useAudio, setUseAudio] = useState(true);
-  const [useNfcBroadcast, setUseNfcBroadcast] = useState(false);
+  const [activeMode, setActiveMode] = useState<"qr" | "nfc" | "audio">("qr");
 
   const socket = getSocket();
   const nfc = useNfc();
@@ -39,8 +38,8 @@ export default function PassValidationOverlay({ bookingId }: { bookingId: string
   useEffect(() => {
     const onTokenResponse = (data: { token: string; expiresAt: number }) => {
       setToken(data.token);
-      if (useNfcBroadcast && nfc.isSupported) nfc.write(data.token);
-      if (useAudio) audio.broadcastToken(data.token);
+      if (activeMode === "nfc" && nfc.isSupported) nfc.write(data.token);
+      if (activeMode === "audio") audio.broadcastToken(data.token);
     };
     const onTokenError = (data: { message: string }) => setError(data.message);
 
@@ -50,7 +49,7 @@ export default function PassValidationOverlay({ bookingId }: { bookingId: string
       socket.off("pass-token-response", onTokenResponse);
       socket.off("pass-token-error", onTokenError);
     };
-  }, [socket, useAudio, useNfcBroadcast, nfc, audio]);
+  }, [socket, activeMode, nfc, audio]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -74,36 +73,60 @@ export default function PassValidationOverlay({ bookingId }: { bookingId: string
       </h2>
 
       <div className="bg-white p-4 rounded-2xl shadow-2xl mb-8 relative">
-        {token ? (
-          <QRCodeSVG value={token} size={240} className="rounded-xl" />
-        ) : (
-          <div className="w-[240px] h-[240px] bg-neutral-100 animate-pulse rounded-xl flex items-center justify-center text-neutral-400">
-            Generating Token...
+        {activeMode === "qr" && (
+          token ? (
+            <QRCodeSVG value={token} size={240} className="rounded-xl" />
+          ) : (
+            <div className="w-[240px] h-[240px] bg-neutral-100 animate-pulse rounded-xl flex items-center justify-center text-neutral-400">
+              Generating Token...
+            </div>
+          )
+        )}
+        {activeMode === "nfc" && (
+          <div className="w-[240px] h-[240px] bg-indigo-50 rounded-xl flex flex-col items-center justify-center text-indigo-500">
+            <SmartphoneNfc size={80} className="mb-4 animate-pulse" />
+            <span className="font-bold">Hold near Validator</span>
+          </div>
+        )}
+        {activeMode === "audio" && (
+          <div className="w-[240px] h-[240px] bg-blue-50 rounded-xl flex flex-col items-center justify-center text-blue-500">
+            <Radio size={80} className="mb-4 animate-ping" />
+            <span className="font-bold">Broadcasting...</span>
           </div>
         )}
         <div className="absolute -inset-4 border-2 border-emerald-500/30 rounded-4xl animate-pulse pointer-events-none"></div>
       </div>
 
       <p className="text-neutral-400 mb-8 max-w-xs text-center text-sm">
-        Driver has ended the ride. Hold your phone near the validator or show this dynamic QR code to pay with your Smart Pass.
+        Driver has ended the ride. Choose a validation method and present it to the terminal.
       </p>
 
       <div className="flex gap-4">
         <button 
-          onClick={() => setUseAudio(!useAudio)}
+          onClick={() => setActiveMode("qr")}
           className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
-            useAudio ? "bg-blue-500/20 border-blue-500 text-blue-300" : "border-white/20 text-neutral-400"
+            activeMode === "qr" ? "bg-emerald-500/20 border-emerald-500 text-emerald-300" : "border-white/20 text-neutral-400"
           }`}
         >
-          <Radio size={18} />
-          <span className="text-sm font-medium">Audio Chirp</span>
+          <QrCode size={18} />
+          <span className="text-sm font-medium">QR Code</span>
         </button>
 
         <button 
-          onClick={() => setUseNfcBroadcast(!useNfcBroadcast)}
+          onClick={() => setActiveMode("audio")}
+          className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
+            activeMode === "audio" ? "bg-blue-500/20 border-blue-500 text-blue-300" : "border-white/20 text-neutral-400"
+          }`}
+        >
+          <Radio size={18} />
+          <span className="text-sm font-medium">Audio</span>
+        </button>
+
+        <button 
+          onClick={() => setActiveMode("nfc")}
           disabled={!nfc.isSupported}
           className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
-            useNfcBroadcast ? "bg-indigo-500/20 border-indigo-500 text-indigo-300" : "border-white/20 text-neutral-400"
+            activeMode === "nfc" ? "bg-indigo-500/20 border-indigo-500 text-indigo-300" : "border-white/20 text-neutral-400"
           } ${!nfc.isSupported && "opacity-50 cursor-not-allowed"}`}
         >
           <SmartphoneNfc size={18} />

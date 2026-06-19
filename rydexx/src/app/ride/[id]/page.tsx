@@ -168,6 +168,7 @@ const PAYMENT_LABEL: Record<PaymentStatus, { label: string; cls: string }> = {
   pending: { label: "Payment Pending", cls: "bg-amber-100 text-amber-700" },
   paid: { label: "Paid", cls: "bg-emerald-100 text-emerald-700" },
   cash: { label: "Cash", cls: "bg-zinc-100 text-zinc-700" },
+  pass: { label: "Smart Pass", cls: "bg-indigo-100 text-indigo-700" },
   failed: { label: "Payment Failed", cls: "bg-red-100 text-red-700" },
 };
 
