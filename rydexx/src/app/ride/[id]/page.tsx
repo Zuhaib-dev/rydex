@@ -29,6 +29,7 @@ import { Wifi, WifiOff } from "lucide-react";
 import OtpReveal from "@/components/ride/OtpReveal";
 import RideToasts from "@/components/ride/RideToasts";
 import type { RealtimeToast } from "@/hooks/useBookingRealtime";
+import PassValidationOverlay from "@/components/ride/PassValidationOverlay";
 
 const LiveRideMap = dynamic(() => import("@/components/LiveTrackingMap"), {
   ssr: false,
@@ -54,7 +55,7 @@ type BookingStatus =
   | "expired"
   | "scheduled";
 
-type PaymentStatus = "pending" | "paid" | "cash" | "failed";
+type PaymentStatus = "pending" | "paid" | "cash" | "failed" | "pass";
 
 interface BookingDetails {
   _id: string;
@@ -710,6 +711,10 @@ export default function RidePage() {
         visible={!!otpBanner && !otpDismissed}
         onDismiss={() => setOtpDismissed(true)}
       />
+
+      {status === "started" && booking?.paymentStatus === "pass" && !booking.dropOtp && (
+        <PassValidationOverlay bookingId={booking._id} />
+      )}
 
       <RideToasts toast={realtimeToast} />
 
