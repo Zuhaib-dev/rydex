@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import VehicleBookingCard from "@/components/VehicleBookingCard";
 import { getSocket } from "@/lib/socket";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 const RouteMap = dynamic(() => import("@/components/RouteMap"), { ssr: false });
 
@@ -93,6 +95,7 @@ function estimateRoadKm(
 function SearchContent() {
   const params = useSearchParams();
   const router = useRouter();
+  const userData = useSelector((state: RootState) => state.user.userData);
 
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -540,16 +543,19 @@ function SearchContent() {
           </AnimatePresence>
 
           {/* Saved places shortcuts */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5 mt-2">
             {[
+              ...(userData?.savedPlaces || []).map((p: any) => ({
+                name: p.label, address: p.address, lat: p.lat, lng: p.lng, defaultType: "pickup" as const
+              })),
               { name: "Chadoora (Budgam)", address: "Chadoora, Budgam, J&K", lat: 33.9189, lng: 74.7979, defaultType: "pickup" as const },
               { name: "Chanapora (Srinagar)", address: "Chanapora, Srinagar, J&K", lat: 34.0298, lng: 74.8052, defaultType: "drop" as const },
               { name: "Dal Lake (Srinagar)", address: "Dal Lake, Srinagar, J&K", lat: 34.0772, lng: 74.8727, defaultType: "drop" as const },
-            ].map((item) => {
+            ].map((item, idx) => {
               const targetType = activeInput || item.defaultType;
               return (
                 <motion.button
-                  key={item.name}
+                  key={`${item.name}-${idx}`}
                   type="button"
                   whileTap={{ scale: 0.93 }}
                   onClick={() => selectShortcut(item.address, item.lat, item.lng, item.defaultType)}
