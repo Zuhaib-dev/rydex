@@ -361,7 +361,7 @@ export default function RidePage() {
     onToast: (t) => setRealtimeToast({ ...t, id: Date.now() }),
     onReconnect: () => fetchBooking(true),
     onStatusChange: (nextStatus, bid) => {
-      if (nextStatus === "awaiting_payment") {
+      if (nextStatus === "awaiting_payment" && booking?.paymentStatus !== "pass" && booking?.paymentStatus !== "cash") {
         router.push(`/checkout?bookingId=${bid}`);
         return;
       }
