@@ -221,158 +221,136 @@ export default function VendorPendingPage() {
                   <motion.div
                     key={booking._id}
                     layout
-                    initial={{ opacity: 0, y: 20, scale: 0.98 }}
+                    initial={{ opacity: 0, y: 30, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                    transition={{ type: "spring", stiffness: 320, damping: 28 }}
-                    className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-lg transition-shadow overflow-hidden relative"
+                    exit={{ opacity: 0, scale: 0.95, y: -20 }}
+                    transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                    className="bg-white rounded-3xl border border-zinc-200 p-1 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.08)] transition-all overflow-hidden relative group"
                   >
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-zinc-900 via-emerald-500 to-zinc-900" />
-
-                    <div className="flex flex-wrap justify-between items-center gap-3 border-b border-gray-100 pb-4 mb-6">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-bold text-gray-400 font-mono tracking-wider">
-                          #{booking._id.slice(-6).toUpperCase()}
-                        </span>
-                        {booking.vehicleType && (
-                          <span className="inline-flex items-center gap-1.5 bg-zinc-950 text-white text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shadow-sm">
+                    <div className="bg-zinc-50 rounded-[22px] p-6 lg:p-7 relative overflow-hidden">
+                      {/* Accent Header */}
+                      <div className="flex justify-between items-start mb-6">
+                        <div className="flex flex-col gap-2">
+                          <span className="inline-flex items-center gap-1.5 bg-[#B9F5AD]/20 text-emerald-900 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full border border-[#B9F5AD]/40">
                             {(() => {
-                              switch (booking.vehicleType.toLowerCase()) {
-                                case "bike": return <Bike size={10} className="text-zinc-300" />;
-                                case "auto": return <Tally3 size={10} className="text-zinc-300" />;
-                                case "car": return <Car size={10} className="text-zinc-300" />;
-                                case "loading": return <Package size={10} className="text-zinc-300" />;
-                                case "truck": return <Truck size={10} className="text-zinc-300" />;
-                                default: return <Car size={10} className="text-zinc-300" />;
+                              switch (booking.vehicleType?.toLowerCase()) {
+                                case "bike": return <Bike size={12} />;
+                                case "auto": return <Tally3 size={12} />;
+                                case "car": return <Car size={12} />;
+                                case "loading": return <Package size={12} />;
+                                case "truck": return <Truck size={12} />;
+                                default: return <Car size={12} />;
                               }
                             })()}
-                            <span>{booking.vehicleType}</span>
+                            <span>{booking.vehicleType || "car"}</span>
                           </span>
-                        )}
-                      </div>
-                      <RequestTimer
-                        driverAssignedAt={booking.driverAssignedAt}
-                        onTimeout={() => handleTimeout(booking._id)}
-                      />
-                    </div>
-
-                    {booking.dispatch && (
-                      <div className="flex flex-wrap gap-2 mb-5">
-                        {booking.dispatch.distanceLabel && (
-                          <span className="inline-flex items-center gap-1.5 bg-zinc-100 text-zinc-700 text-xs font-semibold px-3 py-1.5 rounded-full">
-                            <MapPin size={12} />
-                            {booking.dispatch.distanceLabel} away
+                          <span className="text-xs font-bold text-zinc-400 font-mono tracking-wider ml-1">
+                            #{booking._id.slice(-6).toUpperCase()}
                           </span>
-                        )}
-                        {booking.dispatch.etaMinutes != null && (
-                          <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-800 text-xs font-semibold px-3 py-1.5 rounded-full border border-emerald-100">
-                            <Route size={12} />~{booking.dispatch.etaMinutes} min to pickup
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-                      <div className="flex-1 space-y-5">
-                        <div className="flex gap-4">
-                          <div className="bg-gray-100 p-3 rounded-lg shrink-0">
-                            <MapPin size={18} />
-                          </div>
-                          <div>
-                            <p className="text-xs uppercase text-gray-400 mb-1">
-                              Pickup
-                            </p>
-                            <p className="text-gray-900 font-medium">
-                              {booking.pickupAddress}
-                            </p>
-                          </div>
                         </div>
-                        <div className="flex gap-4">
-                          <div className="bg-gray-100 p-3 rounded-lg shrink-0">
-                            <Navigation size={18} />
+                        <RequestTimer
+                          driverAssignedAt={booking.driverAssignedAt}
+                          onTimeout={() => handleTimeout(booking._id)}
+                        />
+                      </div>
+
+                      {/* Locations */}
+                      <div className="relative pl-8 space-y-6 mb-8">
+                        {/* Timeline Track */}
+                        <div className="absolute left-3.5 top-2.5 bottom-2.5 w-[2px] bg-zinc-200 rounded-full" />
+                        
+                        <div className="relative">
+                          <div className="absolute -left-8 top-1 bg-white p-1 rounded-full border border-zinc-200 z-10 shadow-sm">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
                           </div>
-                          <div>
-                            <p className="text-xs uppercase text-gray-400 mb-1">
-                              Drop
-                            </p>
-                            <p className="text-gray-900 font-medium">
-                              {booking.dropAddress}
-                            </p>
-                          </div>
+                          <p className="text-xs uppercase text-zinc-400 font-bold tracking-wider mb-1">Pickup</p>
+                          <p className="text-zinc-900 font-semibold text-lg leading-tight pr-4">
+                            {booking.pickupAddress}
+                          </p>
                         </div>
 
-                        {(booking.passengers || booking.notes) && (
-                          <div className="bg-zinc-50 border border-zinc-100 rounded-xl p-4 mt-4 space-y-3">
-                            <div className="flex items-center gap-4 text-xs font-semibold text-zinc-600">
-                              {booking.passengers && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px]  uppercase text-zinc-400 font-bold">Seats:</span>
-                                  <span className="text-zinc-900 font-bold bg-zinc-200/60 px-2 py-0.5 rounded-md">{booking.passengers} Pax</span>
-                                </div>
-                              )}
-                              {booking.scheduledAt && (
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-[10px]  uppercase text-zinc-400 font-bold">Schedule:</span>
-                                  <span className="text-zinc-900 font-bold bg-zinc-200/60 px-2 py-0.5 rounded-md">
-                                    {new Date(booking.scheduledAt).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
-                                  </span>
-                                </div>
-                              )}
+                        <div className="relative">
+                          <div className="absolute -left-8 top-1 bg-white p-1 rounded-full border border-zinc-200 z-10 shadow-sm">
+                            <div className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                          </div>
+                          <p className="text-xs uppercase text-zinc-400 font-bold tracking-wider mb-1">Drop</p>
+                          <p className="text-zinc-900 font-semibold text-lg leading-tight pr-4">
+                            {booking.dropAddress}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Details Strip */}
+                      {(booking.passengers || booking.notes || booking.dispatch?.etaMinutes) && (
+                        <div className="flex flex-wrap items-center gap-2 mb-6">
+                          {booking.passengers && (
+                            <span className="inline-flex items-center gap-1.5 bg-white border border-zinc-200 text-zinc-700 text-xs font-semibold px-3 py-1.5 rounded-xl shadow-sm">
+                              <span className="text-zinc-400">Seats:</span> {booking.passengers} Pax
+                            </span>
+                          )}
+                          {booking.dispatch?.etaMinutes != null && (
+                            <span className="inline-flex items-center gap-1.5 bg-white border border-zinc-200 text-zinc-700 text-xs font-semibold px-3 py-1.5 rounded-xl shadow-sm">
+                              <Route size={12} className="text-zinc-400" /> {booking.dispatch.etaMinutes} min away
+                            </span>
+                          )}
+                          {booking.notes && (
+                            <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200/50 text-amber-800 text-xs font-semibold px-3 py-1.5 rounded-xl shadow-sm truncate max-w-[200px]">
+                              "{booking.notes}"
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Pricing & Actions */}
+                      <div className="bg-white rounded-[20px] p-5 border border-zinc-200/60 shadow-sm mt-4">
+                        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-6">
+                          <div>
+                            <p className="text-[11px] font-bold tracking-widest text-zinc-400 uppercase mb-1">Customer fare</p>
+                            <div className="flex items-start gap-1 text-4xl font-black text-zinc-900 tracking-tight">
+                              <span className="text-2xl mt-1 text-zinc-400">₹</span>
+                              {booking.fare}
                             </div>
-                            {booking.notes && (
-                              <div className="text-xs border-t border-zinc-200/40 pt-2.5">
-                                <span className="text-[10px] uppercase text-zinc-400 font-bold block mb-1">Driver Instructions:</span>
-                                <p className="text-zinc-800 font-medium italic">"{booking.notes}"</p>
-                              </div>
+                          </div>
+                          <div className="lg:text-right">
+                            <p className="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg inline-block border border-emerald-100">
+                              Your est. earning ₹{partnerEarnings}
+                            </p>
+                            {booking.tripDistanceKm && (
+                              <p className="text-xs font-medium text-zinc-500 mt-2 flex items-center lg:justify-end gap-1.5">
+                                <MapPin size={12} /> {booking.tripDistanceKm} km total trip
+                              </p>
                             )}
                           </div>
-                        )}
-                      </div>
-
-                      <div className="flex flex-col items-stretch lg:items-end gap-5 lg:min-w-[220px]">
-                        <div className="text-left lg:text-right">
-                          <p className="text-xs text-gray-400 uppercase mb-1">
-                            Customer fare
-                          </p>
-                          <div className="flex items-center gap-1 text-3xl font-bold text-gray-900 lg:justify-end">
-                            <IndianRupee size={20} />
-                            {booking.fare}
-                          </div>
-                          <p className="text-xs text-gray-400 mt-1">
-                            Your est. earning ₹{partnerEarnings}
-                            {booking.tripDistanceKm
-                              ? ` · ${booking.tripDistanceKm} km`
-                              : ""}
-                          </p>
                         </div>
 
-                        <div className="flex gap-3">
+                        <div className="flex gap-3 pt-2">
                           <motion.button
-                            whileTap={{ scale: 0.97 }}
+                            whileTap={{ scale: 0.96 }}
                             onClick={() => handleAction(booking._id, "reject")}
                             disabled={processingId === booking._id}
-                            className="flex-1 px-5 py-3 rounded-xl border border-gray-300 bg-white text-gray-700 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50"
+                            className="flex-1 lg:flex-none lg:w-1/3 px-4 py-4 rounded-xl border-2 border-zinc-200 bg-white text-zinc-600 text-sm font-bold hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900 transition-colors disabled:opacity-50"
                           >
                             Decline
                           </motion.button>
                           <motion.button
-                            whileTap={{ scale: 0.97 }}
-                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.96 }}
+                            whileHover={{ scale: 1.01 }}
                             onClick={() => handleAction(booking._id, "accept")}
                             disabled={processingId === booking._id}
-                            className="flex-1 px-6 py-3 rounded-xl bg-zinc-900 text-white text-sm font-semibold shadow-md hover:bg-black disabled:opacity-50 flex items-center justify-center gap-2"
+                            className="flex-2 px-4 py-4 rounded-xl bg-[#B9F5AD] text-emerald-950 text-base font-black shadow-[0_4px_14px_rgba(185,245,173,0.4)] hover:bg-[#a5e998] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                           >
                             {processingId === booking._id ? (
                               <Loader2 className="animate-spin w-5 h-5" />
                             ) : (
                               <>
-                                <Zap size={16} className="text-amber-400" />
-                                Accept
+                                <Zap size={18} className="fill-emerald-950" />
+                                Accept Request
                               </>
                             )}
                           </motion.button>
                         </div>
                       </div>
+
                     </div>
                   </motion.div>
                 );
