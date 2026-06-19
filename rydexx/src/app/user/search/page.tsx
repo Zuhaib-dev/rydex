@@ -2,7 +2,7 @@
 
 import { useSearchParams, useRouter } from "next/navigation";
 import { getMapProps, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
-import { sortKashmirResultsFirst } from "@/lib/kashmirBias";
+import { sortKashmirResultsFirst, KASHMIR_CENTER_LAT, KASHMIR_CENTER_LNG, KASHMIR_RADIUS_METERS } from "@/lib/kashmirBias";
 import { motion, AnimatePresence } from "framer-motion";
 import { Suspense, useState, useEffect, useMemo, useCallback } from "react";
 import dynamic from "next/dynamic";
@@ -247,7 +247,7 @@ function SearchContent() {
     try {
       setSuggestLoading(true);
       const res = await fetch(
-        `https://api.olamaps.io/places/v1/autocomplete?input=${encodeURIComponent(query.trim())}&api_key=${OLA_MAPS_API_KEY}`
+        `https://api.olamaps.io/places/v1/autocomplete?input=${encodeURIComponent(query.trim())}&api_key=${OLA_MAPS_API_KEY}&location=${KASHMIR_CENTER_LAT},${KASHMIR_CENTER_LNG}&radius=${KASHMIR_RADIUS_METERS}`
       );
       const data = await res.json();
       if (data.predictions) {

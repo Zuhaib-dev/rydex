@@ -1,3 +1,7 @@
+export const KASHMIR_CENTER_LAT = 34.0837;
+export const KASHMIR_CENTER_LNG = 74.7973;
+export const KASHMIR_RADIUS_METERS = 50000; // 50 km
+
 export const isKashmirLocation = (name: string): boolean => {
   if (!name) return false;
   const n = name.toLowerCase();

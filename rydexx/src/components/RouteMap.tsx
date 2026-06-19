@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MapPin, Navigation2, Plus, Minus } from "lucide-react";
 
 import { getMapProps, MAP_PROVIDER, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
-import { sortKashmirResultsFirst } from "@/lib/kashmirBias";
+import { sortKashmirResultsFirst, KASHMIR_CENTER_LAT, KASHMIR_CENTER_LNG, KASHMIR_RADIUS_METERS } from "@/lib/kashmirBias";
 
 type Props = {
   pickup: string;
@@ -110,7 +110,7 @@ export default function RouteMap({
   const geocode = async (q: string): Promise<[number, number] | null> => {
     if (!OLA_MAPS_API_KEY) return null;
     try {
-      const r = await fetch(`https://api.olamaps.io/places/v1/autocomplete?input=${encodeURIComponent(q)}&api_key=${OLA_MAPS_API_KEY}`);
+      const r = await fetch(`https://api.olamaps.io/places/v1/autocomplete?input=${encodeURIComponent(q)}&api_key=${OLA_MAPS_API_KEY}&location=${KASHMIR_CENTER_LAT},${KASHMIR_CENTER_LNG}&radius=${KASHMIR_RADIUS_METERS}`);
       const d = await r.json();
       const predictions: { name: string; lat: number; lon: number }[] = d.predictions.map((p: any) => ({
         name: p.description as string,

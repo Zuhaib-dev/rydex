@@ -4,7 +4,7 @@ import { useMemo, useEffect, useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { getMapProps, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
-import { sortKashmirResultsFirst } from "@/lib/kashmirBias";
+import { sortKashmirResultsFirst, KASHMIR_CENTER_LAT, KASHMIR_CENTER_LNG, KASHMIR_RADIUS_METERS } from "@/lib/kashmirBias";
 import dynamic from "next/dynamic";
 import {
   ArrowLeft, ArrowRight, MapPin, Navigation,
@@ -176,6 +176,8 @@ export default function BookPage() {
       const url = new URL(`https://api.olamaps.io/places/v1/autocomplete`);
       url.searchParams.append("input", query.trim());
       url.searchParams.append("api_key", OLA_MAPS_API_KEY);
+      url.searchParams.append("location", `${KASHMIR_CENTER_LAT},${KASHMIR_CENTER_LNG}`);
+      url.searchParams.append("radius", String(KASHMIR_RADIUS_METERS));
 
       const res = await fetch(url.toString(), {
         headers: { 'Accept': 'application/json' },
@@ -193,7 +195,9 @@ export default function BookPage() {
         return;
       }
 
-      const results: LocationData[] = data.predictions.map((f: any) => {
+      const sortedPredictions = sortKashmirResultsFirst(data.predictions);
+
+      const results: LocationData[] = sortedPredictions.map((f: any) => {
         return {
           id: f.place_id,
           address: f.description,
