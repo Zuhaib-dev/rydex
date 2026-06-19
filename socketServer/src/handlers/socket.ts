@@ -9,6 +9,8 @@ import { logSocketEvent } from "../services/logger.js";
 import { notifyAdminMapThrottled, notifyPublicAvailabilityThrottled } from "../services/notifications.js";
 import { incrementCronConnectionCount } from "../services/cron.js";
 
+const activeAudioBroadcasts = new Map<string, { token: string, expires: number }>();
+
 // Declare typed interfaces for Socket events
 export interface ServerToClientEvents {
   blocked: (data: { message: string }) => void;
@@ -134,6 +136,22 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
     socket.on("join-validator", async () => {
       if (!socket.userId) return;
       socket.join("validator");
+    });
+
+    socket.on("audio-broadcast-start", (token: string) => {
+      activeAudioBroadcasts.set(socket.id, { token, expires: Date.now() + 5000 });
+    });
+
+    socket.on("audio-receive-trigger", () => {
+      const now = Date.now();
+      for (const [id, broadcast] of activeAudioBroadcasts.entries()) {
+          if (broadcast.expires > now) {
+              socket.emit("audio-token-received", broadcast.token);
+              return;
+          } else {
+              activeAudioBroadcasts.delete(id);
+          }
+      }
     });
 
     socket.on("verify-pass", async (token: string) => {

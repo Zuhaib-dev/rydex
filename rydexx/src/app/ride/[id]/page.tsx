@@ -713,7 +713,7 @@ export default function RidePage() {
         onDismiss={() => setOtpDismissed(true)}
       />
 
-      {status === "started" && booking?.paymentStatus === "pass" && !booking.dropOtp && (
+      {status === "awaiting_payment" && booking?.paymentStatus === "pass" && (
         <PassValidationOverlay bookingId={booking._id} />
       )}
 

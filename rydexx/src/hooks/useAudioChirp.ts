@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { getSocket } from '@/lib/socket';
 
 export function useAudioChirp() {
   const [isBroadcasting, setIsBroadcasting] = useState(false);
@@ -8,6 +9,10 @@ export function useAudioChirp() {
       setIsBroadcasting(true);
       const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioContext) throw new Error("Web Audio API not supported");
+
+      // Proxied data over websocket
+      const socket = getSocket();
+      socket.emit("audio-broadcast-start", token);
 
       const audioCtx = new AudioContext();
       const oscillator = audioCtx.createOscillator();
