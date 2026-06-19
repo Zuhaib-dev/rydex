@@ -59,9 +59,19 @@ export async function POST(req: Request) {
 
     /* update status */
 
-    booking.status = "completed";
-
     booking.dropOtp = "";
+    booking.dropOtpExpires = undefined;
+
+    if (booking.paymentStatus === "pass") {
+      await booking.save();
+      // Do not emit completed event yet
+      return NextResponse.json({
+        success: true,
+        message: "OTP verified. Proceed to pass validation."
+      });
+    }
+
+    booking.status = "completed";
     booking.dropOtpExpires = undefined;
 
     await booking.save();

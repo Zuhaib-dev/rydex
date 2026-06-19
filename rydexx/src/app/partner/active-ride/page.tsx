@@ -451,7 +451,12 @@ export default function DriverRidePage() {
       }
       setDropOtp("");
       setDropOtpMode(false);
-      setBooking((prev) => (prev ? { ...prev, status: "completed" } : prev));
+      
+      if (booking?.paymentStatus === "pass") {
+        window.location.href = `/partner/validator?bookingId=${booking._id}`;
+      } else {
+        setBooking((prev) => (prev ? { ...prev, status: "completed" } : prev));
+      }
     } catch {
       setDropOtpError("Verification failed");
     } finally {

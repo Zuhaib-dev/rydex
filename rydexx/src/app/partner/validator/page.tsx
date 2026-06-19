@@ -1,14 +1,19 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { getSocket } from "@/lib/socket";
 import { useNfc } from "@/hooks/useNfc";
 import { useAudioListener } from "@/hooks/useAudioListener";
 import { Html5QrcodeScanner } from "html5-qrcode";
 import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle, XCircle, Volume2, SmartphoneNfc, QrCode, ShieldCheck } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default function ValidatorPage() {
+function ValidatorContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const bookingId = searchParams.get("bookingId");
+
   const [status, setStatus] = useState<"idle" | "verifying" | "success" | "error">("idle");
   const [message, setMessage] = useState<string>("");
   const [activeTab, setActiveTab] = useState<"qr" | "nfc" | "audio">("qr");
@@ -24,10 +29,9 @@ export default function ValidatorPage() {
   }, [status, socket]);
 
   useEffect(() => {
-    // socket.emit("identity", "mock_driver_id");
     socket.emit("join-validator");
 
-    const onSuccess = (data: { passId: string; newBalance: number; message: string }) => {
+    const onSuccess = async (data: { passId: string; newBalance: number; message: string }) => {
       setStatus("success");
       setMessage(`${data.message} - ${data.newBalance} rides left`);
       
@@ -46,7 +50,24 @@ export default function ValidatorPage() {
       osc.start();
       osc.stop(audioCtx.currentTime + 0.3);
 
-      setTimeout(() => setStatus("idle"), 3000);
+      if (bookingId) {
+        try {
+          await fetch("/api/partner/bookings/complete-pass-ride", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bookingId })
+          });
+        } catch (err) {
+          console.error("Failed to complete pass ride", err);
+        }
+      }
+
+      setTimeout(() => {
+        setStatus("idle");
+        if (bookingId) {
+          router.push("/partner/active-ride");
+        }
+      }, 3000);
     };
 
     const onError = (data: { message: string }) => {
@@ -77,7 +98,7 @@ export default function ValidatorPage() {
       socket.off("validation:success", onSuccess);
       socket.off("validation:failure", onError);
     };
-  }, [socket]);
+  }, [socket, bookingId, router]);
 
   useEffect(() => {
     if (activeTab === "qr") {
@@ -122,6 +143,10 @@ export default function ValidatorPage() {
 
   return (
     <div className="min-h-screen bg-neutral-900 text-white font-sans flex flex-col">
+      <style dangerouslySetInnerHTML={{ __html: `
+        #qr-reader__dashboard_section_swaplink { display: none !important; }
+        #qr-reader__dashboard_section_csr span { display: none !important; }
+      `}} />
       <header className="bg-neutral-950 p-4 shadow-md flex items-center justify-between z-10">
         <div className="flex items-center gap-2 text-emerald-400">
           <ShieldCheck size={28} />
@@ -205,7 +230,7 @@ export default function ValidatorPage() {
           </div>
 
           {/* Mode Selector */}
-          <div className="mt-6 flex bg-neutral-800 p-2 rounded-2xl">
+          <div className="mt-6 flex bg-neutral-800 p-2 rounded-2xl gap-2">
             <button
               onClick={() => setActiveTab("qr")}
               className={`flex-1 flex flex-col items-center py-3 rounded-xl transition-all ${
@@ -216,10 +241,11 @@ export default function ValidatorPage() {
               <span className="text-xs font-semibold">QR Scan</span>
             </button>
             <button
+              disabled={!nfc.isSupported}
               onClick={() => setActiveTab("nfc")}
               className={`flex-1 flex flex-col items-center py-3 rounded-xl transition-all ${
                 activeTab === "nfc" ? "bg-indigo-600/30 text-indigo-300 shadow-md" : "text-neutral-500 hover:text-neutral-300"
-              }`}
+              } ${!nfc.isSupported ? "opacity-30 cursor-not-allowed" : ""}`}
             >
               <SmartphoneNfc size={24} className="mb-1" />
               <span className="text-xs font-semibold">NFC</span>
@@ -237,5 +263,13 @@ export default function ValidatorPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function ValidatorPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-neutral-900 flex items-center justify-center text-white">Loading...</div>}>
+      <ValidatorContent />
+    </Suspense>
   );
 }

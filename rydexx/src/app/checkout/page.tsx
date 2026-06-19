@@ -66,9 +66,10 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online" | null>(
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online" | "pass" | null>(
     null,
   );
+  const [hasPass, setHasPass] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
 
   /* ── CREATE BOOKING (uses locked quote only) ── */
@@ -127,12 +128,12 @@ function CheckoutContent() {
 
   try {
 
-    if (paymentMethod === "cash") {
+    if (paymentMethod === "cash" || paymentMethod === "pass") {
 
       const res = await fetch(`/api/booking/${bookingId}/confirm-payment`, {
         method:"POST",
         headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ method:"cash" })
+        body:JSON.stringify({ method: paymentMethod })
       });
 
       const data = await res.json();
@@ -297,6 +298,15 @@ function CheckoutContent() {
         setBookingId(data.booking._id);
         setStatus(data.booking.status);
       }
+
+      try {
+        const pRes = await fetch("/api/pass/my-passes");
+        const pData = await pRes.json();
+        if (pData.success && pData.passes.length > 0) {
+          setHasPass(true);
+        }
+      } catch (err) {}
+
       setBootstrapped(true);
     })();
   }, []);
@@ -669,6 +679,7 @@ function CheckoutContent() {
 
                     <div className="space-y-3">
                       {[
+                        ...(hasPass ? [{ id: "pass", Icon: ShieldCheck, title: "Smart Pass", sub: "Tap to pay at end of ride" }] : []),
                         { id: "cash",   Icon: Banknote,    title: "Cash",           sub: "Pay driver after ride" },
                         { id: "online", Icon: Wallet,      title: "Online Payment",  sub: "UPI · Card · Netbanking" },
                       ].map(({ id, Icon, title, sub }) => {
@@ -714,6 +725,8 @@ function CheckoutContent() {
                         ? <Loader2 size={17} className="animate-spin" />
                         : paymentMethod === "cash"
                         ? <><Banknote size={16} /><span>Confirm Cash Ride</span></>
+                        : paymentMethod === "pass"
+                        ? <><ShieldCheck size={16} /><span>Confirm Pass Ride</span></>
                         : paymentMethod === "online"
                         ? <><span>Proceed to Payment</span><ArrowRight size={16} /></>
                         : <span>Select a Method</span>

@@ -52,10 +52,10 @@ export async function POST(
 
 
   booking.status = "confirmed";
-  booking.paymentStatus = method === "cash" ? "cash" : "paid";
+  booking.paymentStatus = method === "cash" ? "cash" : method === "pass" ? "pass" : "paid";
   booking.paymentDeadline = undefined;
 
-  if (method === "cash") {
+  if (method === "cash" || method === "pass") {
     const { partnerAmount, adminCommission } = applyCommissionSplit(booking.fare);
     booking.adminCommission = adminCommission;
     booking.partnerAmount = partnerAmount;

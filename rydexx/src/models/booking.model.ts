@@ -17,7 +17,8 @@ export type PaymentStatus =
   | "pending"
   | "paid"
   | "cash"
-  | "failed";
+  | "failed"
+  | "pass";
 
 export interface IBooking extends Document {
   user: Types.ObjectId;

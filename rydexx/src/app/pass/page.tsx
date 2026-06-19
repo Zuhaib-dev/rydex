@@ -6,11 +6,14 @@ import { useNfc } from "@/hooks/useNfc";
 import { useAudioChirp } from "@/hooks/useAudioChirp";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "motion/react";
-import { ShieldCheck, Wifi, Radio, SmartphoneNfc, AlertCircle, X, CheckCircle } from "lucide-react";
-
-const MOCK_PASS_ID = "60b9b3b3e6b3a3b3e6b3a3b3"; // Valid ObjectId mock
+import { ShieldCheck, Wifi, Radio, SmartphoneNfc, AlertCircle, X, CheckCircle, CreditCard, Loader2 } from "lucide-react";
 
 export default function PassPage() {
+  const [passes, setPasses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [buying, setBuying] = useState(false);
+
+  const [activePassId, setActivePassId] = useState<string | null>(null);
   const [isBoarding, setIsBoarding] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [isVerified, setIsVerified] = useState(false);
@@ -22,36 +25,44 @@ export default function PassPage() {
   const nfc = useNfc();
   const audio = useAudioChirp();
 
-  const requestToken = useCallback(() => {
-    socket.emit("request-pass-token", { passId: MOCK_PASS_ID });
-  }, [socket]);
+  const fetchPasses = async () => {
+    try {
+      const res = await fetch("/api/pass/my-passes");
+      const data = await res.json();
+      if (data.success) {
+        setPasses(data.passes);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Authenticate socket using a mocked user ID for the demo if real auth isn't active
-    // In a real app, this happens globally
-    // socket.emit("identity", "mock_user_id");
+    fetchPasses();
+  }, []);
 
+  const requestToken = useCallback(() => {
+    if (activePassId) {
+      socket.emit("request-pass-token", { passId: activePassId });
+    }
+  }, [socket, activePassId]);
+
+  useEffect(() => {
     const onTokenResponse = (data: { token: string; expiresAt: number }) => {
       setToken(data.token);
       if (isBoarding) {
-        if (useNfcBroadcast && nfc.isSupported) {
-          nfc.write(data.token);
-        }
-        if (useAudio) {
-          audio.broadcastToken(data.token);
-        }
+        if (useNfcBroadcast && nfc.isSupported) nfc.write(data.token);
+        if (useAudio) audio.broadcastToken(data.token);
       }
     };
-
-    const onTokenError = (data: { message: string }) => {
-      setError(data.message);
-    };
-
+    const onTokenError = (data: { message: string }) => setError(data.message);
     const onValidationSuccess = (data: { passId: string; newBalance: number; message: string }) => {
-      if (data.passId === MOCK_PASS_ID) {
+      if (data.passId === activePassId) {
         setIsVerified(true);
         setIsBoarding(false);
-        // Reset after 5s
+        fetchPasses(); // refresh pass data to show new balance
         setTimeout(() => setIsVerified(false), 5000);
       }
     };
@@ -59,68 +70,150 @@ export default function PassPage() {
     socket.on("pass-token-response", onTokenResponse);
     socket.on("pass-token-error", onTokenError);
     socket.on("validation:success", onValidationSuccess);
-
     return () => {
       socket.off("pass-token-response", onTokenResponse);
       socket.off("pass-token-error", onTokenError);
       socket.off("validation:success", onValidationSuccess);
     };
-  }, [socket, isBoarding, useAudio, useNfcBroadcast, nfc, audio]);
+  }, [socket, isBoarding, useAudio, useNfcBroadcast, nfc, audio, activePassId]);
 
-  // Refresh token every 10 seconds while boarding
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isBoarding && !isVerified) {
-      requestToken(); // Initial fetch
+    if (isBoarding && !isVerified && activePassId) {
+      requestToken();
       interval = setInterval(requestToken, 10000);
     }
     return () => clearInterval(interval);
-  }, [isBoarding, isVerified, requestToken]);
+  }, [isBoarding, isVerified, requestToken, activePassId]);
+
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if ((window as any).Razorpay) return resolve(true);
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleBuyPass = async () => {
+    setBuying(true);
+    try {
+      const loaded = await loadRazorpayScript();
+      if (!loaded) return alert("Failed to load Razorpay");
+
+      const res = await fetch("/api/pass/purchase/create", { method: "POST" });
+      const order = await res.json();
+      if (order.error) throw new Error(order.error);
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
+        amount: order.amount,
+        currency: "INR",
+        name: "RYDEX Passes",
+        description: "7-Day Commuter Pass",
+        order_id: order.orderId,
+        handler: async (response: any) => {
+          const verify = await fetch("/api/pass/purchase/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(response)
+          });
+          const result = await verify.json();
+          if (result.success) {
+            fetchPasses();
+          } else {
+            alert("Verification failed");
+          }
+        }
+      };
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+    } catch (err: any) {
+      alert("Purchase failed: " + err.message);
+    } finally {
+      setBuying(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
+        <Loader2 className="animate-spin text-indigo-500" size={48} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white font-sans p-6">
-      {/* Dashboard */}
       <div className="max-w-md mx-auto space-y-8 mt-12">
         <header className="text-center">
           <h1 className="text-3xl font-bold tracking-tight text-white/90">My Passes</h1>
           <p className="text-neutral-400 mt-2">Manage your active subscriptions</p>
         </header>
 
-        <motion.div 
-          className="bg-linear-to-br from-indigo-500/20 to-purple-600/20 border border-white/10 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl"
-          whileHover={{ scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        >
-          <div className="absolute top-0 left-0 w-full h-full bg-noise opacity-10 pointer-events-none"></div>
-          <div className="flex justify-between items-start mb-8">
-            <div>
-              <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-indigo-300 to-purple-300">7-Day Commuter</h2>
-              <p className="text-indigo-200/60 text-sm mt-1">Unlimited City Rides</p>
+        {passes.length === 0 ? (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 text-center space-y-6 shadow-xl">
+            <div className="w-20 h-20 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto">
+              <ShieldCheck size={40} className="text-indigo-400" />
             </div>
-            <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-              Active
-            </div>
-          </div>
-
-          <div className="flex justify-between items-end">
             <div>
-              <p className="text-3xl font-mono tracking-tighter">14</p>
-              <p className="text-xs text-neutral-400 uppercase tracking-widest mt-1">Rides Left</p>
+              <h2 className="text-2xl font-bold text-white mb-2">7-Day Commuter</h2>
+              <p className="text-neutral-400 text-sm">Get 10 rides to use anytime within 7 days. Skip the payment process and simply tap your phone with the driver to ride.</p>
+            </div>
+            <div className="text-3xl font-black text-indigo-400 border-y border-neutral-800 py-4">
+              ₹500 <span className="text-sm font-medium text-neutral-500 tracking-wide uppercase">/ 10 rides</span>
             </div>
             <button 
-              onClick={() => setIsBoarding(true)}
-              className="bg-white text-black font-semibold px-6 py-3 rounded-full hover:bg-neutral-200 transition-colors active:scale-95"
+              onClick={handleBuyPass}
+              disabled={buying}
+              className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
             >
-              Tap to Board
+              {buying ? <Loader2 size={20} className="animate-spin" /> : <CreditCard size={20} />}
+              {buying ? "Processing..." : "Purchase Pass Now"}
             </button>
           </div>
-        </motion.div>
+        ) : (
+          passes.map(pass => (
+            <motion.div 
+              key={pass._id}
+              className="bg-linear-to-br from-indigo-500/20 to-purple-600/20 border border-white/10 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl"
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <div className="absolute top-0 left-0 w-full h-full bg-noise opacity-10 pointer-events-none"></div>
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-indigo-300 to-purple-300">{pass.type}</h2>
+                  <p className="text-indigo-200/60 text-sm mt-1">Expires: {new Date(pass.expiresAt).toLocaleDateString()}</p>
+                </div>
+                <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                  Active
+                </div>
+              </div>
+
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-3xl font-mono tracking-tighter">{pass.balance}</p>
+                  <p className="text-xs text-neutral-400 uppercase tracking-widest mt-1">Rides Left</p>
+                </div>
+                <button 
+                  onClick={() => { setActivePassId(pass._id); setIsBoarding(true); }}
+                  disabled={pass.balance <= 0}
+                  className="bg-white text-black font-semibold px-6 py-3 rounded-full hover:bg-neutral-200 transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Tap to Board
+                </button>
+              </div>
+            </motion.div>
+          ))
+        )}
       </div>
 
-      {/* Boarding Overlay */}
       <AnimatePresence>
-        {isBoarding && (
+        {isBoarding && activePassId && (
           <motion.div 
             initial={{ opacity: 0, y: "100%" }}
             animate={{ opacity: 1, y: 0 }}
@@ -128,7 +221,7 @@ export default function PassPage() {
             className="fixed inset-0 z-50 bg-neutral-900/95 backdrop-blur-3xl flex flex-col items-center justify-center p-6"
           >
             <button 
-              onClick={() => setIsBoarding(false)}
+              onClick={() => { setIsBoarding(false); setActivePassId(null); }}
               className="absolute top-8 right-8 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition"
             >
               <X size={24} />
@@ -186,7 +279,6 @@ export default function PassPage() {
         )}
       </AnimatePresence>
 
-      {/* Success Overlay */}
       <AnimatePresence>
         {isVerified && (
           <motion.div 
