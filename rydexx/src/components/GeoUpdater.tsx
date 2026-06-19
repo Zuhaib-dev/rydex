@@ -29,19 +29,36 @@ function GeoUpdater({ userId }: { userId: string | undefined }) {
     };
   }, [userId]);
 
+  const posRef = useRef(position);
   useEffect(() => {
-    if (!userId || !position) return;
-    const now = Date.now();
+    posRef.current = position;
+  }, [position]);
 
-    if (now - lastSentRef.current < PARTNER_GEO_PUSH_INTERVAL_MS) return;
-    lastSentRef.current = now;
+  useEffect(() => {
+    if (!userId) return;
 
-    socketRef.current?.emit("update-location", {
-      userId,
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-    });
-  }, [userId, position]);
+    // Send heartbeat immediately on mount if we have a position
+    if (posRef.current) {
+      socketRef.current?.emit("update-location", {
+        userId,
+        latitude: posRef.current.coords.latitude,
+        longitude: posRef.current.coords.longitude,
+      });
+    }
+
+    // Set interval to send heartbeats continuously even if position doesn't change
+    const interval = setInterval(() => {
+      const pos = posRef.current;
+      if (!pos) return;
+      socketRef.current?.emit("update-location", {
+        userId,
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+    }, PARTNER_GEO_PUSH_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [userId]);
 
   return null;
 }

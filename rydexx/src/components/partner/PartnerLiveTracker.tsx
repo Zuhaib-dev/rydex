@@ -61,19 +61,39 @@ export default function PartnerLiveTracker() {
     };
   }, [session?.user?.id, status]);
 
+  const posRef = useRef(position);
   useEffect(() => {
-    if (!position || status !== "authenticated" || !session?.user?.id) return;
-    const now = Date.now();
-    if (now - lastSentRef.current < PARTNER_GEO_PUSH_INTERVAL_MS) return;
-    lastSentRef.current = now;
+    posRef.current = position;
+  }, [position]);
+
+  useEffect(() => {
+    if (status !== "authenticated" || !session?.user?.id) return;
 
     const socket = getSocket();
-    socket.emit("update-location", {
-      userId: session.user.id,
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-    });
-  }, [position, session?.user?.id, status]);
+    const userId = session.user.id;
+
+    // Send heartbeat immediately on mount if we have a position
+    if (posRef.current) {
+      socket.emit("update-location", {
+        userId,
+        latitude: posRef.current.coords.latitude,
+        longitude: posRef.current.coords.longitude,
+      });
+    }
+
+    // Set interval to send heartbeats continuously even if position doesn't change
+    const interval = setInterval(() => {
+      const pos = posRef.current;
+      if (!pos) return;
+      socket.emit("update-location", {
+        userId,
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+      });
+    }, PARTNER_GEO_PUSH_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [session?.user?.id, status]);
 
   useEffect(() => {
     if (error && error.code !== error.POSITION_UNAVAILABLE) {
