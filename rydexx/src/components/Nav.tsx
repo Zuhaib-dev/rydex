@@ -22,6 +22,7 @@ import {
   ClipboardList,
   Star,
   Fingerprint,
+  User as UserIcon,
 } from "lucide-react";
 import AuthModal from "./AuthModel";
 import { startRegistration } from "@simplewebauthn/browser";
@@ -753,6 +754,15 @@ function ProfileContent({
       </div>
 
       <div className="border-t border-gray-100 px-3 py-3">
+        <button
+          onClick={() => router.push(role === "partner" ? "/partner/profile" : "/profile")}
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
+        >
+          <UserIcon size={17} />
+          Profile
+          <ChevronRight size={16} className="ml-auto text-gray-400" />
+        </button>
+
         <button
           onClick={() => router.push("/bookings")}
           className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
