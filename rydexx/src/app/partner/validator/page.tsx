@@ -207,7 +207,7 @@ function ValidatorContent() {
             {activeTab === "qr" && (
               <div className="relative w-full h-full flex flex-col items-center justify-center bg-black">
                 <div id="qr-reader" className="w-full h-full [&>video]:object-cover" />
-                <div className="absolute inset-0 border-[30px] border-black/60 pointer-events-none"></div>
+                <div className="absolute inset-0 border-30 border-black/60 pointer-events-none"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border-2 border-emerald-500/50 rounded-3xl pointer-events-none overflow-hidden flex items-start">
                   <motion.div 
                     animate={{ y: [0, 248, 0] }}
