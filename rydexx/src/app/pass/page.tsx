@@ -173,10 +173,17 @@ export default function PassPage() {
                 <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-indigo-300 to-purple-300">{pass.type}</h2>
                 <p className="text-indigo-200/60 text-sm mt-1">Expires: {new Date(pass.expiresAt).toLocaleDateString()}</p>
               </div>
-              <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                Active
-              </div>
+              {pass.balance > 0 ? (
+                <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                  Active
+                </div>
+              ) : (
+                <div className="bg-neutral-500/20 text-neutral-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-400"></span>
+                  Ended
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between items-end">
@@ -189,7 +196,7 @@ export default function PassPage() {
                 disabled={pass.balance <= 0}
                 className="bg-white text-black font-semibold px-6 py-3 rounded-full hover:bg-neutral-200 transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Tap to Board
+                {pass.balance > 0 ? "Tap to Board" : "Pass Ended"}
               </button>
             </div>
           </motion.div>
