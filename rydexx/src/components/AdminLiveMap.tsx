@@ -119,6 +119,7 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
   const [followMode, setFollowMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "available" | "active" | "sos">("all");
+  const [vehicleFilter, setVehicleFilter] = useState<"all" | "bike" | "auto" | "car" | "truck" | "loading">("all");
   const [mapStyle, setMapStyle] = useState("mapbox://styles/mapbox/dark-v11");
   const [resolvingSosId, setResolvingSosId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"assets" | "pending">("assets");
@@ -349,6 +350,21 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
     }
   };
 
+  const handleRemoteAction = async (driverId: string, action: "ping" | "logout") => {
+    const toastId = toast.loading(`Sending ${action} command...`);
+    try {
+      const res = await axios.post("/api/admin/drivers/remote", { driverId, action });
+      if (res.data.success) {
+        toast.success(`Command '${action}' sent successfully`, { id: toastId });
+        if (action === "logout") setSelectedDriverId(null);
+      } else {
+        throw new Error("Failed");
+      }
+    } catch (err) {
+      toast.error(`Failed to send command`, { id: toastId });
+    }
+  };
+
   const getVehicleIcon = (type: string) => {
     switch (type) {
       case "bike": return <Bike size={16} />;
@@ -453,7 +469,19 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
     })),
   };
 
-  // Filter and Search Drivers
+  const counts = useMemo(() => {
+    let available = 0, active = 0, sos = 0;
+    drivers.forEach(d => {
+      if (vehicleFilter !== "all" && d.vehicleType?.toLowerCase() !== vehicleFilter) return;
+      const isOnRide = activeRideDriverIds.has(String(d._id));
+      const isSos = sosDriverIds.has(String(d._id));
+      if (isSos) sos++;
+      else if (isOnRide) active++;
+      else available++;
+    });
+    return { all: available + active + sos, available, active, sos };
+  }, [drivers, activeRideDriverIds, sosDriverIds, vehicleFilter]);
+
   const filteredDrivers = useMemo(() => {
     return drivers.filter((driver) => {
       const matchesSearch = 
@@ -461,6 +489,7 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
         (driver.email?.toLowerCase() || "").includes(searchQuery.toLowerCase());
       
       if (!matchesSearch) return false;
+      if (vehicleFilter !== "all" && driver.vehicleType?.toLowerCase() !== vehicleFilter) return false;
 
       const isOnRide = activeRideDriverIds.has(String(driver._id));
       const isSos = sosDriverIds.has(String(driver._id));
@@ -470,7 +499,7 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
       if (filterStatus === "sos") return isSos;
       return true;
     });
-  }, [drivers, searchQuery, filterStatus, activeRideDriverIds, sosDriverIds]);
+  }, [drivers, searchQuery, filterStatus, vehicleFilter, activeRideDriverIds, sosDriverIds]);
 
   const selectedDriver = useMemo(() => {
     return drivers.find(d => d._id === selectedDriverId) || null;
@@ -568,19 +597,37 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
               </div>
             </div>
 
-            {/* Quick Filter Tabs */}
+            {/* Vehicle Type Filters */}
+            <div className="px-4 py-2 border-b border-gray-50 flex gap-1 overflow-x-auto scrollbar-hide shrink-0">
+              {(["all", "bike", "auto", "car", "truck", "loading"] as const).map((vType) => (
+                <button
+                  key={vType}
+                  onClick={() => setVehicleFilter(vType)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-1 ${
+                    vehicleFilter === vType
+                      ? "bg-zinc-200 text-black border border-zinc-300"
+                      : "text-gray-400 hover:bg-gray-50 hover:text-gray-600 border border-transparent"
+                  }`}
+                >
+                  {vType !== "all" && getVehicleIcon(vType)}
+                  {vType}
+                </button>
+              ))}
+            </div>
+
+            {/* Quick Filter Tabs with Counts */}
             <div className="px-4 py-2 border-b border-gray-50 flex gap-1 overflow-x-auto scrollbar-hide shrink-0">
               {(["all", "available", "active", "sos"] as const).map((statusVal) => (
                 <button
                   key={statusVal}
                   onClick={() => setFilterStatus(statusVal)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap ${
                     filterStatus === statusVal
                       ? "bg-black text-white"
                       : "text-gray-400 hover:bg-gray-50 hover:text-gray-600"
                   }`}
                 >
-                  {statusVal}
+                  {statusVal} ({counts[statusVal]})
                 </button>
               ))}
             </div>
@@ -1221,6 +1268,29 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
                   This unit is currently idle and available for bookings.
                 </div>
               )}
+
+              {/* Remote Actions */}
+              <div className="space-y-3 pt-5 border-t border-gray-100">
+                <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Remote Commands</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => handleRemoteAction(selectedDriver._id, "ping")}
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors text-xs font-bold"
+                  >
+                    <Radio size={14} /> Ping
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (confirm("Force log out this driver? They will be signed out immediately.")) {
+                        handleRemoteAction(selectedDriver._id, "logout");
+                      }
+                    }}
+                    className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-red-200 bg-red-50 text-red-700 hover:bg-red-100 transition-colors text-xs font-bold"
+                  >
+                    <Lock size={14} /> Force Logout
+                  </button>
+                </div>
+              </div>
             </div>
           </motion.aside>
         )}
