@@ -170,7 +170,7 @@ export default function ValidatorPage() {
             )}
 
             {activeTab === "nfc" && (
-              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-b from-neutral-800 to-indigo-900/40">
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-linear-to-b from-neutral-800 to-indigo-900/40">
                 <div className="w-32 h-32 rounded-full bg-indigo-500/20 flex items-center justify-center mb-6 relative">
                   <div className="absolute inset-0 rounded-full border-[3px] border-indigo-500/30 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
                   <SmartphoneNfc size={48} className="text-indigo-400" />
@@ -186,7 +186,7 @@ export default function ValidatorPage() {
             )}
 
             {activeTab === "audio" && (
-              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-gradient-to-b from-neutral-800 to-blue-900/40">
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-linear-to-b from-neutral-800 to-blue-900/40">
                 <div className="w-32 h-32 rounded-full bg-blue-500/20 flex items-center justify-center mb-6 relative">
                   <div className="absolute inset-0 rounded-full border-[3px] border-blue-500/30 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
                   <Volume2 size={48} className="text-blue-400" />

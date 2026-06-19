@@ -87,14 +87,14 @@ export default function PassPage() {
         </header>
 
         <motion.div 
-          className="bg-gradient-to-br from-indigo-500/20 to-purple-600/20 border border-white/10 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl"
+          className="bg-linear-to-br from-indigo-500/20 to-purple-600/20 border border-white/10 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl"
           whileHover={{ scale: 1.02 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
         >
           <div className="absolute top-0 left-0 w-full h-full bg-noise opacity-10 pointer-events-none"></div>
           <div className="flex justify-between items-start mb-8">
             <div>
-              <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-300 to-purple-300">7-Day Commuter</h2>
+              <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-indigo-300 to-purple-300">7-Day Commuter</h2>
               <p className="text-indigo-200/60 text-sm mt-1">Unlimited City Rides</p>
             </div>
             <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
@@ -134,7 +134,7 @@ export default function PassPage() {
               <X size={24} />
             </button>
 
-            <h2 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-emerald-400">
+            <h2 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-emerald-400">
               Ready to Board
             </h2>
 
@@ -146,7 +146,7 @@ export default function PassPage() {
                   Generating Token...
                 </div>
               )}
-              <div className="absolute -inset-4 border-2 border-emerald-500/30 rounded-[2rem] animate-pulse pointer-events-none"></div>
+              <div className="absolute -inset-4 border-2 border-emerald-500/30 rounded-4xl animate-pulse pointer-events-none"></div>
             </div>
 
             <p className="text-neutral-400 mb-8 max-w-xs text-center text-sm">
@@ -193,7 +193,7 @@ export default function PassPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
-            className="fixed inset-0 z-[60] bg-emerald-500 flex flex-col items-center justify-center p-6 text-white"
+            className="fixed inset-0 z-60 bg-emerald-500 flex flex-col items-center justify-center p-6 text-white"
           >
             <motion.div
               initial={{ scale: 0 }}
