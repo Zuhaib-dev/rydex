@@ -64,26 +64,18 @@ export default function PartnerAnalytics() {
   const { summary, charts } = data;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-amber-400 selection:text-black pb-20">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-zinc-950/80 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/" className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors">
-              <ChevronLeft size={18} />
-            </Link>
-            <h1 className="text-lg font-black tracking-tight flex items-center gap-2">
-              <Activity size={18} className="text-amber-400" />
-              Performance Hub
-            </h1>
-          </div>
-          <div className="bg-amber-400/10 text-amber-400 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-400/20">
-            Pro Status
-          </div>
+    <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Analytics</h1>
+          <p className="text-gray-500 mt-1">Track your earnings, performance, and rides.</p>
         </div>
-      </header>
+        <div className="bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border border-amber-200">
+          Pro Status
+        </div>
+      </div>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 pt-8 space-y-6">
+      <div className="space-y-6">
         
         {/* Metric Cards Grid */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -139,28 +131,25 @@ export default function PartnerAnalytics() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.5 }}
-          className="bg-white/5 border border-white/10 rounded-4xl p-6 backdrop-blur-md relative overflow-hidden"
+          className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm relative overflow-hidden"
         >
-          {/* Decorative glow */}
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1/2 bg-amber-400/5 blur-[100px] rounded-full pointer-events-none" />
-          
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 relative z-10 gap-4">
             <div>
-              <h2 className="text-xl font-bold tracking-tight">Earnings Over Time</h2>
-              <p className="text-xs text-zinc-400 mt-1">
+              <h2 className="text-xl font-bold tracking-tight text-gray-900">Earnings Over Time</h2>
+              <p className="text-xs text-gray-500 mt-1">
                 {chartTab === "daily" ? "Last 14 days" : chartTab === "weekly" ? "Last 6 weeks" : "Last 6 months"}
               </p>
             </div>
             
-            <div className="flex p-1 bg-zinc-900 rounded-xl border border-white/5">
+            <div className="flex p-1 bg-gray-50 rounded-xl border border-gray-200">
               {(["daily", "weekly", "monthly"] as const).map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setChartTab(tab)}
                   className={`px-4 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
                     chartTab === tab 
-                      ? "bg-zinc-800 text-white shadow-sm" 
-                      : "text-zinc-500 hover:text-zinc-300"
+                      ? "bg-white text-gray-900 shadow-sm border border-gray-200" 
+                      : "text-gray-500 hover:text-gray-700"
                   }`}
                 >
                   {tab}
@@ -178,22 +167,22 @@ export default function PartnerAnalytics() {
                     <stop offset="95%" stopColor="#fbbf24" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                 <XAxis 
                   dataKey="date" 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#71717a', fontSize: 12 }} 
+                  tick={{ fill: '#6b7280', fontSize: 12 }} 
                   dy={10}
                 />
                 <YAxis 
                   axisLine={false} 
                   tickLine={false} 
-                  tick={{ fill: '#71717a', fontSize: 12 }}
+                  tick={{ fill: '#6b7280', fontSize: 12 }}
                   tickFormatter={(val) => `₹${val}`}
                 />
                 <Tooltip 
-                  contentStyle={{ backgroundColor: '#18181b', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}
+                  contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e5e7eb', color: '#111827' }}
                   itemStyle={{ color: '#fbbf24' }}
                 />
                 <Area 
@@ -216,37 +205,37 @@ export default function PartnerAnalytics() {
           transition={{ duration: 0.5, delay: 0.6 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-4"
         >
-          <div className="bg-linear-to-br from-zinc-900 to-zinc-950 border border-white/5 rounded-3xl p-5 flex items-center justify-between shadow-2xl">
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <Car size={20} className="text-blue-400" />
+              <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center">
+                <Car size={20} className="text-blue-500" />
               </div>
               <div>
-                <p className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">Total Rides</p>
-                <p className="text-2xl font-black mt-0.5">{summary.totalRides}</p>
+                <p className="text-xs text-gray-500 font-semibold tracking-wide">Total Rides</p>
+                <p className="text-2xl font-black text-gray-900 mt-0.5">{summary.totalRides}</p>
               </div>
             </div>
-            <Award size={32} className="text-zinc-800" />
+            <Award size={32} className="text-gray-200" />
           </div>
 
-          <div className="bg-linear-to-br from-zinc-900 to-zinc-950 border border-white/5 rounded-3xl p-5 flex items-center justify-between shadow-2xl">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
-                <Activity size={20} className="text-emerald-400" />
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+            <div className="flex items-center gap-4 relative z-10">
+              <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center">
+                <Activity size={20} className="text-emerald-500" />
               </div>
               <div>
-                <p className="text-xs text-zinc-400 font-semibold uppercase tracking-wider">Distance Covered</p>
-                <p className="text-2xl font-black mt-0.5">{summary.totalDistanceKm} <span className="text-base font-medium text-zinc-500">km</span></p>
+                <p className="text-xs text-gray-500 font-semibold tracking-wide">Distance Covered</p>
+                <p className="text-2xl font-black text-gray-900 mt-0.5">{summary.totalDistanceKm} <span className="text-base font-medium text-gray-400">km</span></p>
               </div>
             </div>
-            <div className="w-16 h-8 rounded-full bg-emerald-500/20 blur-xl absolute right-8" />
+            <div className="w-16 h-8 rounded-full bg-emerald-500/10 blur-xl absolute right-8" />
           </div>
 
-          <div className="bg-linear-to-br from-zinc-900 to-zinc-950 border border-white/5 rounded-3xl p-5 flex items-center justify-between shadow-2xl relative overflow-hidden">
+          <div className="bg-white border border-gray-200 rounded-2xl p-5 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
             <div className="flex flex-col h-full justify-center z-10">
-              <p className="text-xs text-zinc-400 font-semibold uppercase tracking-wider mb-1">Success Rate</p>
+              <p className="text-xs text-gray-500 font-semibold tracking-wide mb-1">Success Rate</p>
               <div className="flex items-end gap-2">
-                <p className="text-2xl font-black">{summary.completionRate || 100}%</p>
+                <p className="text-2xl font-black text-gray-900">{summary.completionRate || 100}%</p>
               </div>
             </div>
             <div className="w-24 h-24 absolute right-2 top-1/2 -translate-y-1/2">
@@ -257,18 +246,18 @@ export default function PartnerAnalytics() {
                   innerRadius="60%" 
                   outerRadius="90%" 
                   barSize={8} 
-                  data={[{ name: "Rate", value: summary.completionRate || 100, fill: "#fbbf24" }]}
+                  data={[{ name: "Rate", value: summary.completionRate || 100, fill: "#10b981" }]}
                   startAngle={90}
                   endAngle={-270}
                 >
-                  <RadialBar background={{ fill: 'rgba(255,255,255,0.05)' }} cornerRadius={10} dataKey="value" />
+                  <RadialBar background={{ fill: '#f3f4f6' }} cornerRadius={10} dataKey="value" />
                 </RadialBarChart>
               </ResponsiveContainer>
             </div>
           </div>
         </motion.div>
 
-      </main>
+      </div>
     </div>
   );
 }
@@ -279,16 +268,18 @@ function MetricCard({ title, value, icon, trend, delay }: { title: string, value
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
-      className="bg-white/5 border border-white/10 rounded-4xl p-5 backdrop-blur-md hover:bg-white/10 transition-colors cursor-default"
+      className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow"
     >
-      <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center mb-4 shadow-inner border border-white/5">
-        {icon}
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-xs text-gray-500 font-semibold tracking-wide">{title}</p>
+        <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-700">
+          {icon}
+        </div>
       </div>
-      <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest mb-1">{title}</p>
-      <p className="text-2xl lg:text-3xl font-black tracking-tight mb-2">{value}</p>
-      <div className="flex items-center gap-1.5">
-        <TrendingUp size={12} className="text-zinc-500" />
-        <span className="text-[10px] text-zinc-500 font-medium">{trend}</span>
+      <p className="text-2xl lg:text-3xl font-black text-gray-900 tracking-tight mb-1">{value}</p>
+      <div className="flex items-center gap-1">
+        <TrendingUp size={14} className="text-emerald-500" />
+        <span className="text-xs text-emerald-600 font-medium">{trend}</span>
       </div>
     </motion.div>
   );

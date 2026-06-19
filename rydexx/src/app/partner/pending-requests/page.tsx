@@ -193,40 +193,11 @@ export default function VendorPendingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f5f7]">
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-6 py-12">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-start gap-4">
-              <button
-                onClick={() => router.back()}
-                className="w-11 h-11 rounded-xl border border-gray-200 bg-white flex items-center justify-center hover:bg-gray-50 shrink-0"
-                aria-label="Go back"
-              >
-                <ArrowLeft size={18} />
-              </button>
-              <div>
-                <h1 className="text-4xl font-semibold text-gray-900">
-                  Ride Requests
-                </h1>
-                <p className="mt-3 text-gray-500 text-lg">
-                  Live requests from nearby riders — respond before the timer ends.
-                </p>
-              </div>
-            </div>
-            
-            <button
-              onClick={() => router.push("/partner/analytics")}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-zinc-900 text-white font-semibold shadow-md hover:bg-zinc-800 transition-colors self-start md:self-auto"
-            >
-              <PieChart size={18} className="text-amber-400" />
-              Earnings & Analytics
-            </button>
-          </div>
-        </div>
+    <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
+        <p className="text-gray-500 mt-1">Live requests from nearby riders — respond before the timer ends.</p>
       </div>
-
-      <div className="max-w-6xl mx-auto px-6 py-12">
         {loading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="animate-spin w-8 h-8 text-gray-700" />
@@ -242,7 +213,7 @@ export default function VendorPendingPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <AnimatePresence mode="popLayout">
               {bookings.map((booking) => {
                 const partnerEarnings = Math.round(booking.fare * 0.9);
@@ -409,7 +380,6 @@ export default function VendorPendingPage() {
             </AnimatePresence>
           </div>
         )}
-      </div>
     </div>
   );
 }

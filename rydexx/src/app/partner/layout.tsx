@@ -1,4 +1,5 @@
 import PartnerLiveTracker from "@/components/partner/PartnerLiveTracker";
+import PartnerDashboardLayout from "@/components/partner/PartnerDashboardLayout";
 
 export default function PartnerLayout({
   children,
@@ -8,7 +9,9 @@ export default function PartnerLayout({
   return (
     <>
       <PartnerLiveTracker />
-      {children}
+      <PartnerDashboardLayout>
+        {children}
+      </PartnerDashboardLayout>
     </>
   );
 }
