@@ -111,6 +111,12 @@ export function useNavigationSimulator(
     setVoiceMutedState(muted);
     if (typeof window !== "undefined") {
       localStorage.setItem("rydex_nav_muted", String(muted));
+      if (!muted && window.speechSynthesis) {
+        // Unlock speech synthesis on mobile by speaking a silent utterance on user interaction
+        const utterance = new SpeechSynthesisUtterance("");
+        utterance.volume = 0;
+        window.speechSynthesis.speak(utterance);
+      }
     }
   }, []);
 

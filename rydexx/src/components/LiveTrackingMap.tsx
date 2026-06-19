@@ -627,7 +627,7 @@ export default function LiveRideMap({
       {!showSimControls && status !== "completed" && status !== "searching" && activeLegCoords && (
         <button
           onClick={handleStartSimulation}
-          className="absolute bottom-4 right-4 z-40 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold transition-all hover:scale-105"
+          className="absolute bottom-[240px] md:bottom-4 right-4 z-40 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold transition-all hover:scale-105"
         >
           <Sparkles size={14} className="text-landing-accent animate-pulse" />
           <span>Simulate Ride</span>
@@ -636,7 +636,7 @@ export default function LiveRideMap({
 
       {/* Speedometer HUD */}
       {(status === "ongoing" || status === "arriving") && displayPosition && (
-        <div className="absolute bottom-24 right-4 z-40 pointer-events-none flex flex-col items-end gap-2">
+        <div className="absolute bottom-[280px] md:bottom-24 right-4 z-40 pointer-events-none flex flex-col items-end gap-2">
           {/* Mute Toggle outside of Simulator for Real Drivers */}
           {!showSimControls && (
             <button

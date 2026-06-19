@@ -531,7 +531,7 @@ export default function RidePage() {
             pickupLocation={pickupPos!}
             dropLocation={dropPos!}
             status={mapPhase}
-            smoothDuration={4800}
+            smoothDuration={1000}
             onStats={({
               distanceToPickup,
               durationToPickup,

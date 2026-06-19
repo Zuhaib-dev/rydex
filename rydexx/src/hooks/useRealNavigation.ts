@@ -12,7 +12,7 @@ export function useRealNavigation(
   const [nextTurnStep, setNextTurnStep] = useState<TurnStep | null>(null);
   const [nextTurnDistance, setNextTurnDistance] = useState<number>(0);
   
-  const lastSpokenStepRef = useRef<number>(-1);
+  const lastSpokenInstructionRef = useRef<string>("");
   const turnStepsRef = useRef<TurnStep[]>([]);
   const cumulativeDistancesRef = useRef<number[]>([]);
 
@@ -22,7 +22,7 @@ export function useRealNavigation(
       setNextTurnStep(null);
       turnStepsRef.current = [];
       cumulativeDistancesRef.current = [];
-      lastSpokenStepRef.current = -1;
+      // We don't reset lastSpokenInstructionRef here, so we don't repeat the same instruction if route updates
       return;
     }
 
@@ -40,10 +40,10 @@ export function useRealNavigation(
     cumulativeDistancesRef.current = cumulativeDistances;
   }, [routeCoords]);
 
-  const speakInstruction = useCallback((text: string, stepIdx: number) => {
+  const speakInstruction = useCallback((text: string, instructionId: string) => {
     if (voiceMuted) return;
-    if (lastSpokenStepRef.current === stepIdx) return;
-    lastSpokenStepRef.current = stepIdx;
+    if (lastSpokenInstructionRef.current === instructionId) return;
+    lastSpokenInstructionRef.current = instructionId;
 
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -86,9 +86,9 @@ export function useRealNavigation(
     
     // Trigger at 120m for a turn, or 60m for destination
     if (distToTurn > 0 && distToTurn < 120 && nextTurn.type !== "destination") {
-      speakInstruction(`In ${Math.round(distToTurn)} meters, ${nextTurn.instruction}`, stepIdx);
+      speakInstruction(`In ${Math.round(distToTurn)} meters, ${nextTurn.instruction}`, nextTurn.instruction);
     } else if (distToTurn > 0 && distToTurn < 60 && nextTurn.type === "destination") {
-      speakInstruction("Approaching your destination", stepIdx);
+      speakInstruction("Approaching your destination", "destination");
     }
 
   }, [currentLocation, routeCoords, speakInstruction]);
