@@ -18,6 +18,7 @@ import {
   DriverMarker,
 } from "@/components/ride/RideMapMarkers";
 import { useNavigationSimulator } from "@/hooks/useNavigationSimulator";
+import { useRealNavigation } from "@/hooks/useRealNavigation";
 import {
   Sparkles,
   X,
@@ -179,6 +180,16 @@ export default function LiveRideMap({
     resumeSimulation,
     stopSimulation,
   } = useNavigationSimulator(activeLegCoords);
+
+  const {
+    nextTurnStep: realNextTurnStep,
+    nextTurnDistance: realNextTurnDistance,
+  } = useRealNavigation(smoothDriver, activeLegCoords, voiceMuted);
+
+  const activeNextTurnStep = isSimActive ? nextTurnStep : realNextTurnStep;
+  const activeNextTurnDistance = isSimActive ? nextTurnDistance : realNextTurnDistance;
+  
+  const showNavHUD = showSimControls || (!isSimActive && activeNextTurnStep && status !== "completed" && status !== "searching" && activeLegCoords);
 
   // Synchronize simulated driver position with the server/socket
   const lastEmitRef = useRef(0);
@@ -502,97 +513,113 @@ export default function LiveRideMap({
       </Map>
 
       {/* Floating turn-by-turn Navigation Panel */}
-      {showSimControls && (
+      {showNavHUD && (
         <div className="absolute top-20 left-4 right-4 md:left-6 md:right-auto md:w-[360px] bg-zinc-950/90 border border-zinc-800 text-white p-5 rounded-3xl shadow-2xl backdrop-blur-md z-50 flex flex-col gap-4">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-zinc-900 border border-zinc-800 rounded-2xl shrink-0">
-              {nextTurnStep ? getTurnIcon(nextTurnStep.type) : <ArrowUp className="h-6 w-6 text-landing-accent" />}
+              {activeNextTurnStep ? getTurnIcon(activeNextTurnStep.type) : <ArrowUp className="h-6 w-6 text-landing-accent" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[10px] uppercase font-bold tracking-widest text-landing-accent">
-                {nextTurnDistance > 0 ? `In ${Math.round(nextTurnDistance)} meters` : "Arrived"}
+                {activeNextTurnDistance > 0 ? `In ${Math.round(activeNextTurnDistance)} meters` : "Arrived"}
               </p>
               <h4 className="text-sm font-black truncate text-white">
-                {nextTurnStep ? nextTurnStep.instruction : "Arrived at destination"}
+                {activeNextTurnStep ? activeNextTurnStep.instruction : "Arrived at destination"}
               </h4>
             </div>
-            <button
-              onClick={handleExitSimulation}
-              className="p-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-lg transition-colors border border-zinc-800"
-            >
-              <X size={14} />
-            </button>
+            {isSimActive && (
+              <button
+                onClick={handleExitSimulation}
+                className="p-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white rounded-lg transition-colors border border-zinc-800"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
 
           {/* Progress Bar */}
           <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800">
             <div
               className="bg-linear-to-r from-landing-accent to-emerald-400 h-full rounded-full transition-all duration-350"
-              style={{ width: `${progress}%` }}
+              style={{ width: isSimActive ? `${progress}%` : "100%" }}
             />
           </div>
 
-          <div className="flex items-center justify-between text-xs text-zinc-400 border-t border-zinc-900 pt-3">
-            <div className="flex items-center gap-1.5">
-              <Gauge size={13} className="text-landing-accent" />
-              <span className="font-semibold text-white">{speedKmh.toFixed(0)} <span className="text-[10px] text-zinc-500 font-medium">km/h</span></span>
+          {isSimActive ? (
+            <div className="flex items-center justify-between text-xs text-zinc-400 border-t border-zinc-900 pt-3">
+              <div className="flex items-center gap-1.5">
+                <Gauge size={13} className="text-landing-accent" />
+                <span className="font-semibold text-white">{speedKmh.toFixed(0)} <span className="text-[10px] text-zinc-500 font-medium">km/h</span></span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock size={13} className="text-landing-accent" />
+                <span className="font-semibold text-white">{formatEta(etaRemainingSeconds)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="font-semibold text-white">{Math.round(distanceRemaining)} <span className="text-[10px] text-zinc-500 font-medium">m left</span></span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <Clock size={13} className="text-landing-accent" />
-              <span className="font-semibold text-white">{formatEta(etaRemainingSeconds)}</span>
+          ) : (
+            <div className="flex items-center justify-between text-xs text-zinc-400 border-t border-zinc-900 pt-3">
+              <div className="flex items-center gap-1.5">
+                <Gauge size={13} className="text-landing-accent" />
+                <span className="font-semibold text-white">{Math.round(currentSpeed)} <span className="text-[10px] text-zinc-500 font-medium">km/h</span></span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Clock size={13} className="text-landing-accent" />
+                <span className="font-semibold text-white">{formatEta(displayEta * 60)}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-white">{Math.round(distanceRemaining)} <span className="text-[10px] text-zinc-500 font-medium">m left</span></span>
-            </div>
-          </div>
+          )}
 
-          {/* Control Bar */}
-          <div className="flex items-center justify-between border-t border-zinc-900 pt-3">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={isSimPaused ? resumeSimulation : pauseSimulation}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white transition-colors border border-zinc-800"
-                title={isSimPaused ? "Play" : "Pause"}
-              >
-                {isSimPaused ? <Play size={14} className="fill-current" /> : <Pause size={14} />}
-              </button>
-              <button
-                onClick={() => startSimulation()}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white transition-colors border border-zinc-800"
-                title="Restart"
-              >
-                <RotateCcw size={14} />
-              </button>
-              <button
-                onClick={() => setVoiceMuted(!voiceMuted)}
-                className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors border ${
-                  voiceMuted 
-                    ? "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300" 
-                    : "bg-emerald-950 border-emerald-900/60 text-emerald-400"
-                }`}
-                title={voiceMuted ? "Unmute Voice" : "Mute Voice"}
-              >
-                {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-              </button>
-            </div>
-
-            {/* Speed Selector */}
-            <div className="flex items-center gap-1 bg-zinc-900 p-0.5 rounded-xl border border-zinc-800">
-              {[1, 5, 15, 30].map(mult => (
+          {isSimActive && (
+            <div className="flex items-center justify-between border-t border-zinc-900 pt-3">
+              <div className="flex items-center gap-2">
                 <button
-                  key={mult}
-                  onClick={() => setSpeedMultiplier(mult)}
-                  className={`px-2.5 py-1 text-[9px] font-black rounded-lg transition-all ${
-                    speedMultiplier === mult 
-                      ? "bg-landing-accent text-zinc-950" 
-                      : "text-zinc-400 hover:text-white hover:bg-zinc-850"
-                  }`}
+                  onClick={isSimPaused ? resumeSimulation : pauseSimulation}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white transition-colors border border-zinc-800"
+                  title={isSimPaused ? "Play" : "Pause"}
                 >
-                  {mult}x
+                  {isSimPaused ? <Play size={14} className="fill-current" /> : <Pause size={14} />}
                 </button>
-              ))}
+                <button
+                  onClick={() => startSimulation()}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-900 hover:bg-zinc-800 text-white transition-colors border border-zinc-800"
+                  title="Restart"
+                >
+                  <RotateCcw size={14} />
+                </button>
+                <button
+                  onClick={() => setVoiceMuted(!voiceMuted)}
+                  className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors border ${
+                    voiceMuted 
+                      ? "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300" 
+                      : "bg-emerald-950 border-emerald-900/60 text-emerald-400"
+                  }`}
+                  title={voiceMuted ? "Unmute Voice" : "Mute Voice"}
+                >
+                  {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                </button>
+              </div>
+
+              {/* Speed Selector */}
+              <div className="flex items-center gap-1 bg-zinc-900 p-0.5 rounded-xl border border-zinc-800">
+                {[1, 5, 15, 30].map(mult => (
+                  <button
+                    key={mult}
+                    onClick={() => setSpeedMultiplier(mult)}
+                    className={`px-2.5 py-1 text-[9px] font-black rounded-lg transition-all ${
+                      speedMultiplier === mult 
+                        ? "bg-landing-accent text-zinc-950" 
+                        : "text-zinc-400 hover:text-white hover:bg-zinc-850"
+                    }`}
+                  >
+                    {mult}x
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
