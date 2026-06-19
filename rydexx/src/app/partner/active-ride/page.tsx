@@ -634,6 +634,7 @@ export default function DriverRidePage() {
           status={mapStatus}
           smoothDuration={1000}
           driverSpeedKmh={speedKmh}
+          isDriver={true}
           onStats={({
             distanceToPickup,
             durationToPickup,

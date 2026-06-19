@@ -101,6 +101,12 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
+  // User Only Routes
+  if (pathname.startsWith("/pass")) {
+    if (role === "user") return NextResponse.next();
+    return NextResponse.redirect(new URL("/", req.url));
+  }
+
   // Partner & KYC Routes
   if (pathname.startsWith("/partner") || pathname.startsWith("/video-kyc")) {
     if (

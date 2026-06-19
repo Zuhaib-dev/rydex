@@ -53,6 +53,7 @@ type Props = {
     durationToDrop: number;
   }) => void;
   onPositionUpdate?: (lat: number, lng: number) => void;
+  isDriver?: boolean;
 };
 
 function FitRouteBounds({
@@ -133,6 +134,7 @@ export default function LiveRideMap({
   driverSpeedKmh,
   onStats,
   onPositionUpdate,
+  isDriver = false,
 }: Props) {
   const mapRef = useRef<MapRef | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -184,10 +186,15 @@ export default function LiveRideMap({
   const {
     nextTurnStep: realNextTurnStep,
     nextTurnDistance: realNextTurnDistance,
-  } = useRealNavigation(smoothDriver, activeLegCoords, voiceMuted);
+  } = useRealNavigation(smoothDriver, activeLegCoords, !isDriver || voiceMuted);
 
   const activeNextTurnStep = isSimActive ? nextTurnStep : realNextTurnStep;
   const activeNextTurnDistance = isSimActive ? nextTurnDistance : realNextTurnDistance;
+  
+  // Force mute simulation if not driver
+  useEffect(() => {
+    if (!isDriver) setVoiceMuted(true);
+  }, [isDriver, setVoiceMuted]);
   
   const showNavHUD = showSimControls || (!isSimActive && activeNextTurnStep && status !== "completed" && status !== "searching" && activeLegCoords);
 
@@ -589,17 +596,19 @@ export default function LiveRideMap({
                 >
                   <RotateCcw size={14} />
                 </button>
-                <button
-                  onClick={() => setVoiceMuted(!voiceMuted)}
-                  className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors border ${
-                    voiceMuted 
-                      ? "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300" 
-                      : "bg-emerald-950 border-emerald-900/60 text-emerald-400"
-                  }`}
-                  title={voiceMuted ? "Unmute Voice" : "Mute Voice"}
-                >
-                  {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
-                </button>
+                {isDriver && (
+                  <button
+                    onClick={() => setVoiceMuted(!voiceMuted)}
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors border ${
+                      voiceMuted 
+                        ? "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300" 
+                        : "bg-emerald-950 border-emerald-900/60 text-emerald-400"
+                    }`}
+                    title={voiceMuted ? "Unmute Voice" : "Mute Voice"}
+                  >
+                    {voiceMuted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+                  </button>
+                )}
               </div>
 
               {/* Speed Selector */}
@@ -638,7 +647,7 @@ export default function LiveRideMap({
       {(status === "ongoing" || status === "arriving") && displayPosition && (
         <div className="absolute bottom-[280px] md:bottom-24 right-4 z-40 pointer-events-none flex flex-col items-end gap-2">
           {/* Mute Toggle outside of Simulator for Real Drivers */}
-          {!showSimControls && (
+          {!showSimControls && isDriver && (
             <button
               onClick={() => setVoiceMuted(!voiceMuted)}
               className={`pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full shadow-lg transition-colors border backdrop-blur-md ${
