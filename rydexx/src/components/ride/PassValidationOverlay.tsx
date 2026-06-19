@@ -24,8 +24,11 @@ export default function PassValidationOverlay({ bookingId }: { bookingId: string
     fetch("/api/pass/my-passes")
       .then(res => res.json())
       .then(data => {
-        if (data.success && data.passes.length > 0) {
-          setActivePassId(data.passes[0]._id);
+        if (data.success && data.passes) {
+          const validPass = data.passes.find((p: any) => p.balance > 0);
+          if (validPass) {
+            setActivePassId(validPass._id);
+          }
         }
       })
       .catch(console.error);

@@ -302,8 +302,11 @@ function CheckoutContent() {
       try {
         const pRes = await fetch("/api/pass/my-passes");
         const pData = await pRes.json();
-        if (pData.success && pData.passes.length > 0) {
-          setHasPass(true);
+        if (pData.success && pData.passes) {
+          const validPasses = pData.passes.filter((p: any) => p.balance > 0);
+          if (validPasses.length > 0) {
+            setHasPass(true);
+          }
         }
       } catch (err) {}
 
