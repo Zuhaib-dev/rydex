@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, Suspense } from "react";
 import { getSocket } from "@/lib/socket";
 import { useNfc } from "@/hooks/useNfc";
 import { useAudioListener } from "@/hooks/useAudioListener";
-import { Html5QrcodeScanner } from "html5-qrcode";
+import { Html5Qrcode } from "html5-qrcode";
 import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle, XCircle, Volume2, SmartphoneNfc, QrCode, ShieldCheck } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -101,24 +101,38 @@ function ValidatorContent() {
   }, [socket, bookingId, router]);
 
   useEffect(() => {
+    let html5QrCode: Html5Qrcode | null = null;
+    let isComponentMounted = true;
+
     if (activeTab === "qr") {
-      const scanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { fps: 10, qrbox: { width: 250, height: 250 }, rememberLastUsedCamera: true },
-        false
-      );
+      html5QrCode = new Html5Qrcode("qr-reader");
       
-      scanner.render(
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 }, aspectRatio: 1 },
         (decodedText) => {
           handleTokenScanned(decodedText);
-          scanner.pause(true); 
-          setTimeout(() => scanner.resume(), 3000);
+          if (html5QrCode?.getState() === 2) { // 2 = SCANNING
+            html5QrCode.pause();
+            setTimeout(() => {
+              if (isComponentMounted && html5QrCode?.getState() === 3) { // 3 = PAUSED
+                html5QrCode.resume();
+              }
+            }, 3000);
+          }
         },
-        (err) => {}
-      );
+        () => {} // ignore frame errors
+      ).catch((err) => {
+        console.error("QR Scanner Start Error:", err);
+      });
 
       return () => {
-        scanner.clear().catch(e => console.error("QR scanner cleanup error", e));
+        isComponentMounted = false;
+        if (html5QrCode && html5QrCode.isScanning) {
+          html5QrCode.stop().then(() => {
+            html5QrCode?.clear();
+          }).catch(console.error);
+        }
       };
     }
   }, [activeTab, handleTokenScanned]);
@@ -191,7 +205,20 @@ function ValidatorContent() {
           {/* Main Scanner Area */}
           <div className="flex-1 bg-neutral-800 rounded-3xl overflow-hidden border border-neutral-700 shadow-2xl relative">
             {activeTab === "qr" && (
-              <div id="qr-reader" className="w-full h-full [&>div]:border-none [&>video]:object-cover" />
+              <div className="relative w-full h-full flex flex-col items-center justify-center bg-black">
+                <div id="qr-reader" className="w-full h-full [&>video]:object-cover" />
+                <div className="absolute inset-0 border-[30px] border-black/60 pointer-events-none"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border-2 border-emerald-500/50 rounded-3xl pointer-events-none overflow-hidden flex items-start">
+                  <motion.div 
+                    animate={{ y: [0, 248, 0] }}
+                    transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                    className="w-full h-[3px] bg-emerald-400 shadow-[0_0_15px_#34d399]"
+                  />
+                </div>
+                <p className="absolute bottom-8 text-neutral-300 text-sm font-semibold px-5 py-2.5 bg-black/70 rounded-full backdrop-blur-md shadow-2xl">
+                  Point camera at the QR code
+                </p>
+              </div>
             )}
 
             {activeTab === "nfc" && (
