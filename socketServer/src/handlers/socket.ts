@@ -2,6 +2,8 @@ import { Server, Socket } from "socket.io";
 import mongoose from "mongoose";
 import User from "../../models/user.models.js";
 import Booking from "../../models/booking.models.js";
+import Pass from "../../models/pass.models.js";
+import { PassTokenService } from "../services/passToken.service.js";
 import { redisPub } from "../services/redis.js";
 import { logSocketEvent } from "../services/logger.js";
 import { notifyAdminMapThrottled, notifyPublicAvailabilityThrottled } from "../services/notifications.js";
@@ -21,6 +23,10 @@ export interface ServerToClientEvents {
   "system-telemetry-update": (payload: any) => void;
   "new-booking": (data: any) => void;
   "booking-updated": (data: any) => void;
+  "validation:success": (data: { passId: string; newBalance: number; message: string }) => void;
+  "validation:failure": (data: { message: string }) => void;
+  "pass-token-response": (data: { token: string; expiresAt: number }) => void;
+  "pass-token-error": (data: { message: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -35,6 +41,9 @@ export interface ClientToServerEvents {
   "update-location": (data: { latitude: number; longitude: number }) => void;
   "partner-availability": (data: { available: boolean }) => void;
   "route-deviation": (data: { bookingId: string; driverId?: string; latitude: number; longitude: number }) => void;
+  "join-validator": () => void;
+  "verify-pass": (token: string) => void;
+  "request-pass-token": (data: { passId: string }) => void;
 }
 
 export interface InterServerEvents {}
@@ -119,6 +128,63 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
       const user = await User.findById(socket.userId).select("role").lean();
       if (user?.role === "admin") {
         socket.join("admin-dashboard");
+      }
+    });
+
+    socket.on("join-validator", async () => {
+      if (!socket.userId) return;
+      socket.join("validator");
+    });
+
+    socket.on("verify-pass", async (token: string) => {
+      if (!socket.userId) return;
+
+      const payload = PassTokenService.verifyToken(token);
+      if (!payload) {
+        socket.emit("validation:failure", { message: "Invalid or expired ticket token." });
+        return;
+      }
+
+      try {
+        const pass = await Pass.findOne({ _id: payload.p, userId: payload.u });
+        if (!pass) {
+           socket.emit("validation:failure", { message: "Pass not found." });
+           return;
+        }
+        if (!pass.isActive || pass.expiresAt < new Date()) {
+           socket.emit("validation:failure", { message: "Pass is inactive or expired." });
+           return;
+        }
+        if (pass.balance <= 0) {
+           socket.emit("validation:failure", { message: "Insufficient rides remaining." });
+           return;
+        }
+
+        pass.balance -= 1;
+        await pass.save();
+
+        socket.emit("validation:success", { passId: String(pass._id), newBalance: pass.balance, message: "Ticket Verified!" });
+        io.to(`user-${payload.u}`).emit("validation:success", { passId: String(pass._id), newBalance: pass.balance, message: "Ticket Verified!" });
+
+      } catch(e) {
+        console.error("Validation error:", e);
+        socket.emit("validation:failure", { message: "Internal error during validation." });
+      }
+    });
+
+    socket.on("request-pass-token", async (data: { passId: string }) => {
+      if (!socket.userId) return;
+      try {
+        const pass = await Pass.findOne({ _id: data.passId, userId: socket.userId });
+        if (!pass || !pass.isActive || pass.balance <= 0) {
+           socket.emit("pass-token-error", { message: "Pass unavailable or exhausted." });
+           return;
+        }
+        const token = PassTokenService.generateToken(socket.userId, data.passId);
+        socket.emit("pass-token-response", { token, expiresAt: Date.now() + 15000 });
+      } catch (err) {
+        console.error("Token generation error:", err);
+        socket.emit("pass-token-error", { message: "Server error generating token." });
       }
     });
 
