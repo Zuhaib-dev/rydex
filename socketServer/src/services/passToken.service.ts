@@ -55,8 +55,16 @@ export class PassTokenService {
    */
   static verifyToken(token: string): TokenPayload | null {
     try {
+      // Aggressively extract only the token parts.
+      // This is crucial for NFC Web APIs which sometimes include NDEF language headers (like '\x02en') 
+      // in the payload when reading text records if not decoded perfectly by the client.
+      const match = token.match(/([A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)/);
+      if (!match) return null;
+      
+      const cleanToken = match[1];
+
       // Revert base64url encoding
-      let base64Token = token
+      let base64Token = cleanToken
         .replace(/-/g, '+')
         .replace(/_/g, '/');
 
