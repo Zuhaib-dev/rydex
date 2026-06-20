@@ -39,14 +39,45 @@ export default function PartnerBookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<PartnerBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [total, setTotal] = useState(0);
+
+  const fetchBookings = async (pageNum: number) => {
+    if (pageNum === 1) setLoading(true);
+    else setLoadingMore(true);
+
+    try {
+      const res = await axios.get(`/api/partner/bookings?page=${pageNum}&limit=10`);
+      const newBookings = res.data.bookings || [];
+      const pagination = res.data.pagination;
+
+      if (pageNum === 1) {
+        setBookings(newBookings);
+      } else {
+        setBookings((prev) => [...prev, ...newBookings]);
+      }
+
+      setHasMore(pageNum < (pagination?.pages || 1));
+      setTotal(pagination?.total || 0);
+    } catch (err) {
+      if (pageNum === 1) setBookings([]);
+    } finally {
+      setLoading(false);
+      setLoadingMore(false);
+    }
+  };
 
   useEffect(() => {
-    axios
-      .get("/api/partner/bookings")
-      .then((res) => setBookings(res.data.bookings || []))
-      .catch(() => setBookings([]))
-      .finally(() => setLoading(false));
+    fetchBookings(1);
   }, []);
+
+  const handleLoadMore = () => {
+    const next = page + 1;
+    setPage(next);
+    fetchBookings(next);
+  };
 
   return (
     <div className="min-h-screen bg-zinc-50">
@@ -61,7 +92,7 @@ export default function PartnerBookingsPage() {
           </button>
           <div>
             <h1 className="text-2xl font-black text-zinc-900">Partner Bookings</h1>
-            <p className="text-sm text-zinc-500 mt-1">{bookings.length} rides in your history</p>
+            <p className="text-sm text-zinc-500 mt-1">{total} rides in your history</p>
           </div>
         </div>
       </header>
@@ -128,6 +159,19 @@ export default function PartnerBookingsPage() {
                 </div>
               </button>
             ))}
+
+            {hasMore && (
+              <div className="pt-6 pb-4 flex justify-center">
+                <button
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-6 py-3 bg-zinc-900 text-white font-bold rounded-xl text-sm transition hover:bg-zinc-800 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {loadingMore && <Loader2 size={16} className="animate-spin" />}
+                  {loadingMore ? "Loading..." : "Load Older Bookings"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </main>
