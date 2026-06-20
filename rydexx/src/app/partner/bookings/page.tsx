@@ -1,7 +1,8 @@
 "use client";
 
+import { motion, AnimatePresence } from "motion/react";
 import axios from "axios";
-import { ArrowLeft, Calendar, Car, IndianRupee, Loader2, MapPin, Navigation } from "lucide-react";
+import { ArrowLeft, Calendar, Car, IndianRupee, Loader2, MapPin, Navigation, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -43,6 +44,16 @@ export default function PartnerBookingsPage() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [total, setTotal] = useState(0);
+  const [selectedBooking, setSelectedBooking] = useState<PartnerBooking | null>(null);
+
+  const handleBookingClick = (booking: PartnerBooking) => {
+    const activeStatuses = ["requested", "confirmed", "arriving", "arrived", "started"];
+    if (activeStatuses.includes(booking.status)) {
+      router.push("/partner/active-ride");
+    } else {
+      setSelectedBooking(booking);
+    }
+  };
 
   const fetchBookings = async (pageNum: number) => {
     if (pageNum === 1) setLoading(true);
@@ -113,7 +124,7 @@ export default function PartnerBookingsPage() {
             {bookings.map((booking) => (
               <button
                 key={booking._id}
-                onClick={() => router.push("/partner/active-ride")}
+                onClick={() => handleBookingClick(booking)}
                 className="w-full text-left bg-white border border-zinc-200 rounded-2xl p-5 hover:border-zinc-400 transition-colors"
               >
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
@@ -175,6 +186,99 @@ export default function PartnerBookingsPage() {
           </div>
         )}
       </main>
+
+      {/* Booking Details Modal */}
+      <AnimatePresence>
+        {selectedBooking && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => setSelectedBooking(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.95 }}
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="bg-zinc-50 border-b border-zinc-100 p-4 flex items-center justify-between">
+                <h3 className="font-black text-zinc-900">Ride Details</h3>
+                <button
+                  onClick={() => setSelectedBooking(null)}
+                  className="w-8 h-8 rounded-full bg-white border border-zinc-200 flex items-center justify-center hover:bg-zinc-100 transition-colors"
+                >
+                  <X size={16} className="text-zinc-500" />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-6">
+                <div className="flex justify-between items-start">
+                  <div className="flex gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-zinc-900 text-white flex items-center justify-center">
+                      <Car size={24} />
+                    </div>
+                    <div>
+                      <p className="font-black text-lg text-zinc-900">{selectedBooking.vehicle?.vehicleModel || "Ride"}</p>
+                      <p className="text-sm text-zinc-500">Customer: {selectedBooking.user?.name || "User"}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex border px-3 py-1 rounded-full text-xs font-bold ${statusClass[selectedBooking.status] || statusClass.expired}`}>
+                      {selectedBooking.status.replace("_", " ")}
+                    </span>
+                    <p className="text-2xl font-black text-zinc-900 flex items-center gap-1 mt-1 justify-end">
+                      <IndianRupee size={18} />
+                      {selectedBooking.fare}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="relative pl-3 space-y-6">
+                  {/* Vertical Line */}
+                  <div className="absolute left-[21px] top-4 bottom-4 w-0.5 bg-zinc-200 z-0" />
+                  
+                  <div className="relative z-10 flex items-start gap-4">
+                    <div className="w-5 h-5 mt-1 rounded-full bg-zinc-900 flex items-center justify-center shrink-0 shadow-[0_0_0_4px_white]">
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </div>
+                    <div className="flex-1 bg-zinc-50 border border-zinc-100 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Pickup Location</p>
+                      <p className="text-sm font-semibold text-zinc-900">{selectedBooking.pickupAddress}</p>
+                    </div>
+                  </div>
+
+                  <div className="relative z-10 flex items-start gap-4">
+                    <div className="w-5 h-5 mt-1 rounded-full bg-emerald-500 flex items-center justify-center shrink-0 shadow-[0_0_0_4px_white]">
+                      <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                    </div>
+                    <div className="flex-1 bg-zinc-50 border border-zinc-100 rounded-xl p-3">
+                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Drop-off Location</p>
+                      <p className="text-sm font-semibold text-zinc-900">{selectedBooking.dropAddress}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-zinc-100">
+                  <div className="text-sm text-zinc-500 flex items-center gap-1.5">
+                    <Calendar size={16} />
+                    {new Date(selectedBooking.createdAt).toLocaleString("en-IN", {
+                      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit"
+                    })}
+                  </div>
+                  <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                    ID: {selectedBooking._id.slice(-6)}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
