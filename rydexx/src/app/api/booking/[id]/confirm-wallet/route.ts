@@ -3,6 +3,7 @@ import connectDb from "@/lib/db";
 import Booking from "@/models/booking.model";
 import { debitWallet } from "@/lib/wallet";
 import { auth } from "@/lib/auth";
+import { emitBookingUpdated } from "@/lib/bookingEvents";
 
 export async function POST(
   req: NextRequest,
@@ -47,6 +48,15 @@ export async function POST(
       booking.status = "confirmed";
     }
     await booking.save();
+
+    const populated = await Booking.findById(id).populate("driver vehicle user");
+    if (populated) {
+      await emitBookingUpdated(populated, {
+        bookingId: booking._id,
+        status: "confirmed",
+        paymentStatus: "paid"
+      });
+    }
 
     return NextResponse.json({ success: true, booking });
   } catch (error: any) {

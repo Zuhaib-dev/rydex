@@ -62,7 +62,24 @@ async function getBusyPartnerIds(candidateIds: mongoose.Types.ObjectId[]) {
           busySet.add(String(id));
         }
       });
-      // If Redis succeeds, we return immediately.
+      // If Redis succeeds, verify busy status against MongoDB to prevent ghost busy states
+      if (busySet.size > 0) {
+        const actualBusy = await Booking.distinct("driver", {
+          driver: { $in: Array.from(busySet) },
+          status: { $in: [...ACTIVE_DRIVER_STATUSES] },
+        });
+        const actualBusySet = new Set(actualBusy.map((id) => String(id)));
+
+        // Clean up false positives in Redis asynchronously
+        busySet.forEach((id) => {
+          if (!actualBusySet.has(id)) {
+            redis.del(`driver:busy:${id}`).catch(() => {});
+          }
+        });
+
+        return actualBusySet;
+      }
+
       return busySet;
     }
   } catch (err) {

@@ -46,6 +46,7 @@ function PartnerDashboard() {
   const [polledPartnerStatus, setPolledPartnerStatus] = useState<string | null>(null);
   const [polledPartnerRejectionReason, setPolledPartnerRejectionReason] = useState<string | undefined>(undefined);
   const [activeVehicle, setActiveVehicle] = useState<any>(userData?.activeVehicle || null);
+  const [hasActiveRide, setHasActiveRide] = useState(false);
 
   const pollRef = useRef<NodeJS.Timeout | null>(null);
   const completedSteps = polledCompletedSteps ?? userData?.partnerOnboardingSteps ?? 0;
@@ -69,6 +70,13 @@ function PartnerDashboard() {
           setPolledCompletedSteps(u.partnerOnboardingSteps);
         }
         setActiveVehicle(u.activeVehicle || null);
+      }
+      
+      const rideRes = await axios.get("/api/partner/bookings/active");
+      if (rideRes.data && rideRes.data._id) {
+        setHasActiveRide(true);
+      } else {
+        setHasActiveRide(false);
       }
     } catch (error: any) {
       if (error.response?.status === 404 || error.response?.status === 401) {
@@ -162,6 +170,28 @@ function PartnerDashboard() {
             </div>
 
             {/* Active Vehicle Badge */}
+            {hasActiveRide && (
+              <div className="mb-8 bg-emerald-50 border border-emerald-200 rounded-[28px] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shrink-0">
+                    <Car size={24} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-emerald-950 mt-1">Active Ride in Progress</h3>
+                    <p className="text-xs text-emerald-700 mt-0.5">
+                      You have an ongoing ride. Tap to view details and map.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push("/partner/active-ride")}
+                  className="text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-bold uppercase tracking-wider transition-all w-fit shadow-md shadow-emerald-600/20"
+                >
+                  View Ride
+                </button>
+              </div>
+            )}
+
             <div className="mb-8 bg-white border border-gray-200 rounded-[28px] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               {activeVehicle ? (
                 <>
