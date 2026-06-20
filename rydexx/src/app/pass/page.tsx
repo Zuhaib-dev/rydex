@@ -159,48 +159,67 @@ export default function PassPage() {
           </div>
         </header>
 
-        {passes.map(pass => (
-          <motion.div 
-            key={pass._id}
-            className="bg-linear-to-br from-indigo-500/20 to-purple-600/20 border border-white/10 rounded-3xl p-6 relative overflow-hidden backdrop-blur-xl"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <div className="absolute top-0 left-0 w-full h-full bg-noise opacity-10 pointer-events-none"></div>
-            <div className="flex justify-between items-start mb-8">
-              <div>
-                <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-indigo-300 to-purple-300">{pass.type}</h2>
-                <p className="text-indigo-200/60 text-sm mt-1">Expires: {new Date(pass.expiresAt).toLocaleDateString()}</p>
-              </div>
-              {pass.balance > 0 ? (
-                <div className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                  Active
-                </div>
-              ) : (
-                <div className="bg-neutral-500/20 text-neutral-400 px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-400"></span>
-                  Ended
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-between items-end">
-              <div>
-                <p className="text-3xl font-mono tracking-tighter">{pass.balance}</p>
-                <p className="text-xs text-neutral-400 uppercase tracking-widest mt-1">Rides Left</p>
-              </div>
-              <button 
-                onClick={() => { setActivePassId(pass._id); setIsBoarding(true); }}
-                disabled={pass.balance <= 0}
-                className="bg-white text-black font-semibold px-6 py-3 rounded-full hover:bg-neutral-200 transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+        {passes.filter(p => p.balance > 0).length > 0 && (
+          <div className="space-y-6 mt-10">
+            <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+              Active Subscriptions
+            </h2>
+            {passes.filter(p => p.balance > 0).map(pass => (
+              <motion.div 
+                key={pass._id}
+                className="bg-linear-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/10 border border-white/20 rounded-3xl p-6 relative overflow-hidden backdrop-blur-2xl shadow-[0_0_40px_-10px_rgba(99,102,241,0.3)]"
+                whileHover={{ scale: 1.02 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
               >
-                {pass.balance > 0 ? "Tap to Board" : "Pass Ended"}
-              </button>
-            </div>
+                <div className="absolute top-0 left-0 w-full h-full bg-noise opacity-20 pointer-events-none"></div>
+                <div className="flex justify-between items-start mb-8 relative z-10">
+                  <div>
+                    <h2 className="text-2xl font-black bg-clip-text text-transparent bg-linear-to-r from-indigo-200 to-purple-200 drop-shadow-sm">{pass.type}</h2>
+                    <p className="text-indigo-200/70 text-sm mt-1 font-medium">Expires: {new Date(pass.expiresAt).toLocaleDateString()}</p>
+                  </div>
+                  <div className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Active
+                  </div>
+                </div>
 
-          </motion.div>
-        ))}
+                <div className="flex justify-between items-end relative z-10">
+                  <div>
+                    <p className="text-4xl font-black tracking-tighter text-white drop-shadow-md">{pass.balance}</p>
+                    <p className="text-xs text-indigo-300 uppercase tracking-widest mt-1 font-bold">Rides Left</p>
+                  </div>
+                  <button 
+                    onClick={() => { setActivePassId(pass._id); setIsBoarding(true); }}
+                    className="bg-white text-indigo-950 font-black px-6 py-3 rounded-full hover:bg-neutral-200 transition-all active:scale-95 shadow-xl hover:shadow-indigo-500/50"
+                  >
+                    Tap to Board
+                  </button>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
+        {passes.filter(p => p.balance <= 0).length > 0 && (
+          <div className="space-y-4 mt-12">
+            <h2 className="text-xs font-bold tracking-widest text-neutral-500 uppercase border-b border-neutral-800 pb-2">Past Passes</h2>
+            {passes.filter(p => p.balance <= 0).map(pass => (
+              <motion.div 
+                key={pass._id}
+                className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex items-center justify-between opacity-80"
+              >
+                <div>
+                  <h3 className="text-lg font-bold text-neutral-400">{pass.type}</h3>
+                  <p className="text-neutral-600 text-xs mt-0.5 font-medium">Ended: {new Date(pass.expiresAt).toLocaleDateString()}</p>
+                </div>
+                <div className="text-right">
+                  <span className="bg-neutral-800 text-neutral-500 px-3 py-1.5 rounded-lg text-xs font-bold border border-neutral-700/50">Exhausted</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 text-center space-y-6 shadow-xl mt-8">
           <div className="w-20 h-20 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto">
