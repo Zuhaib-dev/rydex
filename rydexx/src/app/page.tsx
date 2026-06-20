@@ -27,13 +27,7 @@ export default async function Home() {
     <div className="w-full min-h-screen bg-[#fafafa]">
       {shouldTrackLocation && <GeoUpdater userId={session?.user?.id} />}
 
-      {user?.role == "partner" ? (
-        <>
-          <Nav />
-
-          <PartnerDashboard />
-        </>
-      ) : user?.role == "admin" ? (
+      {user?.role == "admin" ? (
         <AdminDashboard />
       ) : (
         <>
