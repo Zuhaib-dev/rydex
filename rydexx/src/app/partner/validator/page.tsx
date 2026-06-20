@@ -137,14 +137,7 @@ function ValidatorContent() {
     }
   }, [activeTab, handleTokenScanned]);
 
-  useEffect(() => {
-    if (activeTab === "nfc" && nfc.isSupported) {
-      nfc.read(handleTokenScanned);
-      return () => {
-        nfc.stopReading();
-      };
-    }
-  }, [activeTab, nfc.isSupported, nfc.read, nfc.stopReading, handleTokenScanned]);
+  // NFC reading is now started explicitly via a button click to satisfy Web API user gesture requirements
 
   useEffect(() => {
     if (activeTab === "audio") {
@@ -223,11 +216,14 @@ function ValidatorContent() {
 
             {activeTab === "nfc" && (
               <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-linear-to-b from-neutral-800 to-indigo-900/40">
-                <div className="w-32 h-32 rounded-full bg-indigo-500/20 flex items-center justify-center mb-6 relative">
-                  <div className="absolute inset-0 rounded-full border-[3px] border-indigo-500/30 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+                <button 
+                  onClick={() => nfc.read(handleTokenScanned)}
+                  className="w-32 h-32 rounded-full bg-indigo-500/20 flex items-center justify-center mb-6 relative cursor-pointer hover:bg-indigo-500/30 transition-colors border-[3px] border-transparent hover:border-indigo-400"
+                >
+                  <div className={`absolute inset-0 rounded-full border-[3px] border-indigo-500/30 ${nfc.isReading ? 'animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]' : ''}`}></div>
                   <SmartphoneNfc size={48} className="text-indigo-400" />
-                </div>
-                <h3 className="text-2xl font-bold mb-2">Ready to Scan</h3>
+                </button>
+                <h3 className="text-2xl font-bold mb-2">{nfc.isReading ? "Ready to Scan" : "Click to Start Scanner"}</h3>
                 <p className="text-neutral-400">Hold passenger's phone near the terminal</p>
                 {!nfc.isSupported && (
                   <p className="text-red-400 mt-4 text-sm font-medium bg-red-500/10 px-3 py-1 rounded-full">

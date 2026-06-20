@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 // Extend Window interface for TypeScript to recognize NDEFReader
 declare global {
@@ -12,6 +12,7 @@ export function useNfc() {
   const [isReading, setIsReading] = useState(false);
   const [isWriting, setIsWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'NDEFReader' in window) {
@@ -26,15 +27,23 @@ export function useNfc() {
     }
 
     try {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setIsWriting(true);
       setError(null);
       const ndef = new window.NDEFReader();
       await ndef.write({
         records: [{ recordType: 'text', data: textRecord }]
-      });
+      }, { signal: controller.signal });
+      
       setIsWriting(false);
       return true;
     } catch (err: any) {
+      if (err.name === 'AbortError') return false;
       console.error('NFC Write Error:', err);
       setError(err.message || 'Failed to broadcast via NFC');
       setIsWriting(false);
@@ -49,10 +58,16 @@ export function useNfc() {
     }
 
     try {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       setIsReading(true);
       setError(null);
       const ndef = new window.NDEFReader();
-      await ndef.scan();
+      await ndef.scan({ signal: controller.signal });
 
       ndef.onreadingerror = () => {
         setError('Error reading NFC tag.');
@@ -70,6 +85,7 @@ export function useNfc() {
 
       return true;
     } catch (err: any) {
+      if (err.name === 'AbortError') return false;
       console.error('NFC Scan Error:', err);
       setError(err.message || 'Failed to start NFC scan');
       setIsReading(false);
@@ -78,8 +94,10 @@ export function useNfc() {
   }, [isSupported]);
 
   const stopReading = useCallback(async () => {
-    // Note: NDEFReader doesn't have a direct stop() method in all implementations.
-    // Usually handled by abort controllers if passed to scan(), but we'll keep it simple here.
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
     setIsReading(false);
   }, []);
 

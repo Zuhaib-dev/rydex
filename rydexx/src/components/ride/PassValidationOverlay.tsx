@@ -43,7 +43,6 @@ export default function PassValidationOverlay({ bookingId }: { bookingId: string
   useEffect(() => {
     const onTokenResponse = (data: { token: string; expiresAt: number }) => {
       setToken(data.token);
-      if (activeMode === "nfc" && nfc.isSupported) nfc.write(data.token);
       if (activeMode === "audio") audio.broadcastToken(data.token);
     };
     const onTokenError = (data: { message: string }) => setError(data.message);
@@ -102,10 +101,13 @@ export default function PassValidationOverlay({ bookingId }: { bookingId: string
               )
             )}
             {activeMode === "nfc" && (
-              <div className="w-[240px] h-[240px] bg-indigo-50 rounded-xl flex flex-col items-center justify-center text-indigo-500">
-                <SmartphoneNfc size={80} className="mb-4 animate-pulse" />
-                <span className="font-bold">Hold near Validator</span>
-              </div>
+              <button 
+                onClick={() => { if (token) nfc.write(token) }}
+                className="w-[240px] h-[240px] bg-indigo-50 rounded-xl flex flex-col items-center justify-center text-indigo-500 cursor-pointer hover:bg-indigo-100 transition border-2 border-transparent hover:border-indigo-300"
+              >
+                <SmartphoneNfc size={80} className={`mb-4 ${nfc.isWriting ? 'animate-pulse' : ''}`} />
+                <span className="font-bold">{nfc.isWriting ? "Ready... Tap Terminal" : "Click to Transmit via NFC"}</span>
+              </button>
             )}
             {activeMode === "audio" && (
               <div className="w-[240px] h-[240px] bg-blue-50 rounded-xl flex flex-col items-center justify-center text-blue-500">
