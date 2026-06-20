@@ -432,8 +432,8 @@ export default function RidePage() {
       </div>
     );
 
-  const status = booking.status;
-  const baseCfg = STATUS_CONFIG[status];
+  const status = booking.status as BookingStatus;
+  const baseCfg = STATUS_CONFIG[status] || STATUS_CONFIG["confirmed"];
   const isFailed = ["cancelled", "rejected", "expired"].includes(status);
   const isCompleted = status === "completed";
   const isActive = !isCompleted && !isFailed;

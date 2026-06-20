@@ -44,7 +44,7 @@ export async function POST(
     booking.paymentMethod = "wallet";
     booking.paymentStatus = "paid";
     if (booking.status === "awaiting_payment") {
-      booking.status = "payment";
+      booking.status = "confirmed";
     }
     await booking.save();
 

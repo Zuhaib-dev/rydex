@@ -195,6 +195,13 @@ export default function VendorPendingPage() {
   return (
     <div className="max-w-6xl mx-auto px-6 py-8">
       <div className="mb-8">
+        <button
+          onClick={() => router.push("/")}
+          className="mb-6 w-11 h-11 rounded-2xl bg-white border border-zinc-200 shadow-sm flex items-center justify-center hover:bg-zinc-50 transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={17} className="text-zinc-900" />
+        </button>
         <h1 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h1>
         <p className="text-gray-500 mt-1">Live requests from nearby riders — respond before the timer ends.</p>
       </div>

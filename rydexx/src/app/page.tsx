@@ -21,12 +21,7 @@ export default async function Home() {
   const user = await User.findOne({ email: session?.user?.email });
   const shouldTrackLocation = Boolean(session?.user?.id && user?.role === "partner");
 
-  if (user?.role === "partner") {
-    const isFullyApproved = user.partnerStatus === "approved" && (user.partnerOnboardingSteps ?? 0) >= 8;
-    if (isFullyApproved) {
-      redirect("/partner/pending-requests");
-    }
-  }
+  // Partners can access the landing page manually if they choose to.
 
   return (
     <div className="w-full min-h-screen bg-[#fafafa]">
