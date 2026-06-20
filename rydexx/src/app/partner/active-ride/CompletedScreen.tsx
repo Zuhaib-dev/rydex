@@ -53,7 +53,7 @@ export function CompletedScreen({ booking }: { booking: IBooking }) {
       if (!res.ok) throw new Error(data.message || "Failed to submit review");
       setSubmitted(true);
       setTimeout(() => {
-        window.location.href = "/";
+        window.location.href = "/partner/pending-requests";
       }, 2000);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -286,7 +286,7 @@ export function CompletedScreen({ booking }: { booking: IBooking }) {
 
           <motion.button
             whileTap={{ scale: 0.97 }}
-            onClick={() => (window.location.href = "/")}
+            onClick={() => (window.location.href = "/partner/pending-requests")}
             className="w-full border border-zinc-700 text-zinc-400 py-4 rounded-2xl text-sm font-semibold hover:bg-zinc-900 hover:text-white transition-all duration-200"
           >
             Back to Dashboard
