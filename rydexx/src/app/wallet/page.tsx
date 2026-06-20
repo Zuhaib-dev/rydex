@@ -152,7 +152,7 @@ export default function WalletPage() {
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-zinc-900 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden"
+              className="bg-zinc-900 rounded-4xl p-8 text-white shadow-xl relative overflow-hidden"
             >
               <div className="absolute -right-10 -top-10 w-40 h-40 bg-zinc-800 rounded-full blur-3xl opacity-50" />
               
@@ -178,7 +178,7 @@ export default function WalletPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-[2rem] p-6 border border-zinc-200 shadow-sm"
+              className="bg-white rounded-4xl p-6 border border-zinc-200 shadow-sm"
             >
               <h3 className="text-lg font-black text-zinc-900 mb-4 flex items-center gap-2">
                 <Plus size={18} /> Add Money
@@ -231,7 +231,7 @@ export default function WalletPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-[2rem] p-6 sm:p-8 border border-zinc-200 shadow-sm min-h-full"
+              className="bg-white rounded-4xl p-6 sm:p-8 border border-zinc-200 shadow-sm min-h-full"
             >
               <h2 className="text-2xl font-black text-zinc-900 mb-6 flex items-center gap-3">
                 <Clock size={24} className="text-zinc-400" /> Transaction History
