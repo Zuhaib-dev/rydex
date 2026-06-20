@@ -10,7 +10,7 @@ export const MATCH_RADIUS_TIERS_METERS = [5000, 7000, 10000, 15000] as const;
 export const MATCH_ACCEPT_TIMEOUT_MS = 40_000;
 
 /** Partner location older than this is excluded from matching */
-export const MATCH_LOCATION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours (relaxed for smoother booking)
+export const MATCH_LOCATION_MAX_AGE_MS = 60 * 60 * 1000; // 60 minutes (safeguard against Android Doze mode)
 
 /** How often partners push GPS to the socket server */
 export const PARTNER_GEO_PUSH_INTERVAL_MS = 5_000;
