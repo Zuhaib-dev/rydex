@@ -43,7 +43,17 @@ export default function CheckoutClient() {
   const [loading,       setLoading]       = useState(false);
   const [bookingId,     setBookingId]     = useState<string | null>(null);
   const [status,        setStatus]        = useState<Status>("idle");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online" | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online" | "wallet" | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/api/wallet/balance")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setWalletBalance(data.balance);
+      })
+      .catch((err) => console.error("Failed to fetch wallet balance", err));
+  }, []);
 
   /* ── CREATE BOOKING ── */
   const handleCreateBooking = async () => {
@@ -116,8 +126,30 @@ export default function CheckoutClient() {
 
         if(data.success){
           window.location.href = `/ride/${bookingId}`;
+        } else {
+          alert(data.message || "Payment confirmation failed");
         }
 
+        return;
+      }
+
+      if (paymentMethod === "wallet") {
+        if (walletBalance !== null && walletBalance < fare) {
+          alert("Insufficient wallet balance.");
+          return;
+        }
+
+        const res = await fetch(`/api/booking/${bookingId}/confirm-wallet`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          window.location.href = `/ride/${bookingId}`;
+        } else {
+          alert(data.message || "Wallet payment failed");
+        }
         return;
       }
 

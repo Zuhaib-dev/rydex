@@ -11,6 +11,7 @@ import { dispatchBookingToPartner } from "./matching/dispatch";
 import { emitBookingUpdated } from "./bookingEvents";
 import { getRedisClient } from "@/lib/redis";
 import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { creditWallet } from "@/lib/wallet";
 
 const tracer = trace.getTracer("rydexx-matchmaker");
 
@@ -181,6 +182,20 @@ export async function cascadeBooking(bookingId: string, currentDriverId: string)
         await booking.save();
 
         span.setAttribute("cascade.result", "no_drivers");
+
+        // Refund to wallet if prepaid and failed to find drivers
+        if (booking.paymentStatus === "paid" && (booking.paymentMethod === "online" || booking.paymentMethod === "wallet")) {
+          try {
+            await creditWallet(
+              booking.user,
+              booking.fare,
+              `Refund for unfulfilled ride #${booking._id.toString().slice(-6).toUpperCase()}`,
+              booking._id
+            );
+          } catch (err) {
+            console.error("Failed to process wallet refund on cascade expiry:", err);
+          }
+        }
 
         await emitBookingUpdated(booking, {
           bookingId: String(booking._id),

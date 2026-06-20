@@ -4,6 +4,7 @@ import Booking from "@/models/booking.model";
 import { emitBookingUpdated } from "@/lib/bookingEvents";
 import { getRedisClient } from "@/lib/redis";
 import { auth } from "@/lib/auth";
+import { creditWallet } from "@/lib/wallet";
 
 export async function POST(
   req: NextRequest,
@@ -18,9 +19,13 @@ export async function POST(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  // Atomically cancel — only if the booking belongs to this user AND is still "requested"
+  // Atomically cancel — only if the booking belongs to this user AND is in a cancellable state
   const booking = await Booking.findOneAndUpdate(
-    { _id: id, user: session.user.id, status: "requested" },
+    { 
+      _id: id, 
+      user: session.user.id, 
+      status: { $in: ["requested", "awaiting_payment", "payment", "confirmed", "arriving"] } 
+    },
     { status: "cancelled" },
     { new: true }
   );
@@ -39,6 +44,20 @@ export async function POST(
       await redis.del(`lock:driver:${String(booking.driver)}`);
     } catch (err) {
       console.warn("Failed to delete redis lock on cancel:", err);
+    }
+  }
+
+  // Refund to wallet if already paid via online or wallet
+  if (booking.paymentStatus === "paid" && (booking.paymentMethod === "online" || booking.paymentMethod === "wallet")) {
+    try {
+      await creditWallet(
+        session.user.id,
+        booking.fare,
+        `Refund for cancelled ride #${booking._id.toString().slice(-6).toUpperCase()}`,
+        booking._id
+      );
+    } catch (err) {
+      console.error("Failed to process wallet refund on cancel:", err);
     }
   }
 

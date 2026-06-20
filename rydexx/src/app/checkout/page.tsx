@@ -66,9 +66,10 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online" | "pass" | null>(
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "online" | "pass" | "wallet" | null>(
     null,
   );
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [hasPass, setHasPass] = useState(false);
   const [bootstrapped, setBootstrapped] = useState(false);
 
@@ -142,6 +143,26 @@ function CheckoutContent() {
         window.location.href = `/ride/${bookingId}`;
       }
 
+      return;
+    }
+
+    if (paymentMethod === "wallet") {
+      if (walletBalance !== null && walletBalance < fare) {
+        alert("Insufficient wallet balance.");
+        return;
+      }
+
+      const res = await fetch(`/api/booking/${bookingId}/confirm-wallet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        window.location.href = `/ride/${bookingId}`;
+      } else {
+        alert(data.message || "Wallet payment failed");
+      }
       return;
     }
 
@@ -307,6 +328,14 @@ function CheckoutContent() {
           if (validPasses.length > 0) {
             setHasPass(true);
           }
+        }
+      } catch (err) {}
+
+      try {
+        const wRes = await fetch("/api/wallet/balance");
+        const wData = await wRes.json();
+        if (wData.success) {
+          setWalletBalance(wData.balance);
         }
       } catch (err) {}
 
@@ -684,17 +713,20 @@ function CheckoutContent() {
                       {[
                         ...(hasPass ? [{ id: "pass", Icon: ShieldCheck, title: "Smart Pass", sub: "Tap to pay at end of ride" }] : []),
                         { id: "cash",   Icon: Banknote,    title: "Cash",           sub: "Pay driver after ride" },
-                        { id: "online", Icon: Wallet,      title: "Online Payment",  sub: "UPI · Card · Netbanking" },
+                        { id: "online", Icon: CreditCard,  title: "Online Payment",  sub: "UPI · Card · Netbanking" },
+                        { id: "wallet", Icon: Wallet,      title: "Rydex Wallet",    sub: walletBalance !== null ? `Balance: ₹${walletBalance}` : "Loading balance..." },
                       ].map(({ id, Icon, title, sub }) => {
                         const active = paymentMethod === id;
+                        const isDisabled = id === "wallet" && walletBalance !== null && walletBalance < fare;
                         return (
                           <motion.button
                             key={id}
-                            whileTap={{ scale: 0.97 }}
-                            onClick={() => setPaymentMethod(id as any)}
+                            disabled={isDisabled}
+                            whileTap={isDisabled ? {} : { scale: 0.97 }}
+                            onClick={() => !isDisabled && setPaymentMethod(id as any)}
                             className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all duration-200 ${
                               active ? "bg-zinc-900 border-zinc-900" : "bg-zinc-50 border-zinc-200 hover:border-zinc-400"
-                            }`}
+                            } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                           >
                             <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
                               active ? "bg-white/10" : "bg-zinc-200"
@@ -730,6 +762,8 @@ function CheckoutContent() {
                         ? <><Banknote size={16} /><span>Confirm Cash Ride</span></>
                         : paymentMethod === "pass"
                         ? <><ShieldCheck size={16} /><span>Confirm Pass Ride</span></>
+                        : paymentMethod === "wallet"
+                        ? <><Wallet size={16} /><span>Pay with Wallet</span></>
                         : paymentMethod === "online"
                         ? <><span>Proceed to Payment</span><ArrowRight size={16} /></>
                         : <span>Select a Method</span>
