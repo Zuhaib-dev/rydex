@@ -1,16 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { LayoutDashboard, PieChart, User, LogOut, Navigation, Menu, Car, ClipboardList, ArrowLeft } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function PartnerDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   // Do not show the layout wrapper on the active-ride map screen
   if (pathname === "/partner/active-ride") {
@@ -84,8 +92,40 @@ export default function PartnerDashboardLayout({ children }: { children: React.R
       </header>
 
       {/* ── MAIN CONTENT AREA ── */}
-      <main className="flex-1 pb-24 md:pb-0 relative z-10">
-        {children}
+      <main className="flex-1 pb-24 md:pb-0 relative z-10 overflow-hidden">
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.div
+            key={pathname}
+            className="h-full w-full"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            drag={isMobile ? "x" : false}
+            dragConstraints={{ left: 0, right: 0 }}
+            dragElastic={0.2}
+            onDragEnd={(e, { offset, velocity }) => {
+              if (!isMobile) return;
+              const swipePower = Math.abs(offset.x) * velocity.x;
+              const currentIndex = navLinks.findIndex((l) => l.href === pathname);
+              if (currentIndex === -1) return;
+
+              if (swipePower < -5000 || offset.x < -100) {
+                // Swipe Left -> Next Tab
+                if (currentIndex < navLinks.length - 1) {
+                  router.push(navLinks[currentIndex + 1].href);
+                }
+              } else if (swipePower > 5000 || offset.x > 100) {
+                // Swipe Right -> Prev Tab
+                if (currentIndex > 0) {
+                  router.push(navLinks[currentIndex - 1].href);
+                }
+              }
+            }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
 
       {/* ── MOBILE BOTTOM NAVBAR ── */}
