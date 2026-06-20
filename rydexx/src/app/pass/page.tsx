@@ -198,6 +198,7 @@ export default function PassPage() {
                 {pass.balance > 0 ? "Tap to Board" : "Pass Ended"}
               </button>
             </div>
+
           </motion.div>
         ))}
 
@@ -306,6 +307,12 @@ export default function PassPage() {
                 <span className="text-sm font-medium">NFC</span>
               </button>
             </div>
+
+            {!nfc.isSupported && (
+              <p className="mt-4 text-xs font-semibold text-red-400 bg-red-500/10 px-3 py-2 rounded-lg text-center max-w-xs mx-auto">
+                NFC is not supported by your browser or device. Please use QR Code or Audio.
+              </p>
+            )}
             
             {error && (
               <div className="mt-8 flex items-center gap-2 text-red-400 bg-red-400/10 px-4 py-3 rounded-xl">

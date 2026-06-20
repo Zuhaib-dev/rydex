@@ -154,6 +154,12 @@ export default function PassValidationOverlay({ bookingId }: { bookingId: string
               <span className="text-sm font-medium">NFC</span>
             </button>
           </div>
+
+          {!nfc.isSupported && (
+            <p className="mt-4 text-xs font-semibold text-red-400 bg-red-500/10 px-3 py-2 rounded-lg text-center max-w-xs">
+              NFC is not supported by your browser or device. Please use QR Code or Audio.
+            </p>
+          )}
         </>
       )}
       
