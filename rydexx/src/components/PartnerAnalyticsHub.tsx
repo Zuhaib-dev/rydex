@@ -18,14 +18,14 @@ import type { ComponentType } from "react";
 // Direct imports for tab components — Next.js dynamic() with ssr:false handles
 // the code-splitting at the Next.js layer. We cast to ComponentType<any> to
 // satisfy TS JSX props checking while maintaining dynamic loading.
-const OverviewTab    = dynamic(() => import("./partner/analytics/OverviewTab").then(m => m.OverviewTab as ComponentType<any>),    { ssr: false, loading: () => <TabSkeleton /> });
-const AnalyticsTab   = dynamic(() => import("./partner/analytics/AnalyticsTab").then(m => m.AnalyticsTab as ComponentType<any>),  { ssr: false, loading: () => <TabSkeleton /> });
-const SettlementsTab = dynamic(() => import("./partner/analytics/SettlementsTab").then(m => m.SettlementsTab as ComponentType<any>), { ssr: false, loading: () => <TabSkeleton /> });
-const GoalsTab       = dynamic(() => import("./partner/analytics/GoalsTab").then(m => m.GoalsTab as ComponentType<any>),          { ssr: false, loading: () => <TabSkeleton /> });
-const OperationsTab  = dynamic(() => import("./partner/analytics/OperationsTab").then(m => m.OperationsTab as ComponentType<any>), { ssr: false, loading: () => <TabSkeleton /> });
-const FleetTab       = dynamic(() => import("./partner/analytics/FleetTab").then(m => m.FleetTab as ComponentType<any>),          { ssr: false, loading: () => <TabSkeleton /> });
-const DriversTab     = dynamic(() => import("./partner/analytics/DriversTab").then(m => m.DriversTab as ComponentType<any>),      { ssr: false, loading: () => <TabSkeleton /> });
-const PartnerDemandMap = dynamic(() => import("./partner/PartnerDemandMap"), { ssr: false });
+const OverviewTab: any    = dynamic(() => import("./partner/analytics/OverviewTab").then(m => m.OverviewTab),    { ssr: false, loading: () => <TabSkeleton /> });
+const AnalyticsTab: any   = dynamic(() => import("./partner/analytics/AnalyticsTab").then(m => m.AnalyticsTab),  { ssr: false, loading: () => <TabSkeleton /> });
+const SettlementsTab: any = dynamic(() => import("./partner/analytics/SettlementsTab").then(m => m.SettlementsTab), { ssr: false, loading: () => <TabSkeleton /> });
+const GoalsTab: any       = dynamic(() => import("./partner/analytics/GoalsTab").then(m => m.GoalsTab),          { ssr: false, loading: () => <TabSkeleton /> });
+const OperationsTab: any  = dynamic(() => import("./partner/analytics/OperationsTab").then(m => m.OperationsTab), { ssr: false, loading: () => <TabSkeleton /> });
+const FleetTab: any       = dynamic(() => import("./partner/analytics/FleetTab").then(m => m.FleetTab),          { ssr: false, loading: () => <TabSkeleton /> });
+const DriversTab: any     = dynamic(() => import("./partner/analytics/DriversTab").then(m => m.DriversTab),      { ssr: false, loading: () => <TabSkeleton /> });
+const PartnerDemandMap: any = dynamic(() => import("./partner/PartnerDemandMap"), { ssr: false });
 
 // Default mock fleet state (fleet-mode only; not fetched from API)
 const DEFAULT_VEHICLES: FleetVehicle[] = [
