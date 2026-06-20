@@ -44,8 +44,15 @@ export function useNfc() {
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') return false;
-      console.error('NFC Write Error:', err);
-      setError(err.message || 'Failed to broadcast via NFC');
+      if (err.name === 'NotSupportedError') {
+        setIsSupported(false);
+        setError('NFC hardware is missing or disabled on this device.');
+      } else if (err.name === 'NotAllowedError') {
+        setError('NFC permission was denied.');
+      } else {
+        console.error('NFC Write Error:', err);
+        setError(err.message || 'Failed to broadcast via NFC');
+      }
       setIsWriting(false);
       return false;
     }
@@ -86,8 +93,15 @@ export function useNfc() {
       return true;
     } catch (err: any) {
       if (err.name === 'AbortError') return false;
-      console.error('NFC Scan Error:', err);
-      setError(err.message || 'Failed to start NFC scan');
+      if (err.name === 'NotSupportedError') {
+        setIsSupported(false);
+        setError('NFC hardware is missing or disabled on this device.');
+      } else if (err.name === 'NotAllowedError') {
+        setError('NFC permission was denied.');
+      } else {
+        console.error('NFC Scan Error:', err);
+        setError(err.message || 'Failed to start NFC scan');
+      }
       setIsReading(false);
       return false;
     }
