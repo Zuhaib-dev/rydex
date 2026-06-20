@@ -148,7 +148,8 @@ function SearchContent() {
     () => estimateRoadKm(pickupLat, pickupLng, dropLat, dropLng),
     [pickupLat, pickupLng, dropLat, dropLng],
   );
-  const tripKm = km ?? fallbackTripKm;
+  const rawTripKm = km ?? fallbackTripKm;
+  const tripKm = rawTripKm !== null ? Number(rawTripKm.toFixed(1)) : null;
   const eta = tripKm !== null ? Math.max(3, Math.round((tripKm / 25) * 60)) : null;
 
   const hasPickupCoordinates = Number.isFinite(pickupLat) && Number.isFinite(pickupLng) && pickupLat !== 0;
