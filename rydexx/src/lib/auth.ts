@@ -124,7 +124,7 @@ export const authConfig: NextAuthConfig = {
 
         // Select only fields needed — avoids loading passkeys[], fcmTokens[], etc.
         const user = await User.findOne({ email })
-          .select("_id email name role image password isPartnerBlocked");
+          .select("_id email name role image password isPartnerBlocked isEmailVerified");
 
         if (!user) {
           throw new Error("User not found");
@@ -132,6 +132,10 @@ export const authConfig: NextAuthConfig = {
 
         if (user.isPartnerBlocked) {
           throw new Error("Your account has been suspended by the administrator.");
+        }
+
+        if (!user.isEmailVerified) {
+          throw new Error("Please verify your email address before signing in. Check your inbox for the verification code.");
         }
 
         if (!user.password) {
