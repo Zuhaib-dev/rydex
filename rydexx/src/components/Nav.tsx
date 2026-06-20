@@ -773,14 +773,16 @@ function ProfileContent({
           <ChevronRight size={16} className="ml-auto text-gray-400" />
         </button>
 
-        <button
-          onClick={() => router.push("/wallet")}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
-        >
-          <Wallet size={17} />
-          My Wallet
-          <ChevronRight size={16} className="ml-auto text-gray-400" />
-        </button>
+        {role !== "partner" && (
+          <button
+            onClick={() => router.push("/wallet")}
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-gray-800 transition hover:bg-gray-100"
+          >
+            <Wallet size={17} />
+            My Wallet
+            <ChevronRight size={16} className="ml-auto text-gray-400" />
+          </button>
+        )}
 
         {role === "user" && (
           <button

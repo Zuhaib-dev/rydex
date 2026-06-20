@@ -102,7 +102,7 @@ export async function middleware(req: NextRequest) {
   }
 
   // User Only Routes
-  if (pathname.startsWith("/pass")) {
+  if (pathname.startsWith("/pass") || pathname.startsWith("/wallet")) {
     if (role === "user") return NextResponse.next();
     return NextResponse.redirect(new URL("/", req.url));
   }
