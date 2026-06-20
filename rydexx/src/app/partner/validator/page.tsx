@@ -218,16 +218,21 @@ function ValidatorContent() {
               <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-linear-to-b from-neutral-800 to-indigo-900/40">
                 <button 
                   onClick={() => nfc.read(handleTokenScanned)}
-                  className="w-32 h-32 rounded-full bg-indigo-500/20 flex items-center justify-center mb-6 relative cursor-pointer hover:bg-indigo-500/30 transition-colors border-[3px] border-transparent hover:border-indigo-400"
+                  disabled={!nfc.isSupported}
+                  className={`w-32 h-32 rounded-full flex items-center justify-center mb-6 relative transition-colors border-[3px] ${
+                    nfc.isSupported 
+                      ? 'bg-indigo-500/20 hover:bg-indigo-500/30 border-transparent hover:border-indigo-400 cursor-pointer' 
+                      : 'bg-neutral-800 border-neutral-700 opacity-50 cursor-not-allowed'
+                  }`}
                 >
-                  <div className={`absolute inset-0 rounded-full border-[3px] border-indigo-500/30 ${nfc.isReading ? 'animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]' : ''}`}></div>
-                  <SmartphoneNfc size={48} className="text-indigo-400" />
+                  <div className={`absolute inset-0 rounded-full border-[3px] border-indigo-500/30 ${nfc.isReading ? 'animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]' : 'hidden'}`}></div>
+                  <SmartphoneNfc size={48} className={nfc.isSupported ? "text-indigo-400" : "text-neutral-500"} />
                 </button>
                 <h3 className="text-2xl font-bold mb-2">{nfc.isReading ? "Ready to Scan" : "Click to Start Scanner"}</h3>
-                <p className="text-neutral-400">Hold passenger's phone near the terminal</p>
+                <p className="text-neutral-400 mb-4">Hold passenger's phone near the terminal</p>
                 {!nfc.isSupported && (
-                  <p className="text-red-400 mt-4 text-sm font-medium bg-red-500/10 px-3 py-1 rounded-full">
-                    NFC not supported on this device
+                  <p className="text-red-400 mt-2 text-xs font-semibold bg-red-500/10 px-4 py-3 rounded-xl text-center max-w-xs">
+                    NFC is not supported by your browser or device. Please use the QR Code or Audio scanner instead.
                   </p>
                 )}
               </div>
