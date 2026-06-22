@@ -125,16 +125,16 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
 
                     {/* Menu Items */}
                     <div className="p-2 flex flex-col gap-0.5 font-mono text-[11px] tracking-[0.15em] uppercase">
-                      <MenuItem icon={User} label="Profile" />
-                      <MenuItem icon={Clock} label="My Bookings" />
-                      <MenuItem icon={Wallet} label="My Wallet" />
-                      <MenuItem icon={Ticket} label="My Passes" />
+                      <MenuItem icon={User} label="Profile" href="/profile" />
+                      <MenuItem icon={Clock} label="My Bookings" href="/bookings" />
+                      <MenuItem icon={Wallet} label="My Wallet" href="/wallet" />
+                      <MenuItem icon={Ticket} label="My Passes" href="/pass" />
                       
                       <div className="my-2 h-px bg-border w-full" />
                       
-                      <MenuItem icon={Briefcase} label="Become a Partner" />
-                      <MenuItem icon={ShieldCheck} label="Security Settings" />
-                      <MenuItem icon={Fingerprint} label="Register Passkey" />
+                      <MenuItem icon={Briefcase} label="Become a Partner" href="/partner/onboarding/vehicle" />
+                      <MenuItem icon={ShieldCheck} label="Security Settings" href="/settings/security" />
+                      <MenuItem icon={Fingerprint} label="Register Passkey" href="/settings/security?passkey=new" />
                       
                       <div className="my-2 h-px bg-border w-full" />
                       
@@ -161,9 +161,9 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
   );
 }
 
-function MenuItem({ icon: Icon, label }: { icon: LucideIcon, label: string }) {
+function MenuItem({ icon: Icon, label, href }: { icon: LucideIcon, label: string, href: string }) {
   return (
-    <a href="#" className="flex items-center gap-3 px-3 py-2.5 hover:bg-secondary transition-colors group">
+    <a href={href} className="flex items-center gap-3 px-3 py-2.5 hover:bg-secondary transition-colors group">
       <Icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
       <span className="text-foreground/80 group-hover:text-foreground transition-colors">{label}</span>
     </a>
