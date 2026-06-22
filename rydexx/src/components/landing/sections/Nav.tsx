@@ -14,6 +14,15 @@ import {
   Asterisk,
   Check,
   Stamp,
+  User,
+  Clock,
+  Wallet,
+  Ticket,
+  Briefcase,
+  ShieldCheck,
+  Fingerprint,
+  LogOut,
+  Star,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -21,15 +30,19 @@ import AuthModel from "../../AuthModel";
 
 /* ───────────────────────── NAV ───────────────────────── */
 function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
+  // Mock login state for demonstration
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
-    <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md hairline-b">
+    <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border">
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8 grid grid-cols-[auto_1fr_auto] items-center gap-6 py-3">
         <a href="#" className="flex items-baseline gap-1.5">
-          <span className="serif text-[28px] font-black leading-none tracking-tighter">Rydex</span>
-          <span className="mono text-[10px] text-muted-foreground">™</span>
+          <span className="font-serif text-[28px] font-black leading-none tracking-tighter">Rydex</span>
+          <span className="font-mono text-[10px] text-muted-foreground">™</span>
         </a>
 
-        <nav className="hidden md:flex items-center justify-center gap-8 mono text-[11px] tracking-[0.18em] uppercase">
+        <nav className="hidden md:flex items-center justify-center gap-8 font-mono text-[11px] tracking-[0.18em] uppercase">
           {["Ride / 01", "Drive / 02", "Enterprise / 03", "Fleet / 04"].map((l) => (
             <a key={l} href="#" className="relative group">
               {l}
@@ -38,20 +51,96 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
           ))}
         </nav>
 
-        <div className="flex items-center gap-2">
-          <button onClick={onAuthRequired} className="hidden sm:inline mono text-[11px] tracking-[0.18em] uppercase">
-            Log in →
-          </button>
-          <button
-            onClick={onAuthRequired}
-            className="group inline-flex items-center gap-2 brick px-4 py-2 mono text-[11px] tracking-[0.18em] uppercase hover:bg-signal transition-colors"
-          >
-            Get the App
-            <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-          </button>
+        <div className="flex items-center justify-end gap-2 relative">
+          {!isLoggedIn ? (
+            <>
+              <button onClick={() => setIsLoggedIn(true)} className="hidden sm:inline font-mono text-[11px] tracking-[0.18em] uppercase hover:text-signal transition-colors">
+                Log in →
+              </button>
+              <button
+                onClick={onAuthRequired}
+                className="group inline-flex items-center gap-2 brick px-4 py-2 font-mono text-[11px] tracking-[0.18em] uppercase hover:bg-signal transition-colors"
+              >
+                Get the App
+                <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </button>
+            </>
+          ) : (
+            <div className="relative">
+              <button 
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="flex items-center justify-center h-10 w-10 rounded-full border border-border bg-bone text-ink font-serif font-bold hover:bg-signal hover:text-bone hover:border-signal transition-colors"
+              >
+                Y
+              </button>
+              
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.98 }}
+                    className="absolute right-0 top-full mt-3 w-[280px] bg-card border border-border shadow-[8px_8px_0_0_var(--color-ink)] z-40 overflow-hidden"
+                  >
+                    {/* Header */}
+                    <div className="p-5 border-b border-border bg-secondary/30">
+                      <div className="font-serif text-xl font-bold">Yanis</div>
+                      <div className="font-mono text-[10px] text-muted-foreground mt-1">yanis40942@dyleris.com</div>
+                      
+                      <div className="mt-4 flex items-center justify-between font-mono text-[9px] tracking-[0.2em] uppercase">
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Star className="h-3 w-3" /> No ratings yet
+                        </div>
+                        <div className="text-signal font-bold">
+                          ROLE: USER
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Menu Items */}
+                    <div className="p-2 flex flex-col gap-0.5 font-mono text-[11px] tracking-[0.15em] uppercase">
+                      <MenuItem icon={User} label="Profile" />
+                      <MenuItem icon={Clock} label="My Bookings" />
+                      <MenuItem icon={Wallet} label="My Wallet" />
+                      <MenuItem icon={Ticket} label="My Passes" />
+                      
+                      <div className="my-2 h-px bg-border w-full" />
+                      
+                      <MenuItem icon={Briefcase} label="Become a Partner" />
+                      <MenuItem icon={ShieldCheck} label="Security Settings" />
+                      <MenuItem icon={Fingerprint} label="Register Passkey" />
+                      
+                      <div className="my-2 h-px bg-border w-full" />
+                      
+                      <button 
+                        onClick={() => {
+                          setIsLoggedIn(false);
+                          setMenuOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-3 py-2.5 text-left text-signal hover:bg-signal/10 transition-colors w-full"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        Logout
+                      </button>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </header>
+  );
+}
+
+function MenuItem({ icon: Icon, label }: { icon: LucideIcon, label: string }) {
+  return (
+    <a href="#" className="flex items-center gap-3 px-3 py-2.5 hover:bg-secondary transition-colors group">
+      <Icon className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+      <span className="text-foreground/80 group-hover:text-foreground transition-colors">{label}</span>
+    </a>
   );
 }
 
