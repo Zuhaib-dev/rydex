@@ -16,6 +16,7 @@ import {
   Stamp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import InstallModal from "../../InstallModal";
 
 /* ───────────────────────── FOOTER ───────────────────────── */
 function Foot() {
@@ -28,6 +29,7 @@ function Foot() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [installOpen, setInstallOpen] = useState(false);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -40,12 +42,7 @@ function Foot() {
 
   const handleInstallClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
-    } else {
-      alert("To install the app, tap 'Share' in your browser and select 'Add to Home Screen'.");
-    }
+    setInstallOpen(true);
   };
 
   const handleSubscribe = async (e: React.FormEvent) => {
@@ -152,6 +149,11 @@ function Foot() {
           <span>Composed in Srinagar · printed on the web</span>
         </div>
       </div>
+      <InstallModal 
+        open={installOpen} 
+        onClose={() => setInstallOpen(false)} 
+        deferredPrompt={deferredPrompt} 
+      />
     </footer>
   );
 }

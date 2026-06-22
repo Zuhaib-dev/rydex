@@ -30,6 +30,7 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 
 import AuthModel from "../../AuthModel";
+import InstallModal from "../../InstallModal";
 
 /* ───────────────────────── NAV ───────────────────────── */
 function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => void }) {
@@ -39,6 +40,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
   const [menuOpen, setMenuOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [installOpen, setInstallOpen] = useState(false);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -50,12 +52,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
   }, []);
 
   const handleInstallClick = () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
-    } else {
-      alert("To install the app, tap 'Share' in your browser and select 'Add to Home Screen'.");
-    }
+    setInstallOpen(true);
   };
 
   const isLoggedIn = mockLoggedIn || !!session?.user;
@@ -188,6 +185,11 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
           )}
         </div>
       </div>
+      <InstallModal 
+        open={installOpen} 
+        onClose={() => setInstallOpen(false)} 
+        deferredPrompt={deferredPrompt} 
+      />
     </header>
   );
 }
