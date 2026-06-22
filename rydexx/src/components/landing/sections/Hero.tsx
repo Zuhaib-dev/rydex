@@ -207,7 +207,7 @@ function SpecimenCard() {
 
         <div className="mt-4 hairline-t pt-3 flex items-center justify-between">
           <div>
-            <div className="serif text-lg font-bold leading-tight">Rohan K.</div>
+            <div className="serif text-lg font-bold leading-tight">Zuhaib</div>
             <div className="mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground">
               4.96 ★ · 8,412 trips
             </div>
