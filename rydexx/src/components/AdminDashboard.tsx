@@ -53,9 +53,6 @@ import ObservabilityDashboard from "./admin/ObservabilityDashboard";
 import useSWR from "swr";
 
 // Import user context layouts to support client-side impersonation
-import Nav from "@/components/Nav";
-import PartnerDashboard from "@/components/PartnerDashboard";
-import PublicHome from "@/components/PublicHome";
 
 type TabType = "overview" | "map" | "queues" | "users" | "security" | "health" | "notifications" | "analytics" | "coupons" | "vehicles" | "observability";
 type QueueSubTab = "partner" | "kyc" | "vehicle";
@@ -174,18 +171,11 @@ function AdminDashboardContent() {
             Exit Simulation
           </button>
         </div>
-        <div className="flex-1">
-          {userData?.role === "partner" ? (
-            <>
-              <Nav />
-              <PartnerDashboard />
-            </>
-          ) : (
-            <>
-              <Nav />
-              <PublicHome />
-            </>
-          )}
+                <div className="flex-1 p-8 flex items-center justify-center">
+          <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-sm max-w-2xl text-center">
+            <h2 className="text-xl font-bold mb-4">Simulation Mode Active</h2>
+            <p className="text-gray-600">You are currently impersonating {userData?.name}. Client-side simulation of the Partner Dashboard has been deprecated following the migration to the new Next.js App Router architecture.</p>
+          </div>
         </div>
       </div>
     );
