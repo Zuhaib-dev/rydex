@@ -23,6 +23,7 @@ import {
   Fingerprint,
   LogOut,
   Star,
+  Bell,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
@@ -130,6 +131,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
                     {/* Menu Items */}
                     <div className="p-2 flex flex-col gap-0.5 font-mono text-[11px] tracking-[0.15em] uppercase">
                       <MenuItem icon={User} label="Profile" href="/profile" />
+                      <MenuItem icon={Bell} label="Notifications" href="/notifications" />
                       <MenuItem icon={Clock} label="My Bookings" href="/bookings" />
                       <MenuItem icon={Wallet} label="My Wallet" href="/wallet" />
                       <MenuItem icon={Ticket} label="My Passes" href="/pass" />
