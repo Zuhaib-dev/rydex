@@ -329,7 +329,7 @@ function Specimens() {
           <div className="lg:col-span-3 mono text-[11px] tracking-[0.25em] uppercase text-bone/60">
             §02 — The Catalogue
           </div>
-          <h2 className="lg:col-span-9 serif font-black leading-[0.9] tracking-tighter text-5xl sm:text-7xl lg:text-8xl">
+          <h2 className="lg:col-span-9 serif font-black leading-[0.9] tracking-tighter text-5xl sm:text-7xl lg:text-8xl whitespace-nowrap">
             Six wheels, <span className="italic font-bold text-signal">one</span> network.
           </h2>
         </div>
