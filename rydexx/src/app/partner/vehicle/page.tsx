@@ -110,14 +110,33 @@ export default function Vehicle() {
 
 function AddVehicleModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [loading, setLoading] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
-    const fd = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(fd.entries());
     
     try {
+      let imageUrl = undefined;
+      
+      if (file) {
+        if (file.size > 2 * 1024 * 1024) {
+          throw new Error("Vehicle photo must be smaller than 2MB");
+        }
+        
+        const uploadData = new FormData();
+        uploadData.append("file", file);
+        
+        const uploadRes = await fetch("/api/upload", { method: "POST", body: uploadData });
+        const uploadJson = await uploadRes.json();
+        
+        if (!uploadRes.ok) throw new Error(uploadJson.message || "Failed to upload image");
+        imageUrl = uploadJson.url;
+      }
+      
+      const fd = new FormData(e.currentTarget);
+      const payload = { ...Object.fromEntries(fd.entries()), imageUrl };
+      
       const res = await fetch("/api/vehicles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -125,6 +144,7 @@ function AddVehicleModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.message);
+      
       toast.success("Vehicle added successfully");
       onSaved();
     } catch (err: any) {
@@ -162,19 +182,19 @@ function AddVehicleModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
               </label>
               <label className="block">
                 <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Brand / Make</span>
-                <input name="brand" placeholder="e.g. Maruti Suzuki" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
+                <input name="brand" placeholder="e.g. Maruti Suzuki" required pattern="^[a-zA-Z\s.-]+$" title="Brand name contains invalid characters" className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
               </label>
               <label className="block">
                 <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Model Name</span>
-                <input name="vehicleModel" placeholder="e.g. Swift Dzire" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
+                <input name="vehicleModel" placeholder="e.g. Swift Dzire" required pattern="^[a-zA-Z0-9\-_()\/+.]+(?:\s+[a-zA-Z0-9\-_()\/+.]+)*$" title="Model contains invalid characters" className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
               </label>
               <label className="block">
                 <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Registration Plate</span>
-                <input name="vehicleNumber" placeholder="e.g. MH12AB1234" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
+                <input name="vehicleNumber" placeholder="e.g. MH12AB1234" required pattern="^[A-Za-z]{2}[\s-]?[0-9]{2}[\s-]?[A-Za-z]{0,2}[\s-]?[0-9]{4}$" title="Invalid plate format (e.g. MH12 AB 1234)" className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
               </label>
               <label className="block">
                 <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Color</span>
-                <input name="color" placeholder="e.g. White" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
+                <input name="color" placeholder="e.g. White" required pattern="^[a-zA-Z\s-]+$" title="Color contains invalid characters" className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
               </label>
               <label className="block">
                 <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Mfg Year</span>
@@ -195,6 +215,10 @@ function AddVehicleModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
               <label className="block">
                 <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Waiting Fees (₹/m)</span>
                 <input name="waitingCharge" type="number" min="1" max="10" defaultValue="2" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase" />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Vehicle Photo (Max 2MB)</span>
+                <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="w-full hairline bg-background p-3 mono text-[12px] uppercase file:mr-4 file:py-1 file:px-4 file:bg-signal file:text-bone file:border-0 file:mono file:text-[10px] file:uppercase file:cursor-pointer hover:file:bg-ink file:transition-colors" />
               </label>
             </div>
             
