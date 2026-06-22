@@ -2,22 +2,47 @@
 
 import { PageHead, Panel } from "@/components/partner/shared";
 import useSWR from "swr";
+import { useState } from "react";
+import toast from "react-hot-toast";
+import { Plus } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function Vehicle() {
-  const { data } = useSWR("/api/vehicles", fetcher);
+  const { data, mutate } = useSWR("/api/vehicles", fetcher);
   const vehicles = data?.vehicles || [];
   const activeId = data?.activeVehicleId;
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleMakeActive = async (id: string) => {
+    try {
+      const res = await fetch(`/api/vehicles/${id}/active`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message);
+      toast.success(json.message);
+      mutate();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to make vehicle active");
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <PageHead code="VEH / 03" title="My Vehicles" subtitle="Fleet dispatch units · Service log & papers" />
+      <div className="flex items-center justify-between">
+        <PageHead code="VEH / 03" title="My Vehicles" subtitle="Fleet dispatch units · Service log & papers" />
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="group flex items-center gap-2 hairline bg-signal text-bone hover:bg-ink px-4 py-2.5 mono text-[11px] tracking-[0.22em] uppercase transition-colors"
+        >
+          <Plus className="h-4 w-4" /> Add Vehicle
+        </button>
+      </div>
       
       {vehicles.map((vehicle: any) => {
         const isActive = vehicle._id === activeId;
+        const makeModel = `${vehicle.brand || ""} ${vehicle.vehicleModel || ""}`.trim() || "Unknown Vehicle";
         const SPECS = [
-          ["Make / Model", `${vehicle.brand} ${vehicle.vehicleModel}`],
+          ["Make / Model", makeModel],
           ["Plate", vehicle.vehicleNumber],
           ["Class", vehicle.type?.toUpperCase() || "CAR"],
           ["Year", vehicle.manufacturingYear?.toString() || "2022"],
@@ -28,20 +53,30 @@ export default function Vehicle() {
         return (
           <div key={vehicle._id} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             <Panel code={isActive ? "UNIT / ACTIVE" : "UNIT / IDLE"} title={isActive ? "Active Vehicle" : "Fleet Vehicle"} className="lg:col-span-2">
-              <div className="flex items-center gap-2 mono text-[10px] tracking-[0.22em] uppercase mb-3">
-                {isActive ? (
-                  <span className="signal-chip px-2 py-0.5">Live on Rydex</span>
-                ) : (
-                  <span className="bg-ink text-bone px-2 py-0.5">Idle</span>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 mono text-[10px] tracking-[0.22em] uppercase">
+                  {isActive ? (
+                    <span className="signal-chip px-2 py-0.5">Live on Rydex</span>
+                  ) : (
+                    <span className="bg-ink text-bone px-2 py-0.5">Idle</span>
+                  )}
+                </div>
+                {!isActive && vehicle.status === "approved" && (
+                  <button onClick={() => handleMakeActive(vehicle._id)} className="hairline px-3 py-1.5 mono text-[10px] tracking-[0.22em] uppercase hover:bg-signal hover:text-bone transition-colors">
+                    Make Active
+                  </button>
+                )}
+                {!isActive && vehicle.status !== "approved" && (
+                  <span className="mono text-[10px] tracking-[0.22em] uppercase text-signal">Pending Approval</span>
                 )}
               </div>
-              <div className="serif text-[56px] font-black leading-none tracking-tighter capitalize">{vehicle.vehicleModel}</div>
+              <div className="serif text-[42px] md:text-[56px] font-black leading-none tracking-tighter capitalize truncate">{vehicle.vehicleModel || "Unknown"}</div>
               <div className="mono text-[11px] tracking-[0.22em] uppercase text-muted-foreground mt-2">Plate · {vehicle.vehicleNumber}</div>
               <div className="mt-5 grid grid-cols-2 gap-x-6">
                 {SPECS.map(([k, v]) => (
                   <div key={k} className="hairline-b py-2 flex items-center justify-between mono text-[11px] tracking-[0.15em] uppercase">
                     <span className="text-muted-foreground">{k}</span>
-                    <span className="text-foreground">{v}</span>
+                    <span className="text-foreground text-right">{v}</span>
                   </div>
                 ))}
               </div>
@@ -67,6 +102,113 @@ export default function Vehicle() {
            </div>
          </Panel>
       )}
+
+      {isModalOpen && <AddVehicleModal onClose={() => setIsModalOpen(false)} onSaved={() => { setIsModalOpen(false); mutate(); }} />}
+    </div>
+  );
+}
+
+function AddVehicleModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setLoading(true);
+    const fd = new FormData(e.currentTarget);
+    const payload = Object.fromEntries(fd.entries());
+    
+    try {
+      const res = await fetch("/api/vehicles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message);
+      toast.success("Vehicle added successfully");
+      onSaved();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add vehicle");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-background/90 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="w-full max-w-2xl my-auto">
+        <Panel code="MODAL / 01" title="Add New Vehicle">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Vehicle Type</span>
+                <select name="type" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase">
+                  <option value="bike">Bike</option>
+                  <option value="auto">Auto</option>
+                  <option value="car">Car</option>
+                  <option value="loading">Loading</option>
+                  <option value="truck">Truck</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Fuel Type</span>
+                <select name="fuelType" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase">
+                  <option value="petrol">Petrol</option>
+                  <option value="diesel">Diesel</option>
+                  <option value="cng">CNG</option>
+                  <option value="electric">Electric</option>
+                  <option value="hybrid">Hybrid</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Brand / Make</span>
+                <input name="brand" placeholder="e.g. Maruti Suzuki" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Model Name</span>
+                <input name="vehicleModel" placeholder="e.g. Swift Dzire" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Registration Plate</span>
+                <input name="vehicleNumber" placeholder="e.g. MH12AB1234" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Color</span>
+                <input name="color" placeholder="e.g. White" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase placeholder:text-muted-foreground/50" />
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Mfg Year</span>
+                <input name="manufacturingYear" type="number" min="1990" max="2026" defaultValue="2026" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase" />
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Seats</span>
+                <input name="seatingCapacity" type="number" min="1" max="20" defaultValue="4" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase" />
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Base Fare (₹)</span>
+                <input name="baseFare" type="number" min="1" max="200" defaultValue="50" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase" />
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Per KM Rate (₹)</span>
+                <input name="perKmRate" type="number" min="5" max="200" defaultValue="15" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase" />
+              </label>
+              <label className="block">
+                <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-1 block">Waiting Fees (₹/m)</span>
+                <input name="waitingCharge" type="number" min="1" max="10" defaultValue="2" required className="w-full hairline bg-background p-3 mono text-[12px] uppercase" />
+              </label>
+            </div>
+            
+            <div className="flex gap-3 justify-end pt-4 mt-6 hairline-t border-border">
+              <button type="button" onClick={onClose} disabled={loading} className="hairline px-6 py-3 mono text-[11px] tracking-[0.22em] uppercase hover:bg-secondary transition-colors">
+                Cancel
+              </button>
+              <button type="submit" disabled={loading} className="bg-signal text-bone px-6 py-3 mono text-[11px] tracking-[0.22em] uppercase hover:bg-ink transition-colors">
+                {loading ? "Saving..." : "Save Vehicle"}
+              </button>
+            </div>
+          </form>
+        </Panel>
+      </div>
     </div>
   );
 }
