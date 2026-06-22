@@ -241,7 +241,7 @@ function SpecimenCard() {
         </div>
 
         {/* Map */}
-        <div className="relative aspect-[4/5] hairline overflow-hidden bg-secondary">
+        <div className="relative aspect-4/5 hairline overflow-hidden bg-secondary">
           {/* grid */}
           <div
             className="absolute inset-0 opacity-50"
@@ -297,7 +297,7 @@ function SpecimenCard() {
       <div className="absolute -top-3 -left-3 hairline bg-bone px-2 py-1 mono text-[9px] tracking-[0.2em] uppercase rotate-[-4deg]">
         ✶ Field Sample
       </div>
-      <div className="absolute -bottom-3 -right-3 signal-chip px-2 py-1 mono text-[9px] tracking-[0.2em] uppercase rotate-[3deg]">
+      <div className="absolute -bottom-3 -right-3 signal-chip px-2 py-1 mono text-[9px] tracking-[0.2em] uppercase rotate-3">
         Issue 22 · 2026
       </div>
     </motion.div>
@@ -365,12 +365,12 @@ function Specimen({ v }: { v: V }) {
 
       <div className="my-6 flex items-end justify-between">
         <Icon className="h-16 w-16 stroke-[1.2]" />
-        <span className="serif text-7xl font-black leading-none -mr-1">{v.n}</span>
+        <span className="font-serif text-7xl font-black leading-none -mr-1">{v.n}</span>
       </div>
 
       <div className="mt-auto">
-        <div className="serif text-3xl font-bold tracking-tight">{v.name}</div>
-        <div className="mt-4 grid grid-cols-3 gap-2 mono text-[10px] tracking-[0.14em] uppercase">
+        <div className="font-serif text-3xl font-bold tracking-tight">{v.name}</div>
+        <div className="mt-4 grid grid-cols-3 gap-2 font-mono text-[10px] tracking-[0.14em] uppercase">
           <div>
             <div className="text-bone/50">fare</div>
             <div>{v.price}</div>
@@ -449,13 +449,13 @@ function LiveDispatch() {
 
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8 py-24">
         <div className="grid lg:grid-cols-12 gap-6 mb-12 items-end">
-          <div className="lg:col-span-3 mono text-[11px] tracking-[0.25em] uppercase text-bone/60">
+          <div className="lg:col-span-3 font-mono text-[11px] tracking-[0.25em] uppercase text-bone/60">
             §03 — Live Dispatch
           </div>
-          <h2 className="lg:col-span-6 serif font-black leading-[0.88] tracking-tighter text-5xl sm:text-7xl">
+          <h2 className="lg:col-span-6 font-serif font-black leading-[0.88] tracking-tighter text-5xl sm:text-7xl">
             The country, <span className="italic font-bold text-signal">in motion</span>.
           </h2>
-          <div className="lg:col-span-3 mono text-[10px] tracking-[0.2em] uppercase text-bone/60">
+          <div className="lg:col-span-3 font-mono text-[10px] tracking-[0.2em] uppercase text-bone/60">
             <div className="flex items-center gap-2 mb-1">
               <span className="h-1.5 w-1.5 bg-signal rounded-full animate-blink" />
               streaming · realtime
@@ -466,7 +466,7 @@ function LiveDispatch() {
 
         <div className="grid lg:grid-cols-12 gap-px bg-bone/15 border border-bone/15">
           {/* MAP */}
-          <div className="lg:col-span-8 bg-ink relative aspect-[5/6] sm:aspect-[7/6] lg:aspect-auto lg:min-h-[600px] p-6">
+          <div className="lg:col-span-8 bg-ink relative aspect-5/6 sm:aspect-7/6 lg:aspect-auto lg:min-h-[600px] p-6">
             <div className="absolute inset-0 opacity-[0.07]"
               style={{
                 backgroundImage:
@@ -476,10 +476,10 @@ function LiveDispatch() {
             />
 
             {/* corner labels */}
-            <div className="absolute top-4 left-4 mono text-[9px] tracking-[0.25em] uppercase text-bone/50">N 28.61° · INDIA</div>
-            <div className="absolute top-4 right-4 mono text-[9px] tracking-[0.25em] uppercase text-bone/50">PLATE 03 / DISPATCH</div>
-            <div className="absolute bottom-4 left-4 mono text-[9px] tracking-[0.25em] uppercase text-bone/50">SCALE — 1 PX / 6 KM</div>
-            <div className="absolute bottom-4 right-4 mono text-[9px] tracking-[0.25em] uppercase text-bone/50">SRC: rydex.live</div>
+            <div className="absolute top-4 left-4 font-mono text-[9px] tracking-[0.25em] uppercase text-bone/50">N 28.61° · INDIA</div>
+            <div className="absolute top-4 right-4 font-mono text-[9px] tracking-[0.25em] uppercase text-bone/50">PLATE 03 / DISPATCH</div>
+            <div className="absolute bottom-4 left-4 font-mono text-[9px] tracking-[0.25em] uppercase text-bone/50">SCALE — 1 PX / 6 KM</div>
+            <div className="absolute bottom-4 right-4 font-mono text-[9px] tracking-[0.25em] uppercase text-bone/50">SRC: rydex.live</div>
 
             <svg
               viewBox="0 0 600 600"
@@ -537,14 +537,14 @@ function LiveDispatch() {
             </svg>
 
             {/* readout */}
-            <div className="absolute left-6 bottom-12 hairline border-bone/30 bg-ink px-3 py-2 mono text-[10px] tracking-[0.18em] uppercase text-bone/80">
+            <div className="absolute left-6 bottom-12 border border-bone/30 bg-ink px-3 py-2 font-mono text-[10px] tracking-[0.18em] uppercase text-bone/80">
               <span className="text-signal">●</span> 14,302 wheels turning · now
             </div>
           </div>
 
           {/* FEED */}
           <div className="lg:col-span-4 bg-ink p-6 flex flex-col min-h-[400px]">
-            <div className="flex items-center justify-between mono text-[10px] tracking-[0.25em] uppercase text-bone/60 hairline-b border-bone/15 pb-3">
+            <div className="flex items-center justify-between font-mono text-[10px] tracking-[0.25em] uppercase text-bone/60 border-b border-bone/15 pb-3">
               <span>Dispatch Feed</span>
               <span className="flex items-center gap-1.5">
                 <span className="h-1.5 w-1.5 bg-signal rounded-full animate-blink" />
@@ -552,7 +552,7 @@ function LiveDispatch() {
               </span>
             </div>
 
-            <div className="mt-4 grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-3 mono text-[11px]">
+            <div className="mt-4 grid grid-cols-[auto_1fr_auto] gap-x-3 gap-y-3 font-mono text-[11px]">
               {feed.map((f, i) => (
                 <motion.div
                   key={i}
@@ -562,27 +562,27 @@ function LiveDispatch() {
                   transition={{ duration: 0.4, delay: i * 0.06 }}
                   className="contents"
                 >
-                  <span className="text-bone/40 tracking-[0.1em]">{f.t}</span>
+                  <span className="text-bone/40 tracking-widest">{f.t}</span>
                   <span className="text-bone">
                     <span className="text-signal">{f.c}</span>
                     <span className="block text-bone/50 text-[10px] mt-0.5 tracking-[0.12em] uppercase">
                       {f.v} · {f.who}
                     </span>
                   </span>
-                  <span className="text-bone serif italic text-base leading-none">{f.f}</span>
+                  <span className="text-bone font-serif italic text-base leading-none">{f.f}</span>
                 </motion.div>
               ))}
             </div>
 
             <div className="mt-auto pt-6">
-              <div className="mono text-[9px] tracking-[0.25em] uppercase text-bone/40 mb-3">
+              <div className="font-mono text-[9px] tracking-[0.25em] uppercase text-bone/40 mb-3">
                 ↳ printed continuously
               </div>
               <a
                 href="#"
                 className="group flex items-center justify-between border border-bone/30 px-4 py-3 hover:bg-signal hover:border-signal transition-colors"
               >
-                <span className="mono text-[11px] tracking-[0.2em] uppercase">Open Live Console</span>
+                <span className="font-mono text-[11px] tracking-[0.2em] uppercase">Open Live Console</span>
                 <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </a>
             </div>
@@ -614,14 +614,14 @@ function Bento() {
   return (
     <section className="relative">
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8 py-24">
-        <div className="flex items-end justify-between mb-12 hairline-b pb-4 gap-6 flex-wrap">
+        <div className="flex items-end justify-between mb-12 border-b border-border pb-4 gap-6 flex-wrap">
           <div>
-            <div className="mono text-[11px] tracking-[0.25em] uppercase text-signal mb-3">§05 — Field Reports</div>
-            <h2 className="serif text-5xl sm:text-7xl font-black leading-[0.9] tracking-tighter max-w-3xl">
+            <div className="font-mono text-[11px] tracking-[0.25em] uppercase text-signal mb-3">§05 — Field Reports</div>
+            <h2 className="font-serif text-5xl sm:text-7xl font-black leading-[0.9] tracking-tighter max-w-3xl">
               What the <span className="italic font-bold">drivers</span>, riders & shippers say<span className="text-signal">.</span>
             </h2>
           </div>
-          <div className="mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden md:block">
+          <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden md:block">
             collected Q2 · 2026 · n = 4,108
           </div>
         </div>
@@ -630,14 +630,14 @@ function Bento() {
         <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 auto-rows-[180px] gap-3">
           {/* Big quote */}
           <BentoTile className="sm:col-span-6 lg:col-span-7 lg:row-span-2 brick text-bone p-8 flex flex-col">
-            <div className="mono text-[10px] tracking-[0.25em] uppercase text-bone/50">Quote / 01 — verified rider</div>
-            <p className="serif text-2xl sm:text-3xl lg:text-4xl leading-[1.15] font-medium mt-6">
+            <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-bone/50">Quote / 01 — verified rider</div>
+            <p className="font-serif text-2xl sm:text-3xl lg:text-4xl leading-[1.15] font-medium mt-6">
               <span className="text-signal">“</span>I booked a bike to the metro, a sedan to the airport, and a 5-tonne truck to move my studio — <em className="not-italic font-bold text-signal">all in the same week, same app</em>. Rydex is the only thing on my home screen now.<span className="text-signal">”</span>
             </p>
             <div className="mt-auto pt-8 flex items-end justify-between">
               <div>
-                <div className="serif text-xl font-bold">Ananya R.</div>
-                <div className="mono text-[10px] tracking-[0.2em] uppercase text-bone/60">Designer · Bengaluru</div>
+                <div className="font-serif text-xl font-bold">Ananya R.</div>
+                <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-bone/60">Designer · Bengaluru</div>
               </div>
               <Avatar initials="AR" />
             </div>
@@ -645,26 +645,26 @@ function Bento() {
 
           {/* Stat tile */}
           <BentoTile className="sm:col-span-3 lg:col-span-5 lg:row-span-1 signal-chip p-6 flex flex-col justify-between">
-            <div className="mono text-[10px] tracking-[0.25em] uppercase text-bone/80">satisfaction · ytd</div>
+            <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-bone/80">satisfaction · ytd</div>
             <div className="flex items-baseline gap-3">
-              <span className="serif text-7xl sm:text-8xl font-black leading-none">98.4</span>
-              <span className="serif italic text-4xl sm:text-5xl font-bold text-bone/90 leading-none">%</span>
+              <span className="font-serif text-7xl sm:text-8xl font-black leading-none">98.4</span>
+              <span className="font-serif italic text-4xl sm:text-5xl font-bold text-bone/90 leading-none">%</span>
             </div>
-            <div className="mono text-[10px] tracking-[0.2em] uppercase text-bone/80">
+            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-bone/80">
               ↳ trips rated 5★ across the network
             </div>
           </BentoTile>
 
           {/* Small quote */}
           <BentoTile className="sm:col-span-3 lg:col-span-5 lg:row-span-1 bg-card p-6 flex flex-col">
-            <div className="mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Quote / 02</div>
-            <p className="serif text-lg leading-snug mt-3 flex-1">
+            <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Quote / 02</div>
+            <p className="font-serif text-lg leading-snug mt-3 flex-1">
               <span className="text-signal">“</span>Switched our entire last-mile fleet over. Dispatch is 3× faster. <em className="not-italic font-bold">Period.</em><span className="text-signal">”</span>
             </p>
             <div className="flex items-end justify-between mt-4">
               <div>
-                <div className="serif font-bold">Vikram S.</div>
-                <div className="mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Ops · BlueCart Logistics</div>
+                <div className="font-serif font-bold">Vikram S.</div>
+                <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Ops · BlueCart Logistics</div>
               </div>
               <Avatar initials="VS" />
             </div>
@@ -672,11 +672,11 @@ function Bento() {
 
           {/* Illustration: bike */}
           <BentoTile className="sm:col-span-3 lg:col-span-4 lg:row-span-1 bg-secondary p-6 relative overflow-hidden">
-            <div className="mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Plate · The Darter</div>
+            <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Plate · The Darter</div>
             <BikeIllustration />
             <div className="absolute bottom-4 left-6 right-6 flex items-end justify-between">
-              <div className="serif text-2xl font-bold leading-none">8 min<br/><span className="text-signal italic text-lg">avg ETA</span></div>
-              <div className="mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground text-right">
+              <div className="font-serif text-2xl font-bold leading-none">8 min<br/><span className="text-signal italic text-lg">avg ETA</span></div>
+              <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground text-right">
                 ↳ darter<br/>class
               </div>
             </div>
@@ -684,27 +684,27 @@ function Bento() {
 
           {/* Quote */}
           <BentoTile className="sm:col-span-3 lg:col-span-4 lg:row-span-1 bg-card p-6 flex flex-col">
-            <div className="mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Quote / 03 — driver</div>
-            <p className="serif text-lg leading-snug mt-3 flex-1">
+            <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Quote / 03 — driver</div>
+            <p className="font-serif text-lg leading-snug mt-3 flex-1">
               <span className="text-signal">“</span>Earnings dashboard is honest. Daily settlements. I drive happy.<span className="text-signal">”</span>
             </p>
             <div className="flex items-end justify-between mt-4">
               <div>
-                <div className="serif font-bold">Imran K.</div>
-                <div className="mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Partner · 3 yr</div>
+                <div className="font-serif font-bold">Imran K.</div>
+                <div className="font-mono text-[9px] tracking-[0.2em] uppercase text-muted-foreground">Partner · 3 yr</div>
               </div>
               <Avatar initials="IK" />
             </div>
           </BentoTile>
 
           {/* Award / press */}
-          <BentoTile className="sm:col-span-6 lg:col-span-4 lg:row-span-1 hairline bg-background p-6 flex flex-col justify-between">
-            <div className="mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Press</div>
+          <BentoTile className="sm:col-span-6 lg:col-span-4 lg:row-span-1 border border-border bg-background p-6 flex flex-col justify-between">
+            <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-muted-foreground">Press</div>
             <div>
-              <div className="serif italic text-xl leading-tight">"Built like a Swiss railway, priced like a kirana store."</div>
-              <div className="mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mt-3">— The Mobility Quarterly</div>
+              <div className="font-serif italic text-xl leading-tight">"Built like a Swiss railway, priced like a kirana store."</div>
+              <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mt-3">— The Mobility Quarterly</div>
             </div>
-            <div className="flex items-center gap-2 mono text-[10px] tracking-[0.2em] uppercase">
+            <div className="flex items-center gap-2 font-mono text-[10px] tracking-[0.2em] uppercase">
               <span className="signal-chip px-1.5 py-0.5">★ 2026</span>
               <span>Editor's pick</span>
             </div>
@@ -712,19 +712,19 @@ function Bento() {
 
           {/* Stat tile 2 */}
           <BentoTile className="sm:col-span-3 lg:col-span-4 lg:row-span-1 brick text-bone p-6 flex flex-col justify-between">
-            <div className="mono text-[10px] tracking-[0.25em] uppercase text-bone/50">cities live</div>
-            <div className="serif text-7xl font-black leading-none">40<span className="text-signal">+</span></div>
-            <div className="mono text-[10px] tracking-[0.2em] uppercase text-bone/60">↳ new every month</div>
+            <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-bone/50">cities live</div>
+            <div className="font-serif text-7xl font-black leading-none">40<span className="text-signal">+</span></div>
+            <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-bone/60">↳ new every month</div>
           </BentoTile>
 
           {/* Long horizontal quote */}
           <BentoTile className="sm:col-span-3 lg:col-span-8 lg:row-span-1 bg-card p-6 flex flex-col sm:flex-row sm:items-center gap-6">
             <Avatar initials="PM" large />
             <div className="flex-1">
-              <p className="serif text-xl sm:text-2xl leading-snug">
+              <p className="font-serif text-xl sm:text-2xl leading-snug">
                 <span className="text-signal">“</span>For our wedding week we ran <em className="not-italic font-bold">23 vehicles</em> across 4 cities through Rydex — zero spreadsheets, one invoice.<span className="text-signal">”</span>
               </p>
-              <div className="mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mt-3">
+              <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mt-3">
                 Priya M. · Event lead · Mumbai
               </div>
             </div>
@@ -758,7 +758,7 @@ function BentoTile({
 function Avatar({ initials, large = false }: { initials: string; large?: boolean }) {
   const size = large ? "h-16 w-16 text-xl" : "h-10 w-10 text-xs";
   return (
-    <div className={`shrink-0 grid place-items-center rounded-full hairline bg-bone text-ink serif font-bold ${size}`}>
+    <div className={`shrink-0 grid place-items-center rounded-full border border-border bg-bone text-ink font-serif font-bold ${size}`}>
       {initials}
     </div>
   );
@@ -801,19 +801,19 @@ function Protocol() {
   return (
     <section id="ride" className="relative">
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8 py-24">
-        <div className="flex items-end justify-between mb-12 hairline-b pb-4">
+        <div className="flex items-end justify-between mb-12 border-b border-border pb-4">
           <div>
-            <div className="mono text-[11px] tracking-[0.25em] uppercase text-signal mb-3">§04 — Field Protocol</div>
-            <h2 className="serif text-5xl sm:text-7xl font-black leading-[0.9] tracking-tighter">
+            <div className="font-mono text-[11px] tracking-[0.25em] uppercase text-signal mb-3">§04 — Field Protocol</div>
+            <h2 className="font-serif text-5xl sm:text-7xl font-black leading-[0.9] tracking-tighter">
               Three moves<span className="text-signal">.</span> Always.
             </h2>
           </div>
-          <div className="mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground hidden md:block">
+          <div className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground hidden md:block">
             Plate 03 of 04 →
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-px bg-border hairline">
+        <div className="grid md:grid-cols-3 gap-px bg-border border border-border">
           {protocol.map((p, i) => (
             <motion.div
               key={p.n}
@@ -824,12 +824,12 @@ function Protocol() {
               className="bg-background p-8 min-h-[280px] flex flex-col"
             >
               <div className="flex items-center justify-between">
-                <span className="serif text-5xl font-black italic">{p.n}</span>
-                <span className="mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">step / {i + 1}.0</span>
+                <span className="font-serif text-5xl font-black italic">{p.n}</span>
+                <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">step / {i + 1}.0</span>
               </div>
-              <div className="mt-8 serif text-2xl font-bold tracking-tight">{p.title}</div>
+              <div className="mt-8 font-serif text-2xl font-bold tracking-tight">{p.title}</div>
               <p className="mt-3 text-sm leading-relaxed text-foreground/75 max-w-sm">{p.body}</p>
-              <div className="mt-auto pt-6 tick h-px w-full" />
+              <div className="mt-auto pt-6 border-t border-border h-px w-full" />
             </motion.div>
           ))}
         </div>
@@ -842,17 +842,17 @@ function Protocol() {
 function Manifesto() {
   return (
     <section className="relative">
-      <div className="mx-auto max-w-[1400px] px-5 sm:px-8 py-24 hairline-t">
+      <div className="mx-auto max-w-[1400px] px-5 sm:px-8 py-24 border-t border-border">
         <div className="grid lg:grid-cols-12 gap-8">
-          <div className="lg:col-span-3 mono text-[11px] tracking-[0.25em] uppercase text-muted-foreground">
+          <div className="lg:col-span-3 font-mono text-[11px] tracking-[0.25em] uppercase text-muted-foreground">
             §06 — Editor's Note
           </div>
           <div className="lg:col-span-9">
-            <p className="serif text-3xl sm:text-5xl leading-[1.05] tracking-tight font-medium">
+            <p className="font-serif text-3xl sm:text-5xl leading-[1.05] tracking-tight font-medium">
               <span className="text-foreground/30">“</span>The city is a machine of small movements. Rydex is the{" "}
               <em className="text-signal not-italic font-bold">connective tissue</em> — a single dispatch line wired through every wheel from a sandalwood-frame bicycle to a steel-framed freight cab. We don't build cars. We build the rhythm between them.<span className="text-foreground/30">”</span>
             </p>
-            <div className="mt-8 mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">
+            <div className="mt-8 font-mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">
               — Rydex Field Office, Mumbai · 2026
             </div>
           </div>
@@ -873,17 +873,17 @@ function Foot() {
     <footer className="brick text-bone">
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8">
         {/* massive wordmark CTA */}
-        <div className="py-16 hairline-b border-bone/15 relative">
-          <div className="mono text-[11px] tracking-[0.25em] uppercase text-bone/60 mb-4">↳ End plate / Move on</div>
+        <div className="py-16 border-b border-bone/15 relative">
+          <div className="font-mono text-[11px] tracking-[0.25em] uppercase text-bone/60 mb-4">↳ End plate / Move on</div>
           <div className="flex items-end justify-between gap-6 flex-wrap">
-            <h2 className="serif font-black leading-[0.82] tracking-[-0.05em] text-[68px] sm:text-[140px] lg:text-[200px]">
+            <h2 className="font-serif font-black leading-[0.82] tracking-[-0.05em] text-[68px] sm:text-[140px] lg:text-[200px]">
               Let's <span className="italic text-signal">go.</span>
             </h2>
             <a
               href="#"
               className="group inline-flex items-center gap-3 bg-bone text-ink pl-6 pr-2 py-2"
             >
-              <span className="mono text-[12px] tracking-[0.2em] uppercase">Get the App</span>
+              <span className="font-mono text-[12px] tracking-[0.2em] uppercase">Get the App</span>
               <span className="grid h-10 w-10 place-items-center brick">
                 <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </span>
@@ -894,18 +894,18 @@ function Foot() {
         {/* grid */}
         <div className="grid lg:grid-cols-[1.6fr_repeat(3,1fr)_1.4fr] gap-10 py-14 border-bone/15">
           <div>
-            <div className="serif text-3xl font-black tracking-tighter">Rydex<span className="text-signal">™</span></div>
+            <div className="font-serif text-3xl font-black tracking-tighter">Rydex<span className="text-signal">™</span></div>
             <p className="mt-3 text-sm text-bone/70 max-w-xs leading-relaxed">
               A field-tested dispatch network for everything on wheels. Filed quarterly. Run continuously.
             </p>
           </div>
           {cols.map((c) => (
             <div key={c.t}>
-              <div className="mono text-[10px] tracking-[0.25em] uppercase text-bone/50 mb-4">{c.t}</div>
+              <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-bone/50 mb-4">{c.t}</div>
               <ul className="space-y-2.5">
                 {c.l.map((x) => (
                   <li key={x}>
-                    <a href="#" className="serif text-lg font-medium hover:text-signal transition-colors">
+                    <a href="#" className="font-serif text-lg font-medium hover:text-signal transition-colors">
                       {x}
                     </a>
                   </li>
@@ -914,24 +914,24 @@ function Foot() {
             </div>
           ))}
           <div>
-            <div className="mono text-[10px] tracking-[0.25em] uppercase text-bone/50 mb-4">Subscribe / Field Notes</div>
+            <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-bone/50 mb-4">Subscribe / Field Notes</div>
             <form onSubmit={(e) => e.preventDefault()} className="flex border border-bone/30">
               <input
                 placeholder="you@email.com"
-                className="flex-1 bg-transparent px-3 py-3 mono text-sm placeholder:text-bone/40 outline-none"
+                className="flex-1 bg-transparent px-3 py-3 font-mono text-sm placeholder:text-bone/40 outline-none"
               />
-              <button className="px-4 brick bg-signal text-bone mono text-[11px] tracking-[0.2em] uppercase">
+              <button className="px-4 brick bg-signal text-bone font-mono text-[11px] tracking-[0.2em] uppercase">
                 Send →
               </button>
             </form>
-            <p className="mt-3 mono text-[10px] tracking-[0.18em] uppercase text-bone/50">
+            <p className="mt-3 font-mono text-[10px] tracking-[0.18em] uppercase text-bone/50">
               Dispatched first of every month.
             </p>
           </div>
         </div>
 
         {/* bottom bar */}
-        <div className="py-5 hairline-t border-bone/15 flex flex-wrap items-center justify-between gap-3 mono text-[10px] tracking-[0.2em] uppercase text-bone/60">
+        <div className="py-5 border-t border-bone/15 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] tracking-[0.2em] uppercase text-bone/60">
           <span>© 2026 Rydex Mobility · all wheels reserved</span>
           <span className="flex items-center gap-4">
             <a href="#">Twitter / X</a>
@@ -1023,18 +1023,18 @@ function SplitFlapBoard() {
     <section className="relative brick text-bone overflow-hidden">
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8 py-24">
         <div className="grid lg:grid-cols-12 gap-6 mb-10 items-end">
-          <div className="lg:col-span-3 mono text-[11px] tracking-[0.25em] uppercase text-bone/60">§05 — Departures</div>
-          <h2 className="lg:col-span-6 serif font-black leading-[0.88] tracking-tighter text-5xl sm:text-7xl">
+          <div className="lg:col-span-3 font-mono text-[11px] tracking-[0.25em] uppercase text-bone/60">§05 — Departures</div>
+          <h2 className="lg:col-span-6 font-serif font-black leading-[0.88] tracking-tighter text-5xl sm:text-7xl">
             The board <span className="italic font-bold text-signal">never stops</span> flipping.
           </h2>
-          <div className="lg:col-span-3 mono text-[10px] tracking-[0.2em] uppercase text-bone/60 flex flex-col gap-1">
+          <div className="lg:col-span-3 font-mono text-[10px] tracking-[0.2em] uppercase text-bone/60 flex flex-col gap-1">
             <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 bg-signal rounded-full animate-blink" /> mechanical · live</span>
             <span>tick {String(tick).padStart(4, "0")}</span>
           </div>
         </div>
 
         <div className="relative border border-bone/20 bg-ink p-2 sm:p-3 shadow-[10px_10px_0_0_var(--color-signal)]">
-          <div className="grid grid-cols-[1.5fr_1.4fr_0.7fr_0.8fr_1fr] gap-2 sm:gap-4 px-3 sm:px-5 py-3 border-b border-bone/15 mono text-[9px] sm:text-[10px] tracking-[0.25em] uppercase text-bone/45">
+          <div className="grid grid-cols-[1.5fr_1.4fr_0.7fr_0.8fr_1fr] gap-2 sm:gap-4 px-3 sm:px-5 py-3 border-b border-bone/15 font-mono text-[9px] sm:text-[10px] tracking-[0.25em] uppercase text-bone/45">
             <span>Route</span>
             <span className="hidden sm:block">Vehicle</span>
             <span>Gate</span>
@@ -1044,11 +1044,11 @@ function SplitFlapBoard() {
 
           <div className="divide-y divide-bone/10">
             {rows.map((r, i) => (
-              <div key={i} className="grid grid-cols-[1.5fr_1.4fr_0.7fr_0.8fr_1fr] gap-2 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 mono text-[12px] sm:text-[15px] items-center">
-                <span className="text-bone font-bold tracking-[0.1em]"><SplitFlap value={r.route} /></span>
+              <div key={i} className="grid grid-cols-[1.5fr_1.4fr_0.7fr_0.8fr_1fr] gap-2 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 font-mono text-[12px] sm:text-[15px] items-center">
+                <span className="text-bone font-bold tracking-widest"><SplitFlap value={r.route} /></span>
                 <span className="hidden sm:block text-bone/70 tracking-[0.15em]"><SplitFlap value={r.vehicle} /></span>
-                <span className="text-bone/80 tracking-[0.1em]"><SplitFlap value={r.gate} /></span>
-                <span className="text-bone tracking-[0.1em] tabular-nums"><SplitFlap value={r.eta} /></span>
+                <span className="text-bone/80 tracking-widest"><SplitFlap value={r.gate} /></span>
+                <span className="text-bone tracking-widest tabular-nums"><SplitFlap value={r.eta} /></span>
                 <span className={`text-right tracking-[0.18em] text-[10px] sm:text-[11px] ${statusTint[r.status]}`}>
                   ● <SplitFlap value={r.status} />
                 </span>
@@ -1056,14 +1056,14 @@ function SplitFlapBoard() {
             ))}
           </div>
 
-          <div className="mt-1 flex items-center justify-between px-5 py-2 border-t border-bone/15 mono text-[9px] sm:text-[10px] tracking-[0.25em] uppercase text-bone/45">
+          <div className="mt-1 flex items-center justify-between px-5 py-2 border-t border-bone/15 font-mono text-[9px] sm:text-[10px] tracking-[0.25em] uppercase text-bone/45">
             <span>RYDEX · DEPARTURE TERMINAL</span>
             <span className="hidden sm:block">↳ refreshing every 2.2s</span>
             <span>v 04.22</span>
           </div>
         </div>
 
-        <div className="mt-6 grid sm:grid-cols-3 gap-4 mono text-[10px] tracking-[0.2em] uppercase text-bone/55">
+        <div className="mt-6 grid sm:grid-cols-3 gap-4 font-mono text-[10px] tracking-[0.2em] uppercase text-bone/55">
           <span>↳ flap letters are real — watch the row redraw</span>
           <span className="hidden sm:block text-center">★ inspired by Solari di Udine boards</span>
           <span className="sm:text-right">filed Mumbai · 06:14 IST</span>
@@ -1093,12 +1093,12 @@ function Ledger() {
   return (
     <section id="pricing" className="relative">
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8 py-24">
-        <div className="grid lg:grid-cols-12 gap-6 mb-12 hairline-b pb-6 items-end">
-          <div className="lg:col-span-3 mono text-[11px] tracking-[0.25em] uppercase text-signal">§07 — The Ledger</div>
-          <h2 className="lg:col-span-6 serif font-black leading-[0.9] tracking-tighter text-5xl sm:text-7xl">
+        <div className="grid lg:grid-cols-12 gap-6 mb-12 border-b border-border pb-6 items-end">
+          <div className="lg:col-span-3 font-mono text-[11px] tracking-[0.25em] uppercase text-signal">§07 — The Ledger</div>
+          <h2 className="lg:col-span-6 font-serif font-black leading-[0.9] tracking-tighter text-5xl sm:text-7xl">
             Pricing, <span className="italic font-bold">itemised</span>.
           </h2>
-          <div className="lg:col-span-3 mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+          <div className="lg:col-span-3 font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
             Receipt N° 22 · GST incl. · zero surprises
           </div>
         </div>
@@ -1111,7 +1111,7 @@ function Ledger() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.2 }}
               transition={{ duration: 0.55, delay: i * 0.08 }}
-              className={`relative ${l.invert ? "brick text-bone" : "bg-card text-foreground"} border ${l.invert ? "border-bone/20" : "border-border"} shadow-[6px_6px_0_0_var(--color-ink)]`}
+              className={`relative ${l.invert ? "brick text-bone" : "bg-card text-foreground"} border ${l.invert ? "border-border" : "border-border"} shadow-[6px_6px_0_0_var(--color-ink)]`}
             >
               {/* perforated top */}
               <div className="absolute top-0 inset-x-0 h-2 flex">
@@ -1121,18 +1121,18 @@ function Ledger() {
               </div>
 
               {l.stamp && (
-                <div className="absolute -top-4 right-6 signal-chip px-3 py-1 mono text-[10px] tracking-[0.25em] uppercase rotate-[-3deg] shadow-[3px_3px_0_0_var(--color-ink)]">
+                <div className="absolute -top-4 right-6 signal-chip px-3 py-1 font-mono text-[10px] tracking-[0.25em] uppercase -rotate-3 shadow-[3px_3px_0_0_var(--color-ink)]">
                   ★ {l.stamp}
                 </div>
               )}
 
               <div className="p-7 pt-9">
-                <div className={`flex items-center justify-between mono text-[10px] tracking-[0.25em] uppercase ${l.invert ? "text-bone/55" : "text-muted-foreground"}`}>
+                <div className={`flex items-center justify-between font-mono text-[10px] tracking-[0.25em] uppercase ${l.invert ? "text-bone/55" : "text-muted-foreground"}`}>
                   <span>Plan · 0{i + 1}</span>
                   <span>{l.sub}</span>
                 </div>
 
-                <div className="mt-5 serif text-5xl font-black tracking-tighter">{l.plan}</div>
+                <div className="mt-5 font-serif text-5xl font-black tracking-tighter">{l.plan}</div>
 
                 <div className="mt-6 flex items-baseline gap-2">
                   <span className="serif text-6xl font-black leading-none">{l.price}</span>
