@@ -5,7 +5,6 @@ import "./globals.css";
 import Provider from "@/Provider";
 import ReduxProvider from "@/redux/ReduxProvider";
 import InitUser from "@/InitUser";
-import InstallPWA from "@/components/InstallPWA";
 import GlobalDynamicIsland from "@/components/ride/GlobalDynamicIsland";
 import PartnerForceDispatchOverlay from "@/components/partner/PartnerForceDispatchOverlay";
 
@@ -203,7 +202,6 @@ export default function RootLayout({
             <GlobalDynamicIsland />
             <PartnerForceDispatchOverlay />
             {children}
-            <InstallPWA />
           </Provider>
         </ReduxProvider>
       </body>
