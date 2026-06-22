@@ -201,7 +201,7 @@ function SpecimenCard() {
         {/* readout */}
         <div className="mt-5 grid grid-cols-3 gap-3 mono text-[10px] tracking-[0.14em] uppercase">
           <Readout k="Vehicle" v="SUV — XL6" />
-          <Readout k="Plate" v="DL·5C·1234" />
+          <Readout k="Plate" v="JK·4l·0001" />
           <Readout k="Fare" v="₹ 412" />
         </div>
 
