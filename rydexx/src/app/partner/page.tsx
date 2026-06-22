@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 import {
@@ -147,20 +148,25 @@ function OperatorHeader() {
 
 /* -------- 2. Vehicle -------- */
 function VehicleStatus() {
+  const { data: res } = useSWR("/api/vehicles", fetcher);
+  const vehicles = res?.vehicles || [];
+  const activeId = res?.activeVehicleId;
+  const activeVehicle = vehicles.find((v: any) => v._id === activeId) || vehicles[0];
+
   return (
     <Panel code="VEH / 02" title="Active Vehicle" className="lg:col-span-1">
       <div className="flex items-center gap-2 mono text-[10px] tracking-[0.22em] uppercase mb-3">
-        <span className="signal-chip px-2 py-0.5">Live on Rydex</span>
+        {activeVehicle ? <span className="signal-chip px-2 py-0.5">Live on Rydex</span> : <span className="bg-ink text-bone px-2 py-0.5">No Active</span>}
       </div>
-      <div className="serif text-[34px] font-black leading-none tracking-tighter">Fortuner</div>
+      <div className="serif text-[34px] font-black leading-none tracking-tighter capitalize">{activeVehicle?.vehicleModel || "Unknown"}</div>
       <div className="mono text-[11px] tracking-[0.18em] uppercase text-muted-foreground mt-2">
-        Plate · <span className="text-foreground">JK04K9999</span>
+        Plate · <span className="text-foreground">{activeVehicle?.vehicleNumber || "----"}</span>
       </div>
       <div className="tick h-2 my-4" />
-      <button className="group w-full flex items-center justify-between hairline bg-background hover:bg-secondary transition-colors px-3 py-2.5 mono text-[10px] tracking-[0.22em] uppercase cursor-pointer">
+      <Link href="/partner/vehicle" className="group w-full flex items-center justify-between hairline bg-background hover:bg-secondary transition-colors px-3 py-2.5 mono text-[10px] tracking-[0.22em] uppercase cursor-pointer">
         Change Active
         <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-      </button>
+      </Link>
     </Panel>
   );
 }
@@ -321,10 +327,10 @@ function DispatchAlert() {
             Recommendation engine · Model R-04 · Confidence 0.91
           </p>
         </div>
-        <button className="group inline-flex items-center gap-2 bg-bone text-ink px-5 py-3 mono text-[11px] tracking-[0.22em] uppercase hover:bg-signal hover:text-bone transition-colors cursor-pointer">
+        <Link href="/partner/demand" className="group inline-flex items-center gap-2 bg-bone text-ink px-5 py-3 mono text-[11px] tracking-[0.22em] uppercase hover:bg-signal hover:text-bone transition-colors cursor-pointer">
           Open Live Demand Map
           <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-        </button>
+        </Link>
       </div>
     </motion.div>
   );
