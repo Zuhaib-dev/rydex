@@ -22,15 +22,15 @@ const ledger = [
   { plan: "Rider", sub: "Pay-as-you-roll", price: "₹ 0", suffix: "/ month",
     note: "you only pay the fare.",
     rows: ["Unlimited bookings · bike → SUV", "Live trip share + SOS", "Loyalty: 1★ per ₹50 spent", "Splitwise-style fare splits"],
-    cta: "Book a Ride", stamp: null, invert: false },
+    cta: "Book a Ride", href: "/user/book", stamp: null, invert: false },
   { plan: "Driver", sub: "Partner program", price: "0 %", suffix: "commission · week 1",
     note: "daily settlements, honest math.",
     rows: ["Earnings dashboard + tax exports", "Free fuel insurance month 1", "Boost zones · surge transparency", "24×7 partner desk · 6 languages"],
-    cta: "Drive with Rydex", stamp: "MOST DRIVEN", invert: true },
+    cta: "Drive with Rydex", href: "/partner/onboarding/vehicle", stamp: "MOST DRIVEN", invert: true },
   { plan: "Enterprise", sub: "Fleet API", price: "₹ talk", suffix: "to ops",
     note: "your wheels. our terminal.",
     rows: ["Single invoice across 40 cities", "Webhook + REST fleet API", "SLA-backed dispatch · 99.97 %", "Custom branding · white-label app"],
-    cta: "Book a Demo", stamp: null, invert: false },
+    cta: "Book a Demo", href: "/contact", stamp: null, invert: false },
 ];
 
 function Ledger() {
@@ -101,7 +101,7 @@ function Ledger() {
                   backgroundImage: `repeating-linear-gradient(90deg, ${l.invert ? "rgba(245,240,232,0.35)" : "rgba(20,18,15,0.35)"} 0 6px, transparent 6px 12px)`
                 }} />
 
-                <a href="#" className={`group flex items-center justify-between mt-2 px-4 py-3 border ${l.invert ? "border-bone bg-bone text-ink hover:bg-signal hover:text-bone hover:border-signal" : "border-ink bg-ink text-bone hover:bg-signal hover:border-signal"} transition-colors`}>
+                <a href={l.href} className={`group flex items-center justify-between mt-2 px-4 py-3 border ${l.invert ? "border-bone bg-bone text-ink hover:bg-signal hover:text-bone hover:border-signal" : "border-ink bg-ink text-bone hover:bg-signal hover:border-signal"} transition-colors`}>
                   <span className="mono text-[11px] tracking-[0.2em] uppercase">{l.cta}</span>
                   <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
