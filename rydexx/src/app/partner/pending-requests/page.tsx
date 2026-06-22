@@ -4,13 +4,48 @@ import { motion } from "framer-motion";
 import { ArrowRight, Check, X, MapPin, Clock } from "lucide-react";
 import { PageHead, Panel } from "@/components/partner/shared";
 import useSWR from "swr";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
+import { useState } from "react";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 
 export default function Requests() {
-  const { data } = useSWR("/api/partner/bookings/pending", fetcher, { refreshInterval: 8000 });
+  const router = useRouter();
+  const { data, mutate } = useSWR("/api/partner/bookings/pending", fetcher, { refreshInterval: 8000 });
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const requests = data?.bookings || [];
+
+  const handleAccept = async (id: string) => {
+    try {
+      setLoadingId(id);
+      const res = await fetch(`/api/booking/${id}/accept`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to accept");
+      toast.success("Ride accepted!");
+      router.push(`/partner/active-ride`);
+    } catch (err: any) {
+      toast.error(err.message);
+      setLoadingId(null);
+    }
+  };
+
+  const handleDecline = async (id: string) => {
+    try {
+      setLoadingId(id);
+      const res = await fetch(`/api/booking/${id}/reject`, { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || "Failed to decline");
+      toast.success("Ride declined.");
+      mutate(); // Refresh the list
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
 
   return (
     <div className="space-y-6">
@@ -36,8 +71,8 @@ export default function Requests() {
               <span className="mono text-[11px] flex items-center gap-1"><Clock className="h-3 w-3" />{r.durationMinutes}m</span>
               <span className="mono text-[12px] font-bold">₹{r.fare}</span>
               <span className="flex gap-1 justify-end">
-                <button className="hairline p-1.5 hover:bg-signal hover:text-bone transition-colors cursor-pointer" aria-label="Accept"><Check className="h-3.5 w-3.5" /></button>
-                <button className="hairline p-1.5 hover:bg-ink hover:text-bone transition-colors cursor-pointer" aria-label="Decline"><X className="h-3.5 w-3.5" /></button>
+                <button onClick={() => handleAccept(r._id)} disabled={loadingId === r._id} className="hairline p-1.5 hover:bg-signal hover:text-bone transition-colors cursor-pointer disabled:opacity-50" aria-label="Accept"><Check className="h-3.5 w-3.5" /></button>
+                <button onClick={() => handleDecline(r._id)} disabled={loadingId === r._id} className="hairline p-1.5 hover:bg-ink hover:text-bone transition-colors cursor-pointer disabled:opacity-50" aria-label="Decline"><X className="h-3.5 w-3.5" /></button>
               </span>
             </motion.div>
           ))}
@@ -89,10 +124,10 @@ export default function Requests() {
                 </div>
               </div>
               <div className="hairline-t grid grid-cols-2">
-                <button className="brick mono text-[10px] tracking-[0.22em] uppercase py-2.5 hover:bg-signal transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                <button onClick={() => handleAccept(r._id)} disabled={loadingId === r._id} className="brick mono text-[10px] tracking-[0.22em] uppercase py-2.5 hover:bg-signal transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
                   <Check className="h-3.5 w-3.5" /> Accept
                 </button>
-                <button className="mono text-[10px] tracking-[0.22em] uppercase py-2.5 hover:bg-secondary transition-colors flex items-center justify-center gap-2 cursor-pointer border-l border-border">
+                <button onClick={() => handleDecline(r._id)} disabled={loadingId === r._id} className="mono text-[10px] tracking-[0.22em] uppercase py-2.5 hover:bg-secondary transition-colors flex items-center justify-center gap-2 cursor-pointer border-l border-border disabled:opacity-50">
                   <X className="h-3.5 w-3.5" /> Decline
                 </button>
               </div>
