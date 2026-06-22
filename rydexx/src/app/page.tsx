@@ -1,8 +1,6 @@
 import AdminDashboard from "@/components/AdminDashboard";
 import Footer from "@/components/Footer";
 import GeoUpdater from "@/components/GeoUpdater";
-import Nav from "@/components/Nav";
-import PartnerDashboard from "@/components/PartnerDashboard";
 import FaceLiftLanding from "@/components/landing/FaceLiftLanding";
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
@@ -19,21 +17,17 @@ export default async function Home() {
   const session = await auth();
   await connectDb();
   const user = await User.findOne({ email: session?.user?.email });
-  const shouldTrackLocation = Boolean(session?.user?.id && user?.role === "partner");
+  if (user?.role === "partner") {
+    redirect("/partner");
+  }
 
-  // Partners can access the landing page manually if they choose to.
+  const shouldTrackLocation = false; // We only track location in the new partner layout now.
 
   return (
     <div className="w-full min-h-screen bg-[#fafafa]">
       {shouldTrackLocation && <GeoUpdater userId={session?.user?.id} />}
 
-      {user?.role == "partner" ? (
-        <>
-          <Nav />
-          <PartnerDashboard />
-          <Footer />
-        </>
-      ) : user?.role == "admin" ? (
+      {user?.role === "admin" ? (
         <>
           <AdminDashboard />
           <Footer />
