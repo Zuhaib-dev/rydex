@@ -36,6 +36,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
   const isLoading = status === "loading";
   const [mockLoggedIn, setMockLoggedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [imgError, setImgError] = useState(false);
 
   const isLoggedIn = mockLoggedIn || !!session?.user;
   const user = session?.user || {
@@ -97,10 +98,15 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
                 onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center justify-center h-10 w-10 rounded-full border border-border bg-bone text-ink font-serif font-bold hover:bg-signal hover:text-bone hover:border-signal transition-colors uppercase overflow-hidden"
               >
-                {user.image ? (
-                  <img src={user.image} alt={user.name || "User"} className="h-full w-full object-cover" />
+                {user.image && !imgError && user.image.trim() !== "" ? (
+                  <img 
+                    src={user.image} 
+                    alt={user.name || "User"} 
+                    className="h-full w-full object-cover"
+                    onError={() => setImgError(true)}
+                  />
                 ) : (
-                  user.name ? user.name.charAt(0) : "Y"
+                  user.name ? user.name.charAt(0).toUpperCase() : "Y"
                 )}
               </button>
               
