@@ -179,7 +179,7 @@ function SpecimenCard() {
           </svg>
 
           <div className="absolute top-3 left-3 mono text-[9px] tracking-[0.18em] uppercase bg-bone hairline px-2 py-1">
-            Bandra → Andheri
+            Lal Chowk → Dal Lake
           </div>
           <div className="absolute bottom-3 right-3 mono text-[9px] tracking-[0.18em] uppercase signal-chip px-2 py-1">
             ETA 11 MIN

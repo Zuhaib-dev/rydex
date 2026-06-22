@@ -21,29 +21,29 @@ import { Crosshair } from "./Hero";
 /* ───────────────────────── LIVE DISPATCH (map + feed) ───────────────────────── */
 type City = { name: string; code: string; x: number; y: number; pulse?: boolean };
 const cities: City[] = [
-  { name: "Delhi",     code: "DEL", x: 245, y: 165, pulse: true },
-  { name: "Mumbai",    code: "BOM", x: 175, y: 320, pulse: true },
-  { name: "Bengaluru", code: "BLR", x: 248, y: 430, pulse: true },
-  { name: "Hyderabad", code: "HYD", x: 260, y: 380 },
-  { name: "Chennai",   code: "MAA", x: 285, y: 460 },
-  { name: "Kolkata",   code: "CCU", x: 395, y: 270 },
-  { name: "Ahmedabad", code: "AMD", x: 165, y: 250 },
-  { name: "Jaipur",    code: "JAI", x: 215, y: 215 },
-  { name: "Pune",      code: "PNQ", x: 195, y: 340 },
-  { name: "Kochi",     code: "COK", x: 235, y: 490 },
-  { name: "Lucknow",   code: "LKO", x: 295, y: 215 },
-  { name: "Guwahati",  code: "GAU", x: 445, y: 235 },
+  { name: "Jammu",     code: "JMU", x: 245, y: 165, pulse: true },
+  { name: "Srinagar",  code: "SXR", x: 175, y: 320, pulse: true },
+  { name: "Gulmarg",   code: "GLM", x: 248, y: 430, pulse: true },
+  { name: "Pahalgam",  code: "PAH", x: 260, y: 380 },
+  { name: "Sonamarg",  code: "SNG", x: 285, y: 460 },
+  { name: "Anantnag",  code: "ANP", x: 395, y: 270 },
+  { name: "Baramulla", code: "BRM", x: 165, y: 250 },
+  { name: "Sopore",    code: "SOP", x: 215, y: 215 },
+  { name: "Kupwara",   code: "KUP", x: 195, y: 340 },
+  { name: "Pulwama",   code: "PUL", x: 235, y: 490 },
+  { name: "Shopian",   code: "SHP", x: 295, y: 215 },
+  { name: "Kulgam",    code: "KUL", x: 445, y: 235 },
 ];
 
 const feed = [
-  { t: "00:00:02", c: "BOM → PNQ", v: "Sedan", f: "₹ 1,840", who: "A. Mehta" },
-  { t: "00:00:05", c: "DEL → GGN", v: "Bike",  f: "₹ 64",    who: "R. Singh" },
-  { t: "00:00:09", c: "BLR → MAA", v: "Truck", f: "₹ 9,200", who: "Kerala Logs Ltd." },
-  { t: "00:00:11", c: "HYD → HYD", v: "Auto",  f: "₹ 110",   who: "S. Reddy" },
-  { t: "00:00:14", c: "CCU → CCU", v: "SUV",   f: "₹ 420",   who: "D. Bose" },
-  { t: "00:00:17", c: "AMD → BOM", v: "Van",   f: "₹ 4,100", who: "Patel Movers" },
-  { t: "00:00:21", c: "JAI → DEL", v: "Sedan", f: "₹ 2,650", who: "M. Sharma" },
-  { t: "00:00:24", c: "COK → BLR", v: "Truck", f: "₹ 11,400",who: "Spice Routes Co." },
+  { t: "00:00:02", c: "SXR → GLM", v: "Sedan", f: "₹ 1,840", who: "A. Bhat" },
+  { t: "00:00:05", c: "JMU → SXR", v: "Bike",  f: "₹ 64",    who: "R. Singh" },
+  { t: "00:00:09", c: "GLM → PAH", v: "Truck", f: "₹ 9,200", who: "Kashmir Logs" },
+  { t: "00:00:11", c: "SXR → SNG", v: "Auto",  f: "₹ 110",   who: "T. Dar" },
+  { t: "00:00:14", c: "ANP → SXR", v: "SUV",   f: "₹ 420",   who: "D. Lone" },
+  { t: "00:00:17", c: "BRM → SXR", v: "Van",   f: "₹ 4,100", who: "Wani Movers" },
+  { t: "00:00:21", c: "SOP → KUP", v: "Sedan", f: "₹ 2,650", who: "M. Mir" },
+  { t: "00:00:24", c: "PUL → SXR", v: "Truck", f: "₹ 11,400",who: "Valley Routes" },
 ];
 
 function LiveDispatch() {
@@ -81,7 +81,7 @@ function LiveDispatch() {
             />
 
             {/* corner labels */}
-            <div className="absolute top-4 left-4 font-mono text-[9px] tracking-[0.25em] uppercase text-bone/50">N 28.61° · INDIA</div>
+            <div className="absolute top-4 left-4 font-mono text-[9px] tracking-[0.25em] uppercase text-bone/50">N 34.08° · KASHMIR</div>
             <div className="absolute top-4 right-4 font-mono text-[9px] tracking-[0.25em] uppercase text-bone/50">PLATE 03 / DISPATCH</div>
             <div className="absolute bottom-4 left-4 font-mono text-[9px] tracking-[0.25em] uppercase text-bone/50">SCALE — 1 PX / 6 KM</div>
             <div className="absolute bottom-4 right-4 font-mono text-[9px] tracking-[0.25em] uppercase text-bone/50">SRC: rydex.live</div>

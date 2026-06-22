@@ -442,7 +442,7 @@ export default function AuthModel({ open, onClose, redirectTo }: propType) {
             {/* Footer ticker */}
             <div className="hairline-t font-mono text-[9px] tracking-[0.22em] uppercase text-muted-foreground flex items-center justify-between px-4 py-2">
               <span>Encrypted · TLS 1.3</span>
-              <span>FILED · MUMBAI</span>
+              <span>FILED · SRINAGAR</span>
             </div>
           </motion.div>
         </motion.div>

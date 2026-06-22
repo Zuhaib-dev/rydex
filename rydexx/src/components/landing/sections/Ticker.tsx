@@ -23,10 +23,10 @@ function Ticker() {
     "VOL 04 / ISSUE 22",
     "★ LIVE DISPATCH",
     "2,481,309 RIDES TODAY",
-    "↳ BLR → 14 MIN ETA AVG",
+    "↳ SXR → 14 MIN ETA AVG",
     "FLEET STATUS: NOMINAL",
     "BIKE · AUTO · SEDAN · SUV · VAN · TRUCK",
-    "FILED FROM MUMBAI · 28.06°N",
+    "FILED FROM SRINAGAR · 34.08°N",
   ];
   const loop = [...items, ...items, ...items];
   return (

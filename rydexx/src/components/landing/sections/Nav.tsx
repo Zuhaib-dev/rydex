@@ -52,9 +52,14 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
         </a>
 
         <nav className="hidden md:flex items-center justify-center gap-8 font-mono text-[11px] tracking-[0.18em] uppercase">
-          {["Ride / 01", "Drive / 02", "Enterprise / 03", "Fleet / 04"].map((l) => (
-            <a key={l} href="#" className="relative group">
-              {l}
+          {[
+            { label: "Bookings", href: "/bookings" },
+            { label: "Fleet", href: "/fleet" },
+            { label: "FAQ", href: "/faq" },
+            { label: "Contact", href: "/contact" }
+          ].map((link) => (
+            <a key={link.label} href={link.href} className="relative group">
+              {link.label}
               <span className="absolute -bottom-1 left-0 right-0 h-px bg-foreground scale-x-0 group-hover:scale-x-100 origin-left transition-transform" />
             </a>
           ))}

@@ -94,7 +94,7 @@ function Foot() {
             <a href="#">LinkedIn</a>
             <a href="#">GitHub</a>
           </span>
-          <span>Composed in Mumbai · printed on the web</span>
+          <span>Composed in Srinagar · printed on the web</span>
         </div>
       </div>
     </footer>

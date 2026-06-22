@@ -32,7 +32,7 @@ function Manifesto() {
               <em className="text-signal not-italic font-bold">connective tissue</em> — a single dispatch line wired through every wheel from a sandalwood-frame bicycle to a steel-framed freight cab. We don't build cars. We build the rhythm between them.<span className="text-foreground/30">”</span>
             </p>
             <div className="mt-8 font-mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">
-              — Rydex Field Office, Mumbai · 2026
+              — Rydex Field Office, Srinagar · 2026
             </div>
           </div>
         </div>

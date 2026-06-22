@@ -133,7 +133,7 @@ function Bento() {
                 <span className="text-signal">“</span>For our wedding week we ran <em className="not-italic font-bold">23 vehicles</em> across 4 cities through Rydex — zero spreadsheets, one invoice.<span className="text-signal">”</span>
               </p>
               <div className="font-mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mt-3">
-                Priya M. · Event lead · Mumbai
+                Tariq A. · Tour guide · Srinagar
               </div>
             </div>
           </BentoTile>

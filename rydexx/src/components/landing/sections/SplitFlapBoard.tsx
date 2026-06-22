@@ -19,12 +19,12 @@ import type { LucideIcon } from "lucide-react";
 
 /* ───────────────────────── SPLIT-FLAP DEPARTURE BOARD ───────────────────────── */
 const boardRows: { route: string; vehicle: string; gate: string; eta: string; status: "BOARDING" | "ENROUTE" | "ARRIVED" | "DELAYED" }[] = [
-  { route: "BOM → PNQ", vehicle: "SEDAN  XL6", gate: "G-04", eta: "00:11", status: "BOARDING" },
-  { route: "DEL → GGN", vehicle: "BIKE   125",  gate: "G-12", eta: "00:04", status: "ENROUTE"  },
-  { route: "BLR → MAA", vehicle: "TRUCK  10T",  gate: "F-22", eta: "04:18", status: "ENROUTE"  },
-  { route: "HYD → SEC", vehicle: "AUTO   3W",   gate: "G-07", eta: "00:09", status: "BOARDING" },
-  { route: "CCU → DUM", vehicle: "SUV    XL7",  gate: "G-02", eta: "00:21", status: "DELAYED"  },
-  { route: "AMD → BOM", vehicle: "VAN    9PX",  gate: "F-15", eta: "06:40", status: "ENROUTE"  },
+  { route: "SXR → GLM", vehicle: "SEDAN  XL6", gate: "G-04", eta: "00:11", status: "BOARDING" },
+  { route: "JMU → SXR", vehicle: "BIKE   125",  gate: "G-12", eta: "00:04", status: "ENROUTE"  },
+  { route: "SXR → PAH", vehicle: "TRUCK  10T",  gate: "F-22", eta: "04:18", status: "ENROUTE"  },
+  { route: "LAD → SXR", vehicle: "AUTO   3W",   gate: "G-07", eta: "00:09", status: "BOARDING" },
+  { route: "SXR → ANP", vehicle: "SUV    XL7",  gate: "G-02", eta: "00:21", status: "DELAYED"  },
+  { route: "SXR → SNG", vehicle: "VAN    9PX",  gate: "F-15", eta: "06:40", status: "ENROUTE"  },
   { route: "JAI → DEL", vehicle: "SEDAN  C5",   gate: "G-09", eta: "03:55", status: "ARRIVED"  },
 ];
 
@@ -137,7 +137,7 @@ function SplitFlapBoard() {
         <div className="mt-6 grid sm:grid-cols-3 gap-4 font-mono text-[10px] tracking-[0.2em] uppercase text-bone/55">
           <span>↳ flap letters are real — watch the row redraw</span>
           <span className="hidden sm:block text-center">★ inspired by Solari di Udine boards</span>
-          <span className="sm:text-right">filed Mumbai · 06:14 IST</span>
+          <span className="sm:text-right">filed Srinagar · 06:14 IST</span>
         </div>
       </div>
     </section>
