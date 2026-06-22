@@ -20,10 +20,33 @@ import type { LucideIcon } from "lucide-react";
 /* ───────────────────────── FOOTER ───────────────────────── */
 function Foot() {
   const cols = [
-    { t: "Product", l: ["Ride", "Drive", "Enterprise", "Fleet API", "Pricing"] },
-    { t: "Company", l: ["About", "Careers", "Press", "Field Notes", "Contact"] },
-    { t: "Legal", l: ["Privacy", "Terms", "Cookies", "Licenses", "Security"] },
+    { t: "Product", l: [ { label: "Ride", href: "/user/book" }, { label: "Fleet", href: "/fleet" }, { label: "Passes", href: "/pass" } ] },
+    { t: "Company", l: [ { label: "About", href: "/about" }, { label: "Contact", href: "/contact" }, { label: "FAQ", href: "/faq" } ] },
+    { t: "Legal", l: [ { label: "Privacy", href: "/privacy" }, { label: "Terms", href: "/terms" }, { label: "Security", href: "/settings/security" } ] },
   ];
+
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!res.ok) throw new Error();
+      setStatus("success");
+      setEmail("");
+      setTimeout(() => setStatus("idle"), 3000);
+    } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 3000);
+    }
+  };
   return (
     <footer className="brick text-bone">
       <div className="mx-auto max-w-[1400px] px-5 sm:px-8">
@@ -59,9 +82,9 @@ function Foot() {
               <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-bone/50 mb-4">{c.t}</div>
               <ul className="space-y-2.5">
                 {c.l.map((x) => (
-                  <li key={x}>
-                    <a href="#" className="font-serif text-lg font-medium hover:text-signal transition-colors">
-                      {x}
+                  <li key={x.label}>
+                    <a href={x.href} className="font-serif text-lg font-medium hover:text-signal transition-colors">
+                      {x.label}
                     </a>
                   </li>
                 ))}
@@ -70,17 +93,29 @@ function Foot() {
           ))}
           <div>
             <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-bone/50 mb-4">Subscribe / Field Notes</div>
-            <form onSubmit={(e) => e.preventDefault()} className="flex border border-bone/30">
+            <form onSubmit={handleSubscribe} className="flex border border-bone/30 relative">
               <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={status === "loading" || status === "success"}
                 placeholder="you@email.com"
-                className="flex-1 bg-transparent px-3 py-3 font-mono text-sm placeholder:text-bone/40 outline-none"
+                className="flex-1 bg-transparent px-3 py-3 font-mono text-sm placeholder:text-bone/40 outline-none disabled:opacity-50"
               />
-              <button className="px-4 brick bg-signal text-bone font-mono text-[11px] tracking-[0.2em] uppercase">
-                Send →
+              <button 
+                disabled={status === "loading" || status === "success"}
+                className="px-4 brick bg-signal text-bone font-mono text-[11px] tracking-[0.2em] uppercase disabled:opacity-50 transition-colors"
+              >
+                {status === "loading" ? "..." : status === "success" ? "✓" : "Send →"}
               </button>
             </form>
-            <p className="mt-3 font-mono text-[10px] tracking-[0.18em] uppercase text-bone/50">
-              Dispatched first of every month.
+            <p className="mt-3 font-mono text-[10px] tracking-[0.18em] uppercase text-bone/50 transition-colors">
+              {status === "success" ? (
+                <span className="text-signal">Subscribed successfully. Check your inbox!</span>
+              ) : status === "error" ? (
+                <span className="text-red-500">Failed to subscribe. Please try again.</span>
+              ) : (
+                "Dispatched first of every month."
+              )}
             </p>
           </div>
         </div>
@@ -88,11 +123,11 @@ function Foot() {
         {/* bottom bar */}
         <div className="py-5 border-t border-bone/15 flex flex-wrap items-center justify-between gap-3 font-mono text-[10px] tracking-[0.2em] uppercase text-bone/60">
           <span>© 2026 Rydex Mobility · all wheels reserved</span>
-          <span className="flex items-center gap-4">
-            <a href="#">Twitter / X</a>
-            <a href="#">Instagram</a>
-            <a href="#">LinkedIn</a>
-            <a href="#">GitHub</a>
+          <span className="flex items-center gap-4 flex-wrap">
+            <a href="https://zuhaibrashid.com" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">Portfolio</a>
+            <a href="https://twitter.com/zuhaibrashid" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">X / Twitter</a>
+            <a href="https://linkedin.com/in/zuhaibrashid" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">LinkedIn</a>
+            <a href="https://github.com/zuhaibrashid" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">GitHub</a>
           </span>
           <span>Composed in Srinagar · printed on the web</span>
         </div>
