@@ -6,8 +6,118 @@
   --color-landing-elevated: #141418;
   --color-landing-accent: #9eff6b;
   --color-landing-accent-muted: #c8f99a;
-  --font-display: var(--font-syne), var(--font-geist-sans), system-ui, sans-serif;
+  --font-display: var(--font-fraunces), var(--font-syne), var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+  --font-sans: "Inter", "Neue Haas Grotesk", ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink: var(--ink);
+  --color-bone: var(--bone);
+  --color-signal: var(--signal);
+  --color-acid: var(--acid);
 }
+
+:root {
+  /* Default Rydexx variables to prevent breaking other pages if they rely on these mapped colors */
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --border: #e5e5e5;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --muted: #f5f5f5;
+  --muted-foreground: #737373;
+  --primary: #0a0a0a;
+  --primary-foreground: #fafafa;
+  --secondary: #f5f5f5;
+  --secondary-foreground: #0a0a0a;
+
+  /* FaceLiftv2 Editorial Colors */
+  --bone: oklch(0.955 0.012 85);
+  --ink: oklch(0.13 0.01 60);
+  --signal: oklch(0.62 0.24 28);
+  --acid: oklch(0.88 0.2 110);
+}
+
+@utility hairline { border: 1px solid var(--color-border); }
+@utility hairline-b { border-bottom: 1px solid var(--color-border); }
+@utility hairline-t { border-top: 1px solid var(--color-border); }
+
+@utility tick {
+  background-image: repeating-linear-gradient(90deg, var(--color-border) 0 1px, transparent 1px 8px);
+}
+
+@utility brick {
+  background-color: var(--color-ink);
+  color: var(--color-bone);
+}
+
+@utility signal-chip {
+  background-color: var(--color-signal);
+  color: var(--color-bone);
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@utility animate-marquee { animation: marquee 40s linear infinite; }
+
+@keyframes blink {
+  50% { opacity: 0.2; }
+}
+@utility animate-blink { animation: blink 1.4s ease-in-out infinite; }
+
+/* Facelift Wrapper Base Settings */
+.facelift-landing {
+  /* Override shadcn/Tailwind variables for this specific section */
+  --background: var(--bone);
+  --foreground: var(--ink);
+  --card: oklch(0.97 0.008 85);
+  --card-foreground: var(--ink);
+  --popover: var(--bone);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--bone);
+  --secondary: oklch(0.91 0.014 85);
+  --secondary-foreground: var(--ink);
+  --muted: oklch(0.91 0.014 85);
+  --muted-foreground: oklch(0.42 0.015 70);
+  --accent: var(--signal);
+  --accent-foreground: var(--bone);
+  --destructive: var(--signal);
+  --destructive-foreground: var(--bone);
+  --border: oklch(0.18 0.01 60 / 0.85);
+  --input: oklch(0.18 0.01 60 / 0.85);
+  --ring: var(--signal);
+
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  background-image: radial-gradient(oklch(0.13 0.01 60 / 0.06) 1px, transparent 1px);
+  background-size: 14px 14px;
+}
+.facelift-landing .mono { font-family: var(--font-mono); }
+.facelift-landing .serif { font-family: var(--font-display); }
+
 
 /* Smooth scroll globally */
 html {

@@ -3,7 +3,7 @@ import Footer from "@/components/Footer";
 import GeoUpdater from "@/components/GeoUpdater";
 import Nav from "@/components/Nav";
 import PartnerDashboard from "@/components/PartnerDashboard";
-import PublicHome from "@/components/PublicHome";
+import FaceLiftLanding from "@/components/landing/FaceLiftLanding";
 import { auth } from "@/lib/auth";
 import connectDb from "@/lib/db";
 import User from "@/models/user.model";
@@ -30,18 +30,17 @@ export default async function Home() {
       {user?.role == "partner" ? (
         <>
           <Nav />
-
           <PartnerDashboard />
+          <Footer />
         </>
       ) : user?.role == "admin" ? (
-        <AdminDashboard />
-      ) : (
         <>
-          <Nav />
-          <PublicHome />
+          <AdminDashboard />
+          <Footer />
         </>
+      ) : (
+        <FaceLiftLanding />
       )}
-      <Footer />
     </div>
   );
 }
