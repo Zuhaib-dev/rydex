@@ -125,9 +125,9 @@ function Foot() {
           <span>© 2026 Rydex Mobility · all wheels reserved</span>
           <span className="flex items-center gap-4 flex-wrap">
             <a href="https://zuhaibrashid.com" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">Portfolio</a>
-            <a href="https://twitter.com/zuhaibrashid" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">X / Twitter</a>
-            <a href="https://linkedin.com/in/zuhaibrashid" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">LinkedIn</a>
-            <a href="https://github.com/zuhaibrashid" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">GitHub</a>
+            <a href="https://x.com/xuhaib_x9" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">X / Twitter</a>
+            <a href="https://www.linkedin.com/in/zuhaib-rashid-661345318/" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">LinkedIn</a>
+            <a href="https://github.com/Zuhaib-dev" target="_blank" rel="noreferrer" className="hover:text-signal transition-colors">GitHub</a>
           </span>
           <span>Composed in Srinagar · printed on the web</span>
         </div>
