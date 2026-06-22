@@ -82,7 +82,8 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
                 onClick={onAuthRequired}
                 className="group inline-flex items-center gap-2 brick px-4 py-2 font-mono text-[11px] tracking-[0.18em] uppercase hover:bg-signal transition-colors"
               >
-                Get the App
+                <span className="sm:hidden">Log in</span>
+                <span className="hidden sm:inline">Get the App</span>
                 <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </button>
             </>
