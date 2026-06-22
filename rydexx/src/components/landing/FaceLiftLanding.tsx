@@ -51,7 +51,7 @@ export default function FaceLiftLanding() {
       <AuthModel
         open={authOpen}
         onClose={() => setAuthOpen(false)}
-        redirectTo="/user/book"
+        redirectTo="/"
       />
     </div>
   );

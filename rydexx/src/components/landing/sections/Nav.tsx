@@ -25,14 +25,22 @@ import {
   Star,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { useSession, signOut } from "next-auth/react";
 
 import AuthModel from "../../AuthModel";
 
 /* ───────────────────────── NAV ───────────────────────── */
 function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
-  // Mock login state for demonstration (change to true to test Profile menu)
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { data: session } = useSession();
+  const [mockLoggedIn, setMockLoggedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const isLoggedIn = mockLoggedIn || !!session?.user;
+  const user = session?.user || {
+    name: "Yanis",
+    email: "yanis40942@dyleris.com",
+    role: "USER"
+  };
 
   return (
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border">
@@ -56,7 +64,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
             <>
               <button 
                 onClick={(e) => {
-                  if (e.altKey) setIsLoggedIn(true);
+                  if (e.altKey) setMockLoggedIn(true);
                   else onAuthRequired();
                 }} 
                 className="hidden sm:inline font-mono text-[11px] tracking-[0.18em] uppercase hover:text-signal transition-colors"
@@ -76,9 +84,9 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
             <div className="relative">
               <button 
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center justify-center h-10 w-10 rounded-full border border-border bg-bone text-ink font-serif font-bold hover:bg-signal hover:text-bone hover:border-signal transition-colors"
+                className="flex items-center justify-center h-10 w-10 rounded-full border border-border bg-bone text-ink font-serif font-bold hover:bg-signal hover:text-bone hover:border-signal transition-colors uppercase"
               >
-                Y
+                {user.name ? user.name.charAt(0) : "Y"}
               </button>
               
               {menuOpen && (
@@ -92,15 +100,15 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
                   >
                     {/* Header */}
                     <div className="p-5 border-b border-border bg-secondary/30">
-                      <div className="font-serif text-xl font-bold">Yanis</div>
-                      <div className="font-mono text-[10px] text-muted-foreground mt-1">yanis40942@dyleris.com</div>
+                      <div className="font-serif text-xl font-bold">{user.name || "User"}</div>
+                      <div className="font-mono text-[10px] text-muted-foreground mt-1">{user.email || ""}</div>
                       
                       <div className="mt-4 flex items-center justify-between font-mono text-[9px] tracking-[0.2em] uppercase">
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Star className="h-3 w-3" /> No ratings yet
                         </div>
                         <div className="text-signal font-bold">
-                          ROLE: USER
+                          ROLE: {user.role || "USER"}
                         </div>
                       </div>
                     </div>
@@ -122,7 +130,8 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
                       
                       <button 
                         onClick={() => {
-                          setIsLoggedIn(false);
+                          if (session) signOut();
+                          setMockLoggedIn(false);
                           setMenuOpen(false);
                         }}
                         className="flex items-center gap-3 px-3 py-2.5 text-left text-signal hover:bg-signal/10 transition-colors w-full"
