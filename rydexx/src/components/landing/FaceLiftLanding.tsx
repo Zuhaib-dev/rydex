@@ -33,7 +33,16 @@ import Ledger from "./sections/Ledger";
 
 export default function FaceLiftLanding() {
   const [authOpen, setAuthOpen] = useState(false);
-  const openAuth = () => setAuthOpen(true);
+  const [authRedirect, setAuthRedirect] = useState("/");
+
+  const openAuth = (redirectUrl: string = "/") => {
+    if (typeof redirectUrl === 'string') {
+      setAuthRedirect(redirectUrl);
+    } else {
+      setAuthRedirect("/");
+    }
+    setAuthOpen(true);
+  };
 
   return (
     <div className="facelift-landing min-h-screen overflow-x-hidden">
@@ -51,7 +60,7 @@ export default function FaceLiftLanding() {
       <AuthModel
         open={authOpen}
         onClose={() => setAuthOpen(false)}
-        redirectTo="/"
+        redirectTo={authRedirect}
       />
     </div>
   );

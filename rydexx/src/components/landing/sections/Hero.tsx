@@ -18,9 +18,21 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 import AuthModel from "../../AuthModel";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 /* ───────────────────────── HERO ───────────────────────── */
-function Hero({ onAuthRequired }: { onAuthRequired: () => void }) {
+function Hero({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => void }) {
+  const { data: session } = useSession();
+  const router = useRouter();
+
+  const handleAction = (path: string) => {
+    if (session) {
+      router.push(path);
+    } else {
+      onAuthRequired(path);
+    }
+  };
   return (
     <section className="relative">
       <Crosshair className="top-6 left-6" />
@@ -70,7 +82,7 @@ function Hero({ onAuthRequired }: { onAuthRequired: () => void }) {
 
             <div className="mt-10 flex flex-wrap items-center gap-3">
               <button
-                onClick={onAuthRequired}
+                onClick={() => handleAction("/user/book")}
                 className="group inline-flex items-center gap-3 brick pl-5 pr-2 py-2 hover:bg-signal transition-colors cursor-pointer"
               >
                 <span className="mono text-[12px] tracking-[0.18em] uppercase">Book a Ride</span>
@@ -79,7 +91,7 @@ function Hero({ onAuthRequired }: { onAuthRequired: () => void }) {
                 </span>
               </button>
               <button
-                onClick={onAuthRequired}
+                onClick={() => handleAction("/partner/onboarding/vehicle")}
                 className="group inline-flex items-center gap-2 hairline px-5 py-2.5 mono text-[12px] tracking-[0.18em] uppercase hover:brick transition-colors cursor-pointer"
               >
                 Become a Partner

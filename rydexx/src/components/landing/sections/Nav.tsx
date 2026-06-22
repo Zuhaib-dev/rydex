@@ -30,7 +30,7 @@ import { useSession, signOut } from "next-auth/react";
 import AuthModel from "../../AuthModel";
 
 /* ───────────────────────── NAV ───────────────────────── */
-function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
+function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => void }) {
   const { data: session } = useSession();
   const [mockLoggedIn, setMockLoggedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -71,7 +71,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
               <button 
                 onClick={(e) => {
                   if (e.altKey) setMockLoggedIn(true);
-                  else onAuthRequired();
+                  else onAuthRequired("/");
                 }} 
                 className="hidden sm:inline font-mono text-[11px] tracking-[0.18em] uppercase hover:text-signal transition-colors"
                 title="Alt-Click to mock login"
@@ -79,7 +79,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
                 Log in →
               </button>
               <button
-                onClick={onAuthRequired}
+                onClick={() => onAuthRequired("/")}
                 className="group inline-flex items-center gap-2 brick px-4 py-2 font-mono text-[11px] tracking-[0.18em] uppercase hover:bg-signal transition-colors"
               >
                 <span className="sm:hidden">Log in</span>
