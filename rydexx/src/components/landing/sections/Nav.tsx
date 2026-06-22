@@ -30,8 +30,8 @@ import AuthModel from "../../AuthModel";
 
 /* ───────────────────────── NAV ───────────────────────── */
 function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
-  // Mock login state for demonstration
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  // Mock login state for demonstration (change to true to test Profile menu)
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -54,7 +54,14 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
         <div className="flex items-center justify-end gap-2 relative">
           {!isLoggedIn ? (
             <>
-              <button onClick={() => setIsLoggedIn(true)} className="hidden sm:inline font-mono text-[11px] tracking-[0.18em] uppercase hover:text-signal transition-colors">
+              <button 
+                onClick={(e) => {
+                  if (e.altKey) setIsLoggedIn(true);
+                  else onAuthRequired();
+                }} 
+                className="hidden sm:inline font-mono text-[11px] tracking-[0.18em] uppercase hover:text-signal transition-colors"
+                title="Alt-Click to mock login"
+              >
                 Log in →
               </button>
               <button
