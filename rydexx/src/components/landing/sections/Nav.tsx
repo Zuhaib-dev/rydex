@@ -31,7 +31,8 @@ import AuthModel from "../../AuthModel";
 
 /* ───────────────────────── NAV ───────────────────────── */
 function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => void }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
+  const isLoading = status === "loading";
   const [mockLoggedIn, setMockLoggedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -65,8 +66,10 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
           ))}
         </nav>
 
-        <div className="flex items-center justify-end gap-2 relative">
-          {!isLoggedIn ? (
+        <div className="flex items-center justify-end gap-2 relative min-h-[40px] min-w-[80px]">
+          {isLoading ? (
+            <div className="h-10 w-10 sm:w-28 bg-foreground/10 animate-pulse rounded-full sm:rounded-none" />
+          ) : !isLoggedIn ? (
             <>
               <button 
                 onClick={(e) => {
