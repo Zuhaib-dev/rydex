@@ -35,9 +35,9 @@ function Bento() {
         </div>
 
         {/* Bento grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 auto-rows-[180px] gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-6 lg:grid-cols-12 auto-rows-[minmax(180px,auto)] sm:auto-rows-[180px] gap-3">
           {/* Big quote */}
-          <BentoTile className="sm:col-span-6 lg:col-span-7 lg:row-span-2 brick text-bone p-8 flex flex-col">
+          <BentoTile className="sm:col-span-6 lg:col-span-7 row-span-2 brick text-bone p-8 flex flex-col">
             <div className="font-mono text-[10px] tracking-[0.25em] uppercase text-bone/50">Quote / 01 — verified rider</div>
             <p className="font-serif text-2xl sm:text-3xl lg:text-4xl leading-[1.15] font-medium mt-6">
               <span className="text-signal">“</span>I booked a bike to the metro, a sedan to the airport, and a 5-tonne truck to move my studio — <em className="not-italic font-bold text-signal">all in the same week, same app</em>. Rydex is the only thing on my home screen now.<span className="text-signal">”</span>
@@ -126,7 +126,7 @@ function Bento() {
           </BentoTile>
 
           {/* Long horizontal quote */}
-          <BentoTile className="sm:col-span-3 lg:col-span-8 lg:row-span-1 bg-card p-6 flex flex-col sm:flex-row sm:items-center gap-6">
+          <BentoTile className="sm:col-span-3 lg:col-span-8 row-span-2 sm:row-span-1 bg-card p-6 flex flex-col sm:flex-row sm:items-center gap-6">
             <Avatar initials="PM" large />
             <div className="flex-1">
               <p className="font-serif text-xl sm:text-2xl leading-snug">
