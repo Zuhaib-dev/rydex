@@ -36,14 +36,14 @@ const cities: City[] = [
 ];
 
 const feed = [
-  { t: "00:00:02", c: "SXR → GLM", v: "Sedan", f: "₹ 1,840", who: "A. Bhat" },
-  { t: "00:00:05", c: "JMU → SXR", v: "Bike",  f: "₹ 64",    who: "R. Singh" },
-  { t: "00:00:09", c: "GLM → PAH", v: "Truck", f: "₹ 9,200", who: "Kashmir Logs" },
-  { t: "00:00:11", c: "SXR → SNG", v: "Auto",  f: "₹ 110",   who: "T. Dar" },
-  { t: "00:00:14", c: "ANP → SXR", v: "SUV",   f: "₹ 420",   who: "D. Lone" },
-  { t: "00:00:17", c: "BRM → SXR", v: "Van",   f: "₹ 4,100", who: "Wani Movers" },
-  { t: "00:00:21", c: "SOP → KUP", v: "Sedan", f: "₹ 2,650", who: "M. Mir" },
-  { t: "00:00:24", c: "PUL → SXR", v: "Truck", f: "₹ 11,400",who: "Valley Routes" },
+  { t: "00:00:02", c: "SXR → GLM", v: "Sedan", f: "₹ 1,452", who: "A. Bhat" },
+  { t: "00:00:05", c: "JMU → SXR", v: "Bike",  f: "₹ 1,870", who: "R. Singh" },
+  { t: "00:00:09", c: "GLM → PAH", v: "Truck", f: "₹ 561",   who: "Kashmir Logs" },
+  { t: "00:00:11", c: "SXR → SNG", v: "Auto",  f: "₹ 1,958", who: "T. Dar" },
+  { t: "00:00:14", c: "ANP → SXR", v: "SUV",   f: "₹ 2,486", who: "D. Lone" },
+  { t: "00:00:17", c: "BRM → SXR", v: "Van",   f: "₹ 781",   who: "Wani Movers" },
+  { t: "00:00:21", c: "SOP → KUP", v: "Sedan", f: "₹ 1,397", who: "M. Mir" },
+  { t: "00:00:24", c: "PUL → SXR", v: "Truck", f: "₹ 1,980", who: "Valley Routes" },
 ];
 
 function LiveDispatch() {
