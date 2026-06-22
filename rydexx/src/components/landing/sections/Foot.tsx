@@ -27,6 +27,26 @@ function Foot() {
 
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
+    } else {
+      alert("To install the app, tap 'Share' in your browser and select 'Add to Home Screen'.");
+    }
+  };
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,15 +77,15 @@ function Foot() {
             <h2 className="font-serif font-black leading-[0.82] tracking-[-0.05em] text-[68px] sm:text-[140px] lg:text-[200px]">
               Let's <span className="italic text-signal">go.</span>
             </h2>
-            <a
-              href="#"
-              className="group inline-flex items-center gap-3 bg-bone text-ink pl-6 pr-2 py-2"
+            <button
+              onClick={handleInstallClick}
+              className="group inline-flex items-center gap-3 bg-bone text-ink pl-6 pr-2 py-2 cursor-pointer"
             >
               <span className="font-mono text-[12px] tracking-[0.2em] uppercase">Get the App</span>
               <span className="grid h-10 w-10 place-items-center brick">
                 <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </span>
-            </a>
+            </button>
           </div>
         </div>
 

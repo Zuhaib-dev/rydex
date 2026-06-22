@@ -38,6 +38,25 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
   const [mockLoggedIn, setMockLoggedIn] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+  useEffect(() => {
+    const handler = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => setDeferredPrompt(null));
+    } else {
+      alert("To install the app, tap 'Share' in your browser and select 'Add to Home Screen'.");
+    }
+  };
 
   const isLoggedIn = mockLoggedIn || !!session?.user;
   const user = session?.user || {
@@ -79,17 +98,16 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
                   if (e.altKey) setMockLoggedIn(true);
                   else onAuthRequired("/");
                 }} 
-                className="hidden sm:inline font-mono text-[11px] tracking-[0.18em] uppercase hover:text-signal transition-colors"
+                className="font-mono text-[11px] tracking-[0.18em] uppercase hover:text-signal transition-colors"
                 title="Alt-Click to mock login"
               >
                 Log in →
               </button>
               <button
-                onClick={() => onAuthRequired("/")}
+                onClick={handleInstallClick}
                 className="group inline-flex items-center gap-2 brick px-4 py-2 font-mono text-[11px] tracking-[0.18em] uppercase hover:bg-signal transition-colors"
               >
-                <span className="sm:hidden">Log in</span>
-                <span className="hidden sm:inline">Get the App</span>
+                <span>Get the App</span>
                 <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </button>
             </>
