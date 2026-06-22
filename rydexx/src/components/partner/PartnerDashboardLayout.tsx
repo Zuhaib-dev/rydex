@@ -1,161 +1,78 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
-import { motion, AnimatePresence } from "framer-motion";
-import { LayoutDashboard, PieChart, User, LogOut, Navigation, Menu, Car, ClipboardList, ArrowLeft } from "lucide-react";
-import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import Nav from "@/components/landing/sections/Nav";
+import Ticker from "@/components/landing/sections/Ticker";
+import Foot from "@/components/landing/sections/Foot";
+import {
+  LayoutGrid,
+  Inbox,
+  CalendarRange,
+  Truck,
+  LineChart,
+  Wallet,
+  Map as MapIcon,
+} from "lucide-react";
+
+const LINKS = [
+  { href: "/partner", label: "Overview", code: "00", icon: LayoutGrid, exact: true },
+  { href: "/partner/pending-requests", label: "Pending Requests", code: "01", icon: Inbox },
+  { href: "/partner/bookings", label: "My Bookings", code: "02", icon: CalendarRange },
+  { href: "/partner/vehicle", label: "My Vehicle", code: "03", icon: Truck },
+  { href: "/partner/analytics", label: "Analytics Hub", code: "04", icon: LineChart },
+  { href: "/partner/settlements", label: "Settlements", code: "05", icon: Wallet },
+  { href: "/partner/demand", label: "Live Demand Map", code: "06", icon: MapIcon },
+];
 
 export default function PartnerDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { data: session } = useSession();
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
 
   // Do not show the layout wrapper on the active-ride map screen
   if (pathname === "/partner/active-ride") {
     return <>{children}</>;
   }
 
-  const navLinks = [
-    { name: "Requests", href: "/partner/pending-requests", icon: <LayoutDashboard size={20} /> },
-    { name: "Vehicle", href: "/partner/vehicle", icon: <Car size={20} /> },
-    { name: "Bookings", href: "/partner/bookings", icon: <ClipboardList size={20} /> },
-    { name: "Analytics", href: "/partner/analytics", icon: <PieChart size={20} /> },
-    { name: "Profile", href: "/partner/profile", icon: <User size={20} /> },
-  ];
-
   return (
-    <div className="min-h-screen bg-[#f4f5f7] flex flex-col">
-      {/* ── DESKTOP TOP NAVBAR ── */}
-      <header className="sticky top-0 z-40 w-full bg-white/80 backdrop-blur-md border-b border-gray-200 hidden md:block">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-4">
-              <Link 
-                href="/" 
-                className="w-8 h-8 rounded-full bg-zinc-100 flex items-center justify-center text-gray-500 hover:text-black hover:bg-zinc-200 transition-colors"
-                title="Back to Home"
-              >
-                <ArrowLeft size={16} />
-              </Link>
-              <Link href="/partner/pending-requests" className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center text-white">
-                  <Navigation size={18} className="fill-current -rotate-45" />
-                </div>
-                <span className="font-black text-xl tracking-tight">Rydex</span>
-              </Link>
-            </div>
-
-            <nav className="flex items-center gap-1">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
-                return (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={`px-4 py-2 text-sm font-semibold rounded-full transition-all ${
-                      isActive 
-                        ? "bg-zinc-100 text-black" 
-                        : "text-gray-500 hover:text-gray-900 hover:bg-gray-50"
-                    }`}
-                  >
-                    {link.name}
-                  </Link>
-                );
-              })}
-            </nav>
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
+      <Ticker />
+      <Nav onAuthRequired={() => {}} />
+      <div className="mx-auto w-full max-w-[1400px] px-5 sm:px-8 py-6 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 flex-1">
+        <aside className="hairline bg-card h-fit lg:sticky lg:top-[88px]">
+          <div className="brick mono text-[10px] tracking-[0.22em] uppercase px-4 py-2 flex items-center justify-between">
+            <span>Operator Console</span>
+            <span className="text-signal">●</span>
           </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden lg:block">
-              <p className="text-sm font-bold text-gray-900">{session?.user?.name}</p>
-              <p className="text-xs text-gray-500">{session?.user?.email}</p>
-            </div>
-            <button
-              onClick={() => signOut({ callbackUrl: "/auth/signin" })}
-              className="w-10 h-10 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:text-red-600 hover:bg-red-50 hover:border-red-100 transition-all"
-              title="Logout"
-            >
-              <LogOut size={16} />
-            </button>
+          <nav className="p-2 flex lg:flex-col gap-1 overflow-x-auto">
+            {LINKS.map((l) => {
+              const Icon = l.icon;
+              const isActive = l.exact ? pathname === l.href : pathname.startsWith(l.href);
+              
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  className={`group flex items-center gap-3 px-3 py-2.5 mono text-[11px] tracking-[0.18em] uppercase transition-colors shrink-0 ${
+                    isActive ? "bg-ink text-bone" : "hover:bg-secondary"
+                  }`}
+                >
+                  <span className={isActive ? "text-bone/60" : "text-muted-foreground"}>{l.code}</span>
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="truncate">{l.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+          <div className="hairline-t px-4 py-3 mono text-[9px] tracking-[0.22em] uppercase text-muted-foreground">
+            <div className="flex justify-between"><span>Build</span><span>v0.24.06</span></div>
+            <div className="flex justify-between"><span>Region</span><span>SXR · IN</span></div>
           </div>
-        </div>
-      </header>
-
-      {/* ── MAIN CONTENT AREA ── */}
-      <main className="flex-1 pb-24 md:pb-0 relative z-10 overflow-hidden">
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.div
-            key={pathname}
-            className="h-full w-full"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            drag={isMobile ? "x" : false}
-            dragConstraints={{ left: 0, right: 0 }}
-            dragElastic={0.2}
-            onDragEnd={(e, { offset, velocity }) => {
-              if (!isMobile) return;
-              const swipePower = Math.abs(offset.x) * velocity.x;
-              const currentIndex = navLinks.findIndex((l) => l.href === pathname);
-              if (currentIndex === -1) return;
-
-              if (swipePower < -5000 || offset.x < -100) {
-                // Swipe Left -> Next Tab
-                if (currentIndex < navLinks.length - 1) {
-                  router.push(navLinks[currentIndex + 1].href);
-                }
-              } else if (swipePower > 5000 || offset.x > 100) {
-                // Swipe Right -> Prev Tab
-                if (currentIndex > 0) {
-                  router.push(navLinks[currentIndex - 1].href);
-                }
-              }
-            }}
-          >
-            {children}
-          </motion.div>
-        </AnimatePresence>
-      </main>
-
-      {/* ── MOBILE BOTTOM NAVBAR ── */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-gray-200 md:hidden z-50 px-6 pb-safe pt-2 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.1)]">
-        <div className="flex justify-between items-center h-16">
-          {navLinks.map((link) => {
-            const isActive = pathname === link.href;
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex flex-col items-center justify-center w-16 h-full gap-1 transition-all ${
-                  isActive ? "text-black" : "text-gray-400"
-                }`}
-              >
-                <div className={`relative p-1.5 ${isActive ? "bg-zinc-100 rounded-xl" : ""}`}>
-                  {link.icon}
-                  {isActive && (
-                    <motion.div
-                      layoutId="mobile-nav-indicator"
-                      className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-black rounded-full"
-                    />
-                  )}
-                </div>
-                <span className="text-[10px] font-bold">{link.name}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+        </aside>
+        <main className="min-w-0">
+          {children}
+        </main>
+      </div>
+      <Foot />
     </div>
   );
 }
