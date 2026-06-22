@@ -614,7 +614,7 @@ function Bento() {
           <div>
             <div className="mono text-[11px] tracking-[0.25em] uppercase text-signal mb-3">§05 — Field Reports</div>
             <h2 className="serif text-5xl sm:text-7xl font-black leading-[0.9] tracking-tighter max-w-3xl">
-              What the <span className="italic font-bold">drivers</span>, riders <span className="italic font-bold text-signal">&amp;</span> shippers say<span className="text-signal">.</span>
+              What the <span className="italic font-bold">drivers</span>, riders & shippers say<span className="text-signal">.</span>
             </h2>
           </div>
           <div className="mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground hidden md:block">
