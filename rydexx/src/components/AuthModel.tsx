@@ -1,8 +1,7 @@
 "use client";
 import axios from "axios";
-import { CircleDashed, Lock, Mail, User, X, Fingerprint } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import Image from "next/image";
+import { CircleDashed, Asterisk, ArrowRight, ArrowUpRight } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { startAuthentication } from "@simplewebauthn/browser";
@@ -57,7 +56,7 @@ const getPasskeyErrorMessage = (err: any): string => {
   return "Passkey login failed. Please try a different sign-in method.";
 };
 
-function AuthModel({ open, onClose, redirectTo }: propType) {
+export default function AuthModel({ open, onClose, redirectTo }: propType) {
   const router = useRouter();
 
   const [step, setStep] = useState<stepType>("login");
@@ -75,13 +74,11 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
   useScrollLock(open);
   useFocusTrap(modalRef, open);
 
-  // Clear errors when the user switches steps
   const goToStep = (s: stepType) => {
     setStep(s);
     setErr("");
   };
 
-  // Global Escape Listener
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && open) onClose();
@@ -235,258 +232,239 @@ function AuthModel({ open, onClose, redirectTo }: propType) {
   return (
     <AnimatePresence>
       {open && (
-        <>
+        <motion.div
+          key="auth-modal-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/70 backdrop-blur-sm"
+          onClick={onClose}
+        >
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="z-90 fixed inset-0 bg-black/80 backdrop-blur-sm"
-            onClick={onClose}
-          />
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            exit={{ opacity: 0, scale: 0.95, y: 40 }}
-            className="fixed inset-0 z-100 flex items-center justify-center px-4 pointer-events-none"
+            key="auth-modal-content"
+            ref={modalRef}
+            role="dialog"
+            aria-modal="true"
+            initial={{ y: 24, opacity: 0, scale: 0.98 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 24, opacity: 0, scale: 0.98 }}
+            transition={{ type: "spring", stiffness: 280, damping: 26 }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-[440px] bg-background hairline shadow-[12px_12px_0_0_var(--color-ink)]"
           >
-            <div
-              ref={modalRef}
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="auth-modal-title"
-              className="relative w-full max-w-md rounded-3xl bg-white border border-black/10 shadow-2xl p-6 sm:p-8 text-black pointer-events-auto"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <button
-                aria-label="Close modal"
-                className="absolute right-4 top-4 text-gray-500 hover:text-black transition focus-visible:ring-2 focus-visible:ring-black rounded-full p-1"
-                onClick={onClose}
-              >
-                <X size={20} />
-              </button>
-              <div className="mb-6 text-center">
-                <h1 id="auth-modal-title" className="text-3xl font-extrabold tracking-widest">
-                  Rydexx
-                </h1>
-                <p className="mt-1 text-xs text-gray-500">Premium Vehicle Booking</p>
+            {/* Top ticker */}
+            <div className="brick font-mono text-[10px] tracking-[0.22em] py-1.5 px-4 flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span className="text-signal animate-blink">●</span> AUTH TERMINAL / 24H
+              </span>
+              <button onClick={onClose} className="hover:text-signal text-lg leading-none cursor-pointer" aria-label="Close">×</button>
+            </div>
+
+            <div className="p-7">
+              {/* Brand */}
+              <div className="flex items-baseline justify-between mb-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-serif text-[34px] font-black leading-none tracking-tighter">Rydex</span>
+                  <span className="font-mono text-[10px] text-muted-foreground">™</span>
+                </div>
+                <span className="font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground">N° 001</span>
               </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  className="w-full h-11 rounded-xl border border-black/20 flex items-center justify-center gap-3 text-sm font-semibold hover:bg-black hover:text-white transition disabled:opacity-60 disabled:cursor-not-allowed"
-                  onClick={handleGoogleLogin}
-                  disabled={googleLoading}
-                >
-                  {googleLoading ? (
-                    <CircleDashed size={18} className="animate-spin" />
-                  ) : (
-                    <Image src="/google.png" alt="Google Logo" width={20} height={20} />
-                  )}
-                  {googleLoading ? "Redirecting…" : "Continue With Google"}
-                </button>
-                <button
-                  className="w-full h-11 rounded-xl border border-black/20 flex items-center justify-center gap-3 text-sm font-semibold hover:bg-black hover:text-white transition"
-                  onClick={handlePasskeyLogin}
-                >
-                  <Fingerprint size={18} />
-                  Continue With Passkey
-                </button>
+              <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground hairline-b pb-3 mb-5">
+                Premium Vehicle Booking
+              </p>
+
+              {/* Headline */}
+              <div className="mb-5">
+                <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-signal mb-1.5 flex items-center">
+                  <Asterisk className="inline h-3 w-3 mr-1" />
+                  {step === "login" ? "Re-entry" : step === "signup" ? "First dispatch" : "Verification"}
+                </div>
+                <h2 className="font-serif text-[40px] leading-[0.95] font-black tracking-tighter">
+                  {step === "login" ? "Welcome Back" : step === "signup" ? "Join the Fleet" : "Verify Comms"}
+                </h2>
               </div>
-              <div className="flex items-center gap-4 my-6">
-                <div className="flex-1 h-px bg-black/20" />
-                <div className="text-xs text-gray-500">OR</div>
-                <div className="flex-1 h-px bg-black/20" />
-              </div>
-              <div>
-                {step === "login" && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                  >
-                    <h2 className="text-xl font-semibold">Welcome Back</h2>
-                    <div className="mt-5 space-y-4">
-                      <div className="flex items-center gap-3 border border-black/20 rounded-xl px-4 py-3">
-                        <Mail size={18} className="text-gray-500" />
-                        <input
-                          onChange={(e) => { setEmail(e.target.value); setErr(""); }}
-                          value={email}
-                          className="w-full outline-none bg-transparent text-sm"
-                          type="email"
-                          placeholder="Email"
-                          autoComplete="email"
-                        />
-                      </div>
-                      <div className="flex items-center gap-3 border border-black/20 rounded-xl px-4 py-3">
-                        <Lock size={18} className="text-gray-500" />
-                        <input
-                          onChange={(e) => { setPassword(e.target.value); setErr(""); }}
-                          value={password}
-                          onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                          className="w-full outline-none bg-transparent text-sm"
-                          type="password"
-                          placeholder="Password"
-                          autoComplete="current-password"
-                        />
-                      </div>
-                      {err && (
-                        <p className="text-red-500 text-xs leading-relaxed wrap-break-word">{err}</p>
-                      )}
-                      <button
-                        onClick={handleLogin}
-                        disabled={loading}
-                        className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
-                      >
-                        {loading ? <CircleDashed size={18} className="animate-spin" /> : "Login"}
-                      </button>
-                    </div>
-                    <p className="mt-6 text-center text-sm text-gray-500">
-                      Don't have an account?
-                      <span
-                        onClick={() => goToStep("signup")}
-                        className="text-black font-medium hover:underline cursor-pointer ml-1"
-                      >
-                        Sign Up
+
+              {step !== "otp" && (
+                <>
+                  {/* Providers */}
+                  <div className="space-y-2.5 mb-5">
+                    <button 
+                      onClick={handleGoogleLogin}
+                      disabled={googleLoading}
+                      className="group w-full flex items-center justify-between hairline bg-background hover:bg-secondary transition-colors px-4 py-3 font-mono text-[11px] tracking-[0.18em] uppercase cursor-pointer disabled:opacity-50"
+                    >
+                      <span className="flex items-center gap-3">
+                        {googleLoading ? <CircleDashed className="h-3.5 w-3.5 animate-spin" /> : <GoogleGlyph />} 
+                        Continue with Google
                       </span>
-                    </p>
-                  </motion.div>
-                )}
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                    <button 
+                      onClick={handlePasskeyLogin}
+                      className="group w-full flex items-center justify-between hairline bg-background hover:bg-secondary transition-colors px-4 py-3 font-mono text-[11px] tracking-[0.18em] uppercase cursor-pointer"
+                    >
+                      <span className="flex items-center gap-3"><PasskeyGlyph /> Continue with Passkey</span>
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                    </button>
+                  </div>
+
+                  {/* OR */}
+                  <div className="flex items-center gap-3 my-5">
+                    <span className="flex-1 h-px bg-border" />
+                    <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground">OR</span>
+                    <span className="flex-1 h-px bg-border" />
+                  </div>
+                </>
+              )}
+
+              {/* Form */}
+              <form onSubmit={(e) => { e.preventDefault(); step === "login" ? handleLogin() : handleSignUp(); }} className="space-y-3">
                 {step === "signup" && (
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                  >
-                    <h2 className="text-xl font-semibold">Create Account</h2>
-                    <div className="mt-5 space-y-4">
-                      <div className="flex items-center gap-3 border border-black/20 rounded-xl px-4 py-3">
-                        <User size={18} className="text-gray-500" />
-                        <input
-                          onChange={(e) => { setName(e.target.value); setErr(""); }}
-                          value={name}
-                          className="w-full outline-none bg-transparent text-sm"
-                          type="text"
-                          placeholder="Full Name"
-                          autoComplete="name"
-                        />
-                      </div>
-                      <div className="flex items-center gap-3 border border-black/20 rounded-xl px-4 py-3">
-                        <Mail size={18} className="text-gray-500" />
-                        <input
-                          onChange={(e) => { setEmail(e.target.value); setErr(""); }}
-                          value={email}
-                          className="w-full outline-none bg-transparent text-sm"
-                          type="email"
-                          placeholder="Email"
-                          autoComplete="email"
-                        />
-                      </div>
-                      <div className="flex items-center gap-3 border border-black/20 rounded-xl px-4 py-3">
-                        <Lock size={18} className="text-gray-500" />
-                        <input
-                          onChange={(e) => { setPassword(e.target.value); setErr(""); }}
-                          value={password}
-                          onKeyDown={(e) => e.key === "Enter" && handleSignUp()}
-                          className="w-full outline-none bg-transparent text-sm"
-                          type="password"
-                          placeholder="Password (min 8 chars)"
-                          autoComplete="new-password"
-                        />
-                      </div>
-                      {err && (
-                        <p className="text-red-500 text-xs leading-relaxed wrap-break-word">{err}</p>
-                      )}
-                      <button
-                        className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center disabled:opacity-60 disabled:cursor-not-allowed"
-                        disabled={loading}
-                        onClick={handleSignUp}
-                      >
-                        {loading ? (
-                          <CircleDashed size={18} color="white" className="animate-spin" />
-                        ) : (
-                          "Send OTP"
-                        )}
-                      </button>
-                    </div>
-                    <p className="mt-6 text-center text-sm text-gray-500">
-                      Already have an account?
-                      <span
-                        onClick={() => goToStep("login")}
-                        className="text-black font-medium hover:underline cursor-pointer ml-1"
-                      >
-                        Log In
-                      </span>
-                    </p>
-                  </motion.div>
+                  <label className="block">
+                    <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground block mb-1.5">Full Name</span>
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      value={name}
+                      onChange={(e) => { setName(e.target.value); setErr(""); }}
+                      className="w-full hairline bg-background px-3 py-2.5 font-mono text-[12px] tracking-wide focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal transition-colors placeholder:text-muted-foreground/60"
+                    />
+                  </label>
                 )}
+                {step !== "otp" && (
+                  <label className="block">
+                    <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground block mb-1.5">Email</span>
+                    <input
+                      type="email"
+                      placeholder="you@dispatch.in"
+                      value={email}
+                      onChange={(e) => { setEmail(e.target.value); setErr(""); }}
+                      className="w-full hairline bg-background px-3 py-2.5 font-mono text-[12px] tracking-wide focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal transition-colors placeholder:text-muted-foreground/60"
+                    />
+                  </label>
+                )}
+                {step !== "otp" && (
+                  <label className="block">
+                    <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground block mb-1.5">Password</span>
+                    <input
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => { setPassword(e.target.value); setErr(""); }}
+                      className="w-full hairline bg-background px-3 py-2.5 font-mono text-[12px] tracking-wide focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal transition-colors placeholder:text-muted-foreground/60"
+                    />
+                  </label>
+                )}
+
                 {step === "otp" && (
-                  <motion.div
-                    key="otp"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                  >
-                    <h2 className="text-xl font-semibold">Verify Email</h2>
-                    <p className="text-xs text-gray-500 mt-1">
-                      We sent a 6-digit code to <span className="font-medium text-black">{email}</span>
+                  <div className="space-y-4">
+                    <p className="font-mono text-[11px] text-muted-foreground leading-relaxed">
+                      We sent a 6-digit code to <br/><span className="text-foreground">{email}</span>
                     </p>
-                    <div className="flex mt-6 justify-between gap-2">
+                    <div className="flex justify-between gap-2 my-5">
                       {otp.map((digit, i) => (
                         <input
-                          placeholder=""
                           key={i}
                           id={`otp-${i}`}
                           value={digit}
                           maxLength={1}
+                          onChange={(e) => handleChangeOtp(i, e.target.value)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter") handleVerifyEmail();
                             if (e.key === "Backspace" && !digit && i > 0) {
                               document.getElementById(`otp-${i - 1}`)?.focus();
                             }
                           }}
-                          className="w-10 h-12 sm:w-12 text-center text-lg rounded-xl font-semibold bg-white border border-black/20 outline-none focus:border-black focus:ring-1 focus:ring-black transition-all shadow-sm"
-                          onChange={(e) => handleChangeOtp(i, e.target.value)}
+                          className="w-10 h-12 text-center text-lg rounded-none bg-background hairline focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal transition-all"
                         />
                       ))}
                     </div>
-                    {err && (
-                      <p className="text-red-500 text-xs mt-2 leading-relaxed wrap-break-word">{err}</p>
+                  </div>
+                )}
+
+                {err && (
+                  <div className="font-mono text-[10px] text-red-500 uppercase tracking-wide my-2">
+                    {err}
+                  </div>
+                )}
+
+                {step !== "otp" ? (
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="group w-full mt-2 brick hover:bg-signal transition-colors px-4 py-3 font-mono text-[11px] tracking-[0.22em] uppercase inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? <CircleDashed className="h-3.5 w-3.5 animate-spin" /> : (
+                      <>
+                        {step === "login" ? "Login" : "Create Account"}
+                        <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                      </>
                     )}
+                  </button>
+                ) : (
+                  <>
                     <button
-                      className="w-full h-11 rounded-xl bg-black text-white font-semibold hover:bg-gray-900 transition flex justify-center items-center mt-5 disabled:opacity-60 disabled:cursor-not-allowed"
+                      type="button"
                       onClick={handleVerifyEmail}
                       disabled={loading}
+                      className="group w-full mt-2 brick hover:bg-signal transition-colors px-4 py-3 font-mono text-[11px] tracking-[0.22em] uppercase inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                     >
-                      {loading ? (
-                        <CircleDashed size={18} color="white" className="animate-spin" />
-                      ) : (
-                        "Verify"
-                      )}
+                      {loading ? <CircleDashed className="h-3.5 w-3.5 animate-spin" /> : "Verify Code"}
                     </button>
                     <button
+                      type="button"
                       onClick={handleResendOtp}
                       disabled={resendTimer > 0 || resendLoading}
-                      className={`w-full mt-3 h-11 rounded-xl text-sm font-semibold border flex items-center justify-center gap-2 transition-all ${
-                        resendTimer > 0 || resendLoading
-                          ? "bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed"
-                          : "bg-white text-black border-black/20 hover:bg-zinc-50"
-                      }`}
+                      className="w-full mt-3 hairline bg-background hover:bg-secondary transition-colors px-4 py-3 font-mono text-[11px] tracking-[0.22em] uppercase flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                     >
-                      {resendLoading ? (
-                        <CircleDashed size={16} className="animate-spin" />
-                      ) : resendTimer > 0 ? (
-                        `Resend OTP in ${resendTimer}s`
-                      ) : (
-                        "Resend OTP"
-                      )}
+                      {resendLoading ? <CircleDashed className="h-3.5 w-3.5 animate-spin" /> : 
+                        resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend Code"
+                      }
                     </button>
-                  </motion.div>
+                  </>
                 )}
-              </div>
+              </form>
+
+              {/* Toggle */}
+              {step !== "otp" && (
+                <p className="mt-5 font-mono text-[11px] text-muted-foreground text-center">
+                  {step === "login" ? "Don't have an account?" : "Already on the road?"}{" "}
+                  <button
+                    onClick={() => goToStep(step === "login" ? "signup" : "login")}
+                    className="text-foreground underline underline-offset-4 decoration-signal decoration-2 hover:text-signal uppercase tracking-[0.18em] text-[10px] ml-1 cursor-pointer"
+                  >
+                    {step === "login" ? "Sign Up" : "Log In"}
+                  </button>
+                </p>
+              )}
+            </div>
+
+            {/* Footer ticker */}
+            <div className="hairline-t font-mono text-[9px] tracking-[0.22em] uppercase text-muted-foreground flex items-center justify-between px-4 py-2">
+              <span>Encrypted · TLS 1.3</span>
+              <span>FILED · MUMBAI</span>
             </div>
           </motion.div>
-        </>
+        </motion.div>
       )}
     </AnimatePresence>
   );
 }
 
-export default AuthModel;
+function GoogleGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden>
+      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.6 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.4 14.6 2.5 12 2.5 6.8 2.5 2.6 6.7 2.6 12S6.8 21.5 12 21.5c6.9 0 9.5-4.8 9.5-7.3 0-.5 0-.9-.1-1.3H12z"/>
+    </svg>
+  );
+}
+
+function PasskeyGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <circle cx="9" cy="8" r="3.5"/>
+      <path d="M9 11.5v9l2-2 2 2v-9"/>
+      <path d="M15 6h6M15 9h4"/>
+    </svg>
+  );
+}
