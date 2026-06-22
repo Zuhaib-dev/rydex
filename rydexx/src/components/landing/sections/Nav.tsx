@@ -39,7 +39,8 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
   const user = session?.user || {
     name: "Yanis",
     email: "yanis40942@dyleris.com",
-    role: "USER"
+    role: "USER",
+    image: null
   };
 
   return (
@@ -84,9 +85,13 @@ function Nav({ onAuthRequired }: { onAuthRequired: () => void }) {
             <div className="relative">
               <button 
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="flex items-center justify-center h-10 w-10 rounded-full border border-border bg-bone text-ink font-serif font-bold hover:bg-signal hover:text-bone hover:border-signal transition-colors uppercase"
+                className="flex items-center justify-center h-10 w-10 rounded-full border border-border bg-bone text-ink font-serif font-bold hover:bg-signal hover:text-bone hover:border-signal transition-colors uppercase overflow-hidden"
               >
-                {user.name ? user.name.charAt(0) : "Y"}
+                {user.image ? (
+                  <img src={user.image} alt={user.name || "User"} className="h-full w-full object-cover" />
+                ) : (
+                  user.name ? user.name.charAt(0) : "Y"
+                )}
               </button>
               
               {menuOpen && (
