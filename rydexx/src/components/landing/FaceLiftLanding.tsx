@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import AuthModel from "../AuthModel";
 import {
@@ -13,6 +13,8 @@ import {
   MapPin,
   Plus,
   Asterisk,
+  Check,
+  Stamp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -28,7 +30,9 @@ export default function FaceLiftLanding() {
       <Specimens />
       <LiveDispatch />
       <Protocol />
+      <SplitFlapBoard />
       <Bento />
+      <Ledger />
       <Manifesto />
       <Foot />
       <AuthModel
@@ -939,5 +943,248 @@ function Foot() {
         </div>
       </div>
     </footer>
+  );
+}
+
+/* ───────────────────────── SPLIT-FLAP DEPARTURE BOARD ───────────────────────── */
+const boardRows: { route: string; vehicle: string; gate: string; eta: string; status: "BOARDING" | "ENROUTE" | "ARRIVED" | "DELAYED" }[] = [
+  { route: "BOM → PNQ", vehicle: "SEDAN  XL6", gate: "G-04", eta: "00:11", status: "BOARDING" },
+  { route: "DEL → GGN", vehicle: "BIKE   125",  gate: "G-12", eta: "00:04", status: "ENROUTE"  },
+  { route: "BLR → MAA", vehicle: "TRUCK  10T",  gate: "F-22", eta: "04:18", status: "ENROUTE"  },
+  { route: "HYD → SEC", vehicle: "AUTO   3W",   gate: "G-07", eta: "00:09", status: "BOARDING" },
+  { route: "CCU → DUM", vehicle: "SUV    XL7",  gate: "G-02", eta: "00:21", status: "DELAYED"  },
+  { route: "AMD → BOM", vehicle: "VAN    9PX",  gate: "F-15", eta: "06:40", status: "ENROUTE"  },
+  { route: "JAI → DEL", vehicle: "SEDAN  C5",   gate: "G-09", eta: "03:55", status: "ARRIVED"  },
+];
+
+const statusTint: Record<string, string> = {
+  BOARDING: "text-signal",
+  ENROUTE: "text-bone",
+  ARRIVED: "text-acid",
+  DELAYED: "text-signal",
+};
+
+function SplitFlap({ value }: { value: string }) {
+  const [display, setDisplay] = useState(value);
+  useEffect(() => {
+    if (display === value) return;
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      const next = value
+        .split("")
+        .map((c, idx) => {
+          if (idx < i) return c;
+          if (!/[A-Z0-9]/i.test(c)) return c; // keep →, :, ·, space stable
+          return chars[Math.floor(Math.random() * chars.length)];
+        })
+        .join("");
+      setDisplay(next);
+      if (i >= value.length) clearInterval(id);
+    }, 55);
+    return () => clearInterval(id);
+  }, [value, display]);
+
+  return (
+    <span className="tabular-nums inline-flex">
+      {display.split("").map((c, idx) => (
+        <span key={idx} className="inline-block text-center" style={{ width: "0.62em" }}>
+          {c === " " ? "\u00A0" : c}
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function SplitFlapBoard() {
+  const [rows, setRows] = useState(boardRows);
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setRows((prev) => {
+        const next = [...prev];
+        const i = Math.floor(Math.random() * next.length);
+        const cur = next[i];
+        const mins = Math.max(0, parseInt(cur.eta.split(":")[1]) - 1 + (Math.random() > 0.7 ? 3 : 0));
+        const hrs = parseInt(cur.eta.split(":")[0]);
+        const newEta = `${String(hrs).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+        const statuses: typeof cur.status[] = ["BOARDING", "ENROUTE", "ARRIVED", "DELAYED"];
+        next[i] = { ...cur, eta: newEta, status: statuses[Math.floor(Math.random() * statuses.length)] };
+        return next;
+      });
+      setTick((t) => t + 1);
+    }, 2200);
+    return () => clearInterval(id);
+  }, []);
+
+  return (
+    <section className="relative brick text-bone overflow-hidden">
+      <div className="mx-auto max-w-[1400px] px-5 sm:px-8 py-24">
+        <div className="grid lg:grid-cols-12 gap-6 mb-10 items-end">
+          <div className="lg:col-span-3 mono text-[11px] tracking-[0.25em] uppercase text-bone/60">§05 — Departures</div>
+          <h2 className="lg:col-span-6 serif font-black leading-[0.88] tracking-tighter text-5xl sm:text-7xl">
+            The board <span className="italic font-bold text-signal">never stops</span> flipping.
+          </h2>
+          <div className="lg:col-span-3 mono text-[10px] tracking-[0.2em] uppercase text-bone/60 flex flex-col gap-1">
+            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 bg-signal rounded-full animate-blink" /> mechanical · live</span>
+            <span>tick {String(tick).padStart(4, "0")}</span>
+          </div>
+        </div>
+
+        <div className="relative border border-bone/20 bg-ink p-2 sm:p-3 shadow-[10px_10px_0_0_var(--color-signal)]">
+          <div className="grid grid-cols-[1.5fr_1.4fr_0.7fr_0.8fr_1fr] gap-2 sm:gap-4 px-3 sm:px-5 py-3 border-b border-bone/15 mono text-[9px] sm:text-[10px] tracking-[0.25em] uppercase text-bone/45">
+            <span>Route</span>
+            <span className="hidden sm:block">Vehicle</span>
+            <span>Gate</span>
+            <span>ETA</span>
+            <span className="text-right">Status</span>
+          </div>
+
+          <div className="divide-y divide-bone/10">
+            {rows.map((r, i) => (
+              <div key={i} className="grid grid-cols-[1.5fr_1.4fr_0.7fr_0.8fr_1fr] gap-2 sm:gap-4 px-3 sm:px-5 py-3 sm:py-4 mono text-[12px] sm:text-[15px] items-center">
+                <span className="text-bone font-bold tracking-[0.1em]"><SplitFlap value={r.route} /></span>
+                <span className="hidden sm:block text-bone/70 tracking-[0.15em]"><SplitFlap value={r.vehicle} /></span>
+                <span className="text-bone/80 tracking-[0.1em]"><SplitFlap value={r.gate} /></span>
+                <span className="text-bone tracking-[0.1em] tabular-nums"><SplitFlap value={r.eta} /></span>
+                <span className={`text-right tracking-[0.18em] text-[10px] sm:text-[11px] ${statusTint[r.status]}`}>
+                  ● <SplitFlap value={r.status} />
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-1 flex items-center justify-between px-5 py-2 border-t border-bone/15 mono text-[9px] sm:text-[10px] tracking-[0.25em] uppercase text-bone/45">
+            <span>RYDEX · DEPARTURE TERMINAL</span>
+            <span className="hidden sm:block">↳ refreshing every 2.2s</span>
+            <span>v 04.22</span>
+          </div>
+        </div>
+
+        <div className="mt-6 grid sm:grid-cols-3 gap-4 mono text-[10px] tracking-[0.2em] uppercase text-bone/55">
+          <span>↳ flap letters are real — watch the row redraw</span>
+          <span className="hidden sm:block text-center">★ inspired by Solari di Udine boards</span>
+          <span className="sm:text-right">filed Mumbai · 06:14 IST</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────── PRICING LEDGER (invoice-style) ───────────────────────── */
+const ledger = [
+  { plan: "Rider", sub: "Pay-as-you-roll", price: "₹ 0", suffix: "/ month",
+    note: "you only pay the fare.",
+    rows: ["Unlimited bookings · bike → SUV", "Live trip share + SOS", "Loyalty: 1★ per ₹50 spent", "Splitwise-style fare splits"],
+    cta: "Book a Ride", stamp: null, invert: false },
+  { plan: "Driver", sub: "Partner program", price: "0 %", suffix: "commission · week 1",
+    note: "daily settlements, honest math.",
+    rows: ["Earnings dashboard + tax exports", "Free fuel insurance month 1", "Boost zones · surge transparency", "24×7 partner desk · 6 languages"],
+    cta: "Drive with Rydex", stamp: "MOST DRIVEN", invert: true },
+  { plan: "Enterprise", sub: "Fleet API", price: "₹ talk", suffix: "to ops",
+    note: "your wheels. our terminal.",
+    rows: ["Single invoice across 40 cities", "Webhook + REST fleet API", "SLA-backed dispatch · 99.97 %", "Custom branding · white-label app"],
+    cta: "Book a Demo", stamp: null, invert: false },
+];
+
+function Ledger() {
+  return (
+    <section id="pricing" className="relative">
+      <div className="mx-auto max-w-[1400px] px-5 sm:px-8 py-24">
+        <div className="grid lg:grid-cols-12 gap-6 mb-12 hairline-b pb-6 items-end">
+          <div className="lg:col-span-3 mono text-[11px] tracking-[0.25em] uppercase text-signal">§07 — The Ledger</div>
+          <h2 className="lg:col-span-6 serif font-black leading-[0.9] tracking-tighter text-5xl sm:text-7xl">
+            Pricing, <span className="italic font-bold">itemised</span>.
+          </h2>
+          <div className="lg:col-span-3 mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground">
+            Receipt N° 22 · GST incl. · zero surprises
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {ledger.map((l, i) => (
+            <motion.div
+              key={l.plan}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.2 }}
+              transition={{ duration: 0.55, delay: i * 0.08 }}
+              className={`relative ${l.invert ? "brick text-bone" : "bg-card text-foreground"} border ${l.invert ? "border-bone/20" : "border-border"} shadow-[6px_6px_0_0_var(--color-ink)]`}
+            >
+              {/* perforated top */}
+              <div className="absolute top-0 inset-x-0 h-2 flex">
+                {Array.from({ length: 40 }).map((_, k) => (
+                  <span key={k} className={`flex-1 ${k % 2 === 0 ? (l.invert ? "bg-bone/15" : "bg-ink/15") : ""}`} />
+                ))}
+              </div>
+
+              {l.stamp && (
+                <div className="absolute -top-4 right-6 signal-chip px-3 py-1 mono text-[10px] tracking-[0.25em] uppercase rotate-[-3deg] shadow-[3px_3px_0_0_var(--color-ink)]">
+                  ★ {l.stamp}
+                </div>
+              )}
+
+              <div className="p-7 pt-9">
+                <div className={`flex items-center justify-between mono text-[10px] tracking-[0.25em] uppercase ${l.invert ? "text-bone/55" : "text-muted-foreground"}`}>
+                  <span>Plan · 0{i + 1}</span>
+                  <span>{l.sub}</span>
+                </div>
+
+                <div className="mt-5 serif text-5xl font-black tracking-tighter">{l.plan}</div>
+
+                <div className="mt-6 flex items-baseline gap-2">
+                  <span className="serif text-6xl font-black leading-none">{l.price}</span>
+                  <span className={`mono text-[11px] tracking-[0.18em] uppercase ${l.invert ? "text-bone/60" : "text-muted-foreground"}`}>{l.suffix}</span>
+                </div>
+                <div className={`mt-2 serif italic text-base ${l.invert ? "text-bone/70" : "text-foreground/70"}`}>{l.note}</div>
+
+                <div className="my-6 h-px w-full" style={{
+                  backgroundImage: `repeating-linear-gradient(90deg, ${l.invert ? "rgba(245,240,232,0.35)" : "rgba(20,18,15,0.35)"} 0 6px, transparent 6px 12px)`
+                }} />
+
+                <ul className="space-y-3">
+                  {l.rows.map((r) => (
+                    <li key={r} className="flex items-start gap-3 mono text-[12px] tracking-[0.05em]">
+                      <Check className="h-4 w-4 mt-0.5 shrink-0 text-signal" />
+                      <span className={l.invert ? "text-bone/85" : "text-foreground/85"}>{r}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="my-6 h-px w-full" style={{
+                  backgroundImage: `repeating-linear-gradient(90deg, ${l.invert ? "rgba(245,240,232,0.35)" : "rgba(20,18,15,0.35)"} 0 6px, transparent 6px 12px)`
+                }} />
+
+                <a href="#" className={`group flex items-center justify-between mt-2 px-4 py-3 border ${l.invert ? "border-bone bg-bone text-ink hover:bg-signal hover:text-bone hover:border-signal" : "border-ink bg-ink text-bone hover:bg-signal hover:border-signal"} transition-colors`}>
+                  <span className="mono text-[11px] tracking-[0.2em] uppercase">{l.cta}</span>
+                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </a>
+
+                <div className={`mt-6 flex items-center justify-between mono text-[9px] tracking-[0.25em] uppercase ${l.invert ? "text-bone/40" : "text-muted-foreground"}`}>
+                  <span>line · 00{i + 1}</span>
+                  <span className="flex items-center gap-1"><Stamp className="h-3 w-3" /> approved</span>
+                </div>
+              </div>
+
+              {/* perforated bottom */}
+              <div className="absolute bottom-0 inset-x-0 h-2 flex">
+                {Array.from({ length: 40 }).map((_, k) => (
+                  <span key={k} className={`flex-1 ${k % 2 === 0 ? (l.invert ? "bg-bone/15" : "bg-ink/15") : ""}`} />
+                ))}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        <div className="mt-8 flex flex-wrap gap-x-8 gap-y-2 mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground hairline-t pt-5">
+          <span>* fares vary by city · time · vehicle class</span>
+          <span>* no peak-hour gouging — capped at +18 %</span>
+          <span>* cancellations free under 90 sec</span>
+          <span className="ml-auto">↳ full tariff sheet</span>
+        </div>
+      </div>
+    </section>
   );
 }
