@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import KPI from "./KPI";
 import { motion, AnimatePresence } from "motion/react";
+import { TrendingUp } from "lucide-react";
 import Image from "next/image";
 import ContentList from "./ContentList";
 import AdminEarningsChart from "./AdminEarning";
@@ -260,218 +261,70 @@ function AdminDashboardContent() {
   );
 
   return (
-    <div className="min-h-screen bg-[#F5F5F7] flex text-black">
-      {/* Desktop Sidebar */}
-      <aside className={`hidden border-r border-gray-100 bg-white md:block transition-all duration-300 shrink-0 ${
-        sidebarCollapsed ? "w-[78px]" : "w-[260px]"
-      }`}>
-        <SidebarContent />
-      </aside>
+    <div className="min-h-screen flex flex-col bg-background text-foreground">
+      {isImpersonating && (
+        <div className="bg-signal text-bone py-2 px-4 flex justify-between items-center z-50 fixed bottom-0 w-full mono text-[10px] tracking-[0.2em] uppercase">
+          <span>You are impersonating {userData?.name}</span>
+          <button onClick={() => { dispatch(stopImpersonation()); router.push("/admin/dashboard"); }} className="underline font-bold">End Impersonation</button>
+        </div>
+      )}
 
-      {/* Mobile Drawer Sidebar */}
-      <AnimatePresence>
-        {mobileSidebarOpen && (
-          <div className="fixed inset-0 z-50 md:hidden flex">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setMobileSidebarOpen(false)}
-              className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-            />
-            <motion.aside
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 220 }}
-              className="relative w-[260px] bg-white h-full border-r border-gray-100"
-            >
-              <SidebarContent />
-            </motion.aside>
+      {isImpersonating ? (
+        <div className="flex-1 p-8 flex items-center justify-center">
+          <div className="bg-ink p-8 border border-bone/20 max-w-2xl text-center text-bone">
+            <h2 className="text-xl font-bold mb-4 font-serif">Simulation Mode Active</h2>
+            <p className="text-bone/60 mono text-[11px]">You are currently impersonating {userData?.name}. Client-side simulation of the Partner Dashboard has been deprecated following the migration to the new Next.js App Router architecture.</p>
           </div>
-        )}
-      </AnimatePresence>
-
-      {/* Content Area */}
-      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
-        {/* Global Top Header */}
-        <header className="sticky top-0 z-40 border-b border-gray-100 bg-white/90 backdrop-blur-xl shrink-0">
-          <div className="flex h-16 items-center justify-between px-4 sm:px-6">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setMobileSidebarOpen(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:bg-gray-50 active:scale-95 md:hidden"
-              >
-                <Menu size={18} />
-              </button>
-              <h1 className="text-base sm:text-lg font-black uppercase tracking-tight text-gray-900 hidden sm:block">
-                {activeTab === "overview" && "Dispatch Command Center"}
-                {activeTab === "map" && "Control Tower Map"}
-                {activeTab === "queues" && "Operations Queue"}
-                {activeTab === "users" && "User Directory"}
-                {activeTab === "vehicles" && "Vehicle Directory"}
-                {activeTab === "coupons" && "Promo Coupons Manager"}
-                {activeTab === "notifications" && "Broadcast Notifications"}
-                {activeTab === "security" && "Security Logs"}
-                {activeTab === "health" && "System Telemetry"}
-                {activeTab === "observability" && "System Observability"}
-              </h1>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Netlify Deploy Status Badge */}
-              <a 
-                href="https://app.netlify.com/projects/rydexx/deploys" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hidden sm:inline-block hover:opacity-85 transition-opacity shrink-0"
-              >
-                <img 
-                  src="https://api.netlify.com/api/v1/badges/a5ed84fe-b787-4f6c-8e53-c55f72061d3c/deploy-status" 
-                  alt="Netlify Status" 
-                  className="h-5"
-                />
-              </a>
-
-              <AdminLiveIndicator />
-              <button
-                type="button"
-                onClick={() => void refetch()}
-                disabled={refreshing}
-                className="hidden h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-gray-300 hover:text-gray-900 disabled:opacity-50 sm:flex"
-                aria-label="Refresh dashboard"
-              >
-                <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
-              </button>
-              <div className="hidden items-center gap-2 rounded-full bg-black px-4 py-2 text-xs font-bold uppercase tracking-widest text-white shadow-lg sm:flex">
-                <ShieldCheck size={14} />
-                Admin
+        </div>
+      ) : (
+        <>
+          <Ticker />
+          <Nav onAuthRequired={() => {}} />
+          <div className="mx-auto w-full max-w-[1480px] px-5 sm:px-8 py-6 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 flex-1">
+            <aside className="hairline bg-card h-fit lg:sticky lg:top-[88px] z-10">
+              <div className="brick mono text-[10px] tracking-[0.22em] uppercase px-4 py-2 flex items-center justify-between">
+                <span>Admin Control Tower</span>
+                <span className="text-signal animate-blink">●</span>
               </div>
-
-              {/* Profile Menu */}
-              <div className="relative" ref={profileRef}>
-                <button
-                  type="button"
-                  onClick={() => setProfileOpen((open) => !open)}
-                  className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-gray-200 bg-black text-sm font-black text-white shadow-sm transition hover:scale-[1.03]"
-                  aria-label="Open admin profile menu"
-                >
-                  {profileImage ? (
-                    <Image
-                      src={profileImage}
-                      alt={profileName}
-                      width={44}
-                      height={44}
-                      className="h-full w-full object-cover"
-                      referrerPolicy="no-referrer"
-                      unoptimized
-                    />
-                  ) : (
-                    profileName.charAt(0).toUpperCase()
-                  )}
-                </button>
-
-                <AnimatePresence>
-                  {profileOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -8, scale: 0.98 }}
-                      transition={{ duration: 0.16 }}
-                      className="absolute right-0 top-14 w-[330px] overflow-hidden rounded-2xl border border-black/10 bg-white text-black shadow-[0_24px_80px_rgba(0,0,0,0.18)] z-50"
+              <nav className="p-2 flex lg:flex-col gap-1 overflow-x-auto">
+                {LINKS.map((l) => {
+                  const Icon = l.icon;
+                  const isActive = activeTab === l.id;
+                  return (
+                    <button
+                      key={l.id}
+                      onClick={() => setActiveTab(l.id as any)}
+                      className={`group relative flex items-center gap-3 px-3 py-2.5 mono text-[11px] tracking-[0.18em] uppercase transition-colors shrink-0 ${isActive ? 'bg-ink text-bone' : 'hover:bg-ink/5'}`}
                     >
-                      <div className="bg-black px-5 py-5 text-white">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-white/20 bg-white text-xl font-black text-black">
-                            {profileImage ? (
-                              <Image
-                                src={profileImage}
-                                alt={profileName}
-                                width={56}
-                                height={56}
-                                className="h-full w-full object-cover"
-                                referrerPolicy="no-referrer"
-                                unoptimized
-                              />
-                            ) : (
-                              profileName.charAt(0).toUpperCase()
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-base font-bold">{profileName}</p>
-                            <p className="mt-1 truncate text-sm text-white/60">
-                              {profileEmail}
-                            </p>
-                            <span className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[11px] font-black uppercase tracking-wider text-black">
-                              <ShieldCheck size={12} />
-                              {profileRole}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2 px-5 py-4">
-                        <AdminProfileDetail
-                          icon={<Mail size={16} />}
-                          label="Email"
-                          value={profileEmail}
-                        />
-                        <AdminProfileDetail
-                          icon={<ShieldCheck size={16} />}
-                          label="Access level"
-                          value={profileRole}
-                        />
-                      </div>
-
-                      <div className="border-t border-gray-100 px-3 py-3">
-                        <button
-                          type="button"
-                          onClick={handleLogout}
-                          className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                        >
-                          <LogOut size={16} />
-                          Logout
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                      <span className={`${isActive ? 'text-bone/60' : 'text-muted-foreground group-hover:text-foreground'}`}>{l.code}</span>
+                      <Icon className="h-3.5 w-3.5" />
+                      <span className="truncate">{l.label}</span>
+                      {l.live && (
+                        <span className="ml-auto flex items-center gap-1">
+                          <span className="h-1.5 w-1.5 rounded-full bg-signal animate-blink" />
+                          <span className="text-[9px] tracking-[0.22em] text-signal">LIVE</span>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </nav>
+              <div className="hairline-t px-4 py-3 mono text-[9px] tracking-[0.22em] uppercase text-muted-foreground space-y-1">
+                <div className="flex justify-between"><span>Build</span><span>v0.24.06</span></div>
+                <div className="flex justify-between"><span>Cluster</span><span>SXR-PRD-01</span></div>
+                <div className="flex justify-between"><span>Uptime</span><span className="text-signal">99.998%</span></div>
               </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Workspace Viewport */}
-        <main className="flex-1 overflow-y-auto px-4 py-8 sm:px-6 space-y-8 max-w-7xl w-full mx-auto">
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-between gap-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
-            >
-              <div className="flex items-center gap-2">
-                <AlertCircle size={16} />
-                {error}
-              </div>
-              <button
-                type="button"
-                onClick={() => void refetch()}
-                className="font-semibold underline-offset-2 hover:underline"
-              >
-                Retry
-              </button>
-            </motion.div>
-          )}
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
-            >
-              {/* --- VIEW: OVERVIEW --- */}
+            </aside>
+            <main className="min-w-0">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  {/* --- VIEW: OVERVIEW --- */}
               {activeTab === "overview" && (
                 <div className="space-y-8">
                   {/* KPI Cards */}
@@ -764,12 +617,15 @@ function AdminDashboardContent() {
 
               {/* --- VIEW: OBSERVABILITY HUB --- */}
               {activeTab === "observability" && <ObservabilityDashboard />}
-            </motion.div>
-          </AnimatePresence>
-        </main>
-      </div>
-    </div>
-  );
+            
+                </motion.div>
+              </AnimatePresence>
+            </main>
+          </div>
+          <Foot />
+        </>
+      )}
+    </div>  );
 }
 
 function AdminProfileDetail({
@@ -795,6 +651,66 @@ function AdminProfileDetail({
     </div>
   );
 }
+
+
+import {
+  LayoutGrid,
+  LineChart,
+  Map as MapIcon,
+  Inbox,
+  Users as UsersIcon,
+  Truck as TruckIcon,
+  Ticket as TicketIcon,
+  Radio,
+  ShieldAlert as ShieldAlertIcon,
+  Activity as ActivityIcon,
+  Eye,
+  Wallet,
+  Zap,
+  AlertTriangle,
+  CircleDot,
+  Car
+} from "lucide-react";
+import Nav from "@/components/landing/sections/Nav";
+import Ticker from "@/components/landing/sections/Ticker";
+import Foot from "@/components/landing/sections/Foot";
+import { PageHead, Panel, Crosshairs } from "@/components/partner/shared";
+
+function ShieldHalt(props: { className?: string }) {
+  return <AlertTriangle {...props} />;
+}
+
+const KPIS = [
+  { code: "K-01", label: "Gross Revenue · 24H", value: "₹1,24,500", delta: "+12.4%", icon: Wallet },
+  { code: "K-02", label: "Active Riders", value: "1,204", delta: "+318", icon: UsersIcon },
+  { code: "K-03", label: "Live Drivers", value: "412", delta: "92%", icon: Car },
+  { code: "K-04", label: "Conversion", value: "68.9%", delta: "+2.1%", icon: TrendingUp },
+];
+
+const EVENTS = [
+  { time: "02:14", code: "EV-9981", type: "Vehicle Breakdown", region: "Lal Chowk", sev: "high" },
+  { time: "02:09", code: "EV-9980", type: "Surge Pricing Activated", region: "SXR Airport", sev: "med" },
+  { time: "01:58", code: "EV-9979", type: "Driver KYC Approved", region: "Rajbagh", sev: "low" },
+  { time: "01:42", code: "EV-9978", type: "Refund Issued ₹420", region: "Dal Gate", sev: "med" },
+  { time: "01:31", code: "EV-9977", type: "Promo Code BURST24 Created", region: "—", sev: "low" },
+  { time: "01:12", code: "EV-9976", type: "Failed Payment ×3", region: "Hazratbal", sev: "high" },
+];
+
+const LINKS = [
+  { id: "overview", label: "Overview", code: "00", icon: LayoutGrid },
+  { id: "analytics", label: "Advanced Analytics", code: "01", icon: LineChart },
+  { id: "map", label: "Control Tower Map", code: "02", icon: MapIcon },
+  { id: "queues", label: "Operations Queue", code: "03", icon: Inbox, live: true },
+  { id: "users", label: "User Directory", code: "04", icon: UsersIcon },
+  { id: "vehicles", label: "Vehicle Directory", code: "05", icon: TruckIcon },
+  { id: "coupons", label: "Promo Codes", code: "06", icon: TicketIcon },
+  { id: "notifications", label: "Broadcast", code: "07", icon: Radio },
+  { id: "security", label: "Security Logs", code: "08", icon: ShieldAlertIcon },
+  { id: "health", label: "System Health", code: "09", icon: ActivityIcon },
+  { id: "observability", label: "Observability Hub", code: "10", icon: Eye },
+];
+
+
 
 export default function AdminDashboard() {
   return (

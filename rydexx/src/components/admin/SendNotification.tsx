@@ -1,159 +1,73 @@
+"use client";
+
 import { useState } from "react";
-import { Send, Users, User, Bell } from "lucide-react";
-import toast from "react-hot-toast";
+import { Radio, Send } from "lucide-react";
+import { PageHead, Panel } from "@/components/partner/shared";
 
-export default function SendNotification() {
-  const [target, setTarget] = useState<"all" | "users" | "partners" | "specific">("all");
-  const [email, setEmail] = useState("");
-  const [title, setTitle] = useState("");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+const HISTORY = [
+  { id: "BC-0091", ts: "02:11", channel: "All Drivers", msg: "Surge active across SXR sector. Move to Lal Chowk.", reach: 412 },
+  { id: "BC-0090", ts: "01:42", channel: "Riders · SXR", msg: "Heavy rain expected. ETAs may extend.", reach: 1204 },
+  { id: "BC-0089", ts: "00:58", channel: "All Partners", msg: "Payout cycle complete. Check settlements.", reach: 412 },
+];
 
-  const handleSend = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!title.trim() || !message.trim()) {
-      toast.error("Title and message are required");
-      return;
-    }
-    
-    if (target === "specific" && !email.trim()) {
-      toast.error("Email is required for specific target");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/notifications/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ target, email, title, message }),
-      });
-      
-      const data = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to send notification");
-      }
-      
-      toast.success(data.message || "Notification sent successfully");
-      setTitle("");
-      setMessage("");
-      if (target === "specific") setEmail("");
-    } catch (error: any) {
-      toast.error(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+export default function Broadcast() {
+  const [audience, setAudience] = useState("all");
+  const [msg, setMsg] = useState("");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div className="rounded-[24px] border border-gray-100 bg-white p-6 shadow-sm sm:p-8">
-        <div>
-          <h2 className="flex items-center gap-2 text-xl font-black uppercase tracking-tight text-gray-900">
-            <Bell className="text-black" size={24} />
-            Send Broadcast Notification
-          </h2>
-          <p className="mt-2 text-sm text-gray-500">
-            Push real-time notifications to users and partners. They will see a toast alert immediately if online, and can view it in their notification bell later.
-          </p>
-        </div>
+    <div className="space-y-6">
+      <PageHead code="ADM / 07" title="Broadcast" subtitle="Push directives across the fleet · throttled 1 msg / 30s" />
 
-        <form onSubmit={handleSend} className="mt-8 space-y-6">
-          <div className="space-y-4">
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Recipient Target
-            </label>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <Panel code="TX / 07" title="Compose Transmission" accent="text-signal">
+        <div className="space-y-4">
+          <div>
+            <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-2">Audience</div>
+            <div className="hairline grid grid-cols-2 sm:grid-cols-4 bg-background">
               {[
-                { id: "all", label: "Everyone", icon: Users },
-                { id: "users", label: "All Users", icon: User },
-                { id: "partners", label: "All Partners", icon: User },
-                { id: "specific", label: "Specific User", icon: Send },
-              ].map((opt) => (
+                { v: "all", l: "All Users" },
+                { v: "drivers", l: "Drivers" },
+                { v: "riders", l: "Riders" },
+                { v: "region", l: "By Region" },
+              ].map((a) => (
                 <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setTarget(opt.id as any)}
-                  className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-all ${
-                    target === opt.id
-                      ? "border-black bg-black text-white shadow-md"
-                      : "border-gray-200 bg-gray-50 text-gray-500 hover:border-gray-300 hover:bg-white"
+                  key={a.v}
+                  onClick={() => setAudience(a.v)}
+                  className={`px-3 py-2.5 mono text-[10px] tracking-[0.22em] uppercase transition-colors cursor-pointer ${
+                    audience === a.v ? "brick" : "hover:bg-secondary"
                   }`}
-                >
-                  <opt.icon size={20} />
-                  <span className="text-[11px] font-bold uppercase tracking-wide">
-                    {opt.label}
-                  </span>
-                </button>
+                >{a.l}</button>
               ))}
             </div>
           </div>
-
-          {target === "specific" && (
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
-                User Email
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@example.com"
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium transition focus:border-black focus:bg-white focus:outline-none focus:ring-1 focus:ring-black"
-                required
-              />
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Notification Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. System Update or Promo Offer"
-              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium transition focus:border-black focus:bg-white focus:outline-none focus:ring-1 focus:ring-black"
-              required
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold uppercase tracking-wider text-gray-400">
-              Message Body
-            </label>
+          <div>
+            <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-2">Payload · max 240 chars</div>
             <textarea
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Enter the notification details here..."
+              value={msg}
+              onChange={(e) => setMsg(e.target.value.slice(0, 240))}
               rows={4}
-              className="w-full resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium transition focus:border-black focus:bg-white focus:outline-none focus:ring-1 focus:ring-black"
-              required
+              className="w-full hairline bg-background p-3 font-mono text-[12px] focus:outline-none focus:ring-1 focus:ring-signal resize-none"
+              placeholder="> type_transmission_..."
             />
+            <div className="mono text-[9px] tracking-[0.22em] text-muted-foreground mt-1 text-right">{msg.length} / 240</div>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-black px-6 py-4 text-sm font-bold uppercase tracking-widest text-white shadow-lg shadow-black/20 transition hover:scale-[1.01] hover:bg-gray-900 disabled:opacity-50"
-          >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-                Sending...
-              </span>
-            ) : (
-              <>
-                <Send size={18} />
-                Send Notification
-              </>
-            )}
+          <button className="brick mono text-[11px] tracking-[0.22em] uppercase px-5 py-3 hover:bg-signal transition-colors cursor-pointer inline-flex items-center gap-2">
+            <Send className="h-3.5 w-3.5" /> Transmit
           </button>
-        </form>
-      </div>
+        </div>
+      </Panel>
+
+      <Panel code="LOG / 07" title="Transmission History">
+        <div className="divide-y divide-border">
+          {HISTORY.map((h) => (
+            <div key={h.id} className="py-3 grid grid-cols-1 md:grid-cols-[80px_120px_1fr_80px] gap-3 items-start hover:bg-secondary/40 transition-colors px-2">
+              <span className="mono text-[10px] text-signal">{h.id}</span>
+              <span className="mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground">{h.ts} · {h.channel}</span>
+              <span className="serif text-[15px] flex items-center gap-2"><Radio className="h-3 w-3 text-signal shrink-0" />{h.msg}</span>
+              <span className="mono text-[10px] tracking-[0.22em] text-right">{h.reach} rx</span>
+            </div>
+          ))}
+        </div>
+      </Panel>
     </div>
   );
 }
