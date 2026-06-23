@@ -150,17 +150,31 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
                       </div>
                     </div>
 
-                    {/* Menu Items */}
+                                        {/* Menu Items */}
                     <div className="p-2 flex flex-col gap-0.5 font-mono text-[11px] tracking-[0.15em] uppercase">
-                      <MenuItem icon={User} label="Profile" href="/profile" />
-                      <MenuItem icon={Bell} label="Notifications" href="/notifications" />
-                      <MenuItem icon={Clock} label="My Bookings" href="/bookings" />
-                      <MenuItem icon={Wallet} label="My Wallet" href="/wallet" />
-                      <MenuItem icon={Ticket} label="My Passes" href="/pass" />
+                      {user.role === "partner" ? (
+                        <>
+                          <MenuItem icon={User} label="Partner Profile" href="/partner/profile" />
+                          <MenuItem icon={Briefcase} label="Operator Console" href="/partner" />
+                          <MenuItem icon={Truck} label="My Vehicle" href="/partner/vehicle" />
+                          <MenuItem icon={Clock} label="My Bookings" href="/partner/bookings" />
+                          <MenuItem icon={Wallet} label="Settlements" href="/partner/settlements" />
+                        </>
+                      ) : (
+                        <>
+                          <MenuItem icon={User} label="Profile" href="/profile" />
+                          <MenuItem icon={Bell} label="Notifications" href="/notifications" />
+                          <MenuItem icon={Clock} label="My Bookings" href="/bookings" />
+                          <MenuItem icon={Wallet} label="My Wallet" href="/wallet" />
+                          <MenuItem icon={Ticket} label="My Passes" href="/pass" />
+                          
+                          <div className="my-2 h-px bg-border w-full" />
+                          <MenuItem icon={Briefcase} label="Become a Partner" href="/partner/onboarding/vehicle" />
+                        </>
+                      )}
                       
                       <div className="my-2 h-px bg-border w-full" />
                       
-                      <MenuItem icon={Briefcase} label="Become a Partner" href="/partner/onboarding/vehicle" />
                       <MenuItem icon={ShieldCheck} label="Security Settings" href="/settings/security" />
                       <MenuItem icon={Fingerprint} label="Register Passkey" href="/settings/security?passkey=new" />
                       
