@@ -3,8 +3,8 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { ShieldAlert, Fingerprint, Eye, Database } from "lucide-react";
-import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
+import Nav from "@/components/landing/sections/Nav";
+import Foot from "@/components/landing/sections/Foot";
 
 export default function PrivacyPage() {
   const sections = [
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
 
   return (
     <div className="w-full min-h-screen bg-[#060606] text-white">
-      <Nav />
+      <Nav onAuthRequired={() => {}} />
 
       {/* Header */}
       <section className="relative pt-36 pb-12 px-4 md:px-8 text-center overflow-hidden">
@@ -83,7 +83,7 @@ export default function PrivacyPage() {
         </motion.div>
       </section>
 
-      <Footer />
+      <Foot />
     </div>
   );
 }

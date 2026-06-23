@@ -2,26 +2,49 @@
 
 import { motion } from "framer-motion";
 import { PageHead, Panel } from "@/components/partner/shared";
+import useSWR from "swr";
 
-const BARS_REV = [42, 58, 36, 71, 64, 88, 95, 73, 81, 62, 54, 90, 76, 84];
-const BARS_DRV = [60, 64, 70, 68, 75, 80, 78, 84, 90, 88, 82, 86, 92, 95];
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-const METRICS = [
-  { code: "M-01", label: "Revenue · 30D", value: "₹38,42,109", delta: "+18.2%" },
-  { code: "M-02", label: "Active Drivers", value: "1,884", delta: "+92" },
-  { code: "M-03", label: "Cancellation Rate", value: "4.7%", delta: "-0.8%" },
-  { code: "M-04", label: "Avg Trip Value", value: "₹312", delta: "+₹14" },
-  { code: "M-05", label: "Repeat Riders", value: "62.4%", delta: "+3.1%" },
-  { code: "M-06", label: "Surge Hours", value: "142h", delta: "+12h" },
-];
+
+
+
+
 
 export default function Analytics() {
+  const { data, isLoading } = useSWR("/api/admin/analytics", fetcher, { refreshInterval: 60000 });
+
+  const dailyStats = data?.dailyStats || [];
+  const driverStats = data?.driverStats || [];
+
+  const totalRev = dailyStats.reduce((sum: number, day: any) => sum + day.revenue, 0);
+  const totalRides = dailyStats.reduce((sum: number, day: any) => sum + day.rideVolume, 0);
+  const avgDuration = dailyStats.length > 0 ? Math.round(dailyStats.reduce((sum: number, day: any) => sum + day.avgDuration, 0) / dailyStats.length) : 0;
+  
+  const onlineDrivers = driverStats.find((d: any) => d.name === "Online")?.value || 0;
+  const busyDrivers = driverStats.find((d: any) => d.name === "On Ride")?.value || 0;
+  const activeDrivers = onlineDrivers + busyDrivers;
+
+  const METRICS = [
+    { code: "M-01", label: "Revenue · 30D", value: `₹${totalRev.toLocaleString('en-IN')}`, delta: "—" },
+    { code: "M-02", label: "Active Drivers", value: activeDrivers.toString(), delta: "LIVE" },
+    { code: "M-03", label: "Total Rides · 30D", value: totalRides.toString(), delta: "—" },
+    { code: "M-04", label: "Avg Duration", value: `${avgDuration}m`, delta: "—" },
+  ];
+
+  // Last 14 days for the charts
+  const recentDays = dailyStats.slice(-14);
+  const barsRev = recentDays.map((d: any) => d.revenue);
+  const barsDrv = recentDays.map((d: any) => d.rideVolume); // mapping ride volume here since we don't track historical drivers
+
   return (
     <div className="space-y-6">
       <PageHead code="ADM / 01" title="Advanced Analytics" subtitle="Structural readouts · model R-04 · refreshed every 60s" />
 
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {METRICS.map((m, i) => (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {isLoading ? (
+           <div className="col-span-4 py-8 text-center text-muted-foreground">Loading Analytics Engine...</div>
+        ) : METRICS.map((m, i) => (
           <motion.div
             key={m.code}
             initial={{ opacity: 0, y: 8 }}
@@ -30,15 +53,15 @@ export default function Analytics() {
             className="hairline bg-card p-4"
           >
             <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">{m.code} · {m.label}</div>
-            <div className="serif italic text-[34px] font-black leading-none tracking-tighter mt-3">{m.value}</div>
-            <div className="mono text-[10px] tracking-[0.22em] uppercase text-signal mt-2">▲ {m.delta}</div>
+            <div className="serif italic text-[34px] font-black leading-none tracking-tighter mt-3 truncate">{m.value}</div>
+            <div className="mono text-[10px] tracking-[0.22em] uppercase text-signal mt-2">{m.delta}</div>
           </motion.div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <BarPanel code="CHT / 02" title="Revenue · 14 day blocks" data={BARS_REV} unit="₹k" />
-        <BarPanel code="CHT / 03" title="Active Drivers · 14 day blocks" data={BARS_DRV} unit="drv" />
+        <BarPanel code="CHT / 02" title="Revenue · 14 day blocks" data={barsRev.length ? barsRev : [0]} unit="₹" />
+        <BarPanel code="CHT / 03" title="Ride Volume · 14 day blocks" data={barsDrv.length ? barsDrv : [0]} unit="rides" />
       </div>
 
       <Panel code="GRD / 04" title="Region Performance Matrix">

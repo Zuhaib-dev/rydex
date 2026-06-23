@@ -3,18 +3,20 @@
 import { PageHead, Panel } from "@/components/partner/shared";
 import { CommandSearch } from "@/components/admin/CommandSearch";
 import { Plus } from "lucide-react";
+import useSWR from "swr";
 
-const PROMOS = [
-  { code: "BURST24", off: "25%", cap: "₹120", uses: 421, expiry: "30 Jun", status: "active" },
-  { code: "NEWRIDE", off: "₹50", cap: "₹50", uses: 1882, expiry: "01 Aug", status: "active" },
-  { code: "AIRPORT9", off: "15%", cap: "₹200", uses: 92, expiry: "12 Jul", status: "active" },
-  { code: "WINTER20", off: "20%", cap: "₹150", uses: 4421, expiry: "—", status: "expired" },
-];
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+
 
 export default function AdminCoupons() {
+  const { data, isLoading } = useSWR("/api/admin/coupons?limit=50", fetcher);
+  const promos = data?.coupons || [];
+  const total = data?.pagination?.total || 0;
+
   return (
     <div className="space-y-6">
-      <PageHead code="ADM / 06" title="Promo Codes" subtitle="3 active · 1 expired · ₹2,18,400 redeemed 30D" />
+      <PageHead code="ADM / 06" title="Promo Codes" subtitle={`${isLoading ? "..." : total} active codes`} />
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1"><CommandSearch placeholder="search_promo_code" /></div>
         <button className="brick mono text-[10px] tracking-[0.22em] uppercase px-4 py-3 hover:bg-signal transition-colors cursor-pointer flex items-center gap-2 justify-center">
@@ -30,20 +32,29 @@ export default function AdminCoupons() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {PROMOS.map((p) => (
-                <tr key={p.code} className="hover:bg-ink hover:text-bone transition-colors group">
-                  <td className="py-2.5 px-2 serif text-[16px] font-black">{p.code}</td>
-                  <td className="py-2.5 px-2 text-signal">{p.off}</td>
-                  <td className="py-2.5 px-2">{p.cap}</td>
-                  <td className="py-2.5 px-2">{p.uses}</td>
-                  <td className="py-2.5 px-2">{p.expiry}</td>
+              {isLoading ? (
+                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Loading codes...</td></tr>
+              ) : promos.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No promo codes found.</td></tr>
+              ) : promos.map((p: any) => {
+                const offStr = p.discountType === "percentage" ? p.discountValue + "%" : "₹" + p.discountValue;
+                const expiryStr = new Date(p.expiryDate).toLocaleDateString([], { day: '2-digit', month: 'short' });
+                const isExpired = new Date(p.expiryDate) < new Date();
+                const statusStr = !p.isActive ? "disabled" : isExpired ? "expired" : "active";
+                return (
+                <tr key={p._id} className="hover:bg-ink hover:text-bone transition-colors group">
+                  <td className="py-2.5 px-2 serif text-[16px] font-black uppercase">{p.code}</td>
+                  <td className="py-2.5 px-2 text-signal">{offStr}</td>
+                  <td className="py-2.5 px-2">{p.maxDiscount ? "₹" + p.maxDiscount : "—"}</td>
+                  <td className="py-2.5 px-2">{p.usedCount}</td>
+                  <td className="py-2.5 px-2">{expiryStr}</td>
                   <td className="py-2.5 px-2 text-right">
                     <span className={`mono text-[9px] tracking-[0.22em] px-1.5 py-0.5 ${
-                      p.status === "expired" ? "hairline group-hover:border-bone text-muted-foreground group-hover:text-bone/60" : "bg-signal text-bone"
-                    }`}>{p.status.toUpperCase()}</span>
+                      statusStr !== "active" ? "hairline group-hover:border-bone text-muted-foreground group-hover:text-bone/60" : "bg-signal text-bone"
+                    }`}>{statusStr.toUpperCase()}</span>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

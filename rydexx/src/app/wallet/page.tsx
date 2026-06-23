@@ -14,8 +14,8 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
+import Nav from "@/components/landing/sections/Nav";
+import Foot from "@/components/landing/sections/Foot";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -141,7 +141,7 @@ export default function WalletPage() {
 
   return (
     <>
-      <Nav />
+      <Nav onAuthRequired={() => {}} />
       <div className="min-h-screen bg-[#fafafa] pt-28 pb-20 px-4 sm:px-6 relative">
         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #d4d4d8 1px, transparent 1px)", backgroundSize: "28px 28px", opacity: 0.45 }} />
 
@@ -277,7 +277,7 @@ export default function WalletPage() {
 
         </div>
       </div>
-      <Footer />
+      <Foot />
     </>
   );
 }

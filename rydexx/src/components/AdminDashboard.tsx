@@ -25,7 +25,6 @@ import {
   BarChart2,
   Ticket,
 } from "lucide-react";
-import KPI from "./KPI";
 import { motion, AnimatePresence } from "motion/react";
 import { TrendingUp } from "lucide-react";
 import Image from "next/image";
@@ -83,6 +82,12 @@ function AdminDashboardContent() {
     fetcher,
     { refreshInterval: 10000 }
   );
+  const { data: eventsData } = useSWR(
+    activeTab === "overview" ? "/api/admin/audit-logs?limit=6" : null,
+    fetcher,
+    { refreshInterval: 5000 }
+  );
+
   const profileRef = useRef<HTMLDivElement>(null);
   
   const { data: session } = useSession();
@@ -378,27 +383,38 @@ function AdminDashboardContent() {
                       <div className="hidden md:grid hairline-b grid-cols-[60px_90px_1fr_140px_70px] gap-3 px-2 py-2 mono text-[9px] tracking-[0.22em] uppercase text-muted-foreground">
                         <span>Time</span><span>Code</span><span>Type</span><span>Region</span><span className="text-right">Sev</span>
                       </div>
-                      {EVENTS.map((e, i) => (
+                      {(eventsData?.logs || []).slice(0, 6).map((log: any, i: number) => {
+                        const date = new Date(log.createdAt);
+                        const time = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                        let code = "EV-" + log._id.toString().substring(log._id.toString().length - 4).toUpperCase();
+                        let sev = "low";
+                        if (log.severity === "critical" || log.severity === "error") sev = "high";
+                        else if (log.severity === "warning") sev = "med";
+                        let region = log.category.toUpperCase();
+                        let type = log.action;
+                        if (type.length > 20) type = type.substring(0, 20) + "...";
+                        
+                        return (
                         <motion.div
-                          key={e.code}
+                          key={log._id}
                           initial={{ opacity: 0, x: -6 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: i * 0.04 }}
                           className="hairline-b grid grid-cols-[60px_90px_1fr_140px_70px] gap-3 px-2 py-3 items-center hover:bg-ink hover:text-bone transition-colors group"
                         >
-                          <span className="mono text-[10px] text-muted-foreground group-hover:text-bone/60">{e.time}</span>
-                          <span className="mono text-[10px] text-signal">{e.code}</span>
-                          <span className="serif text-[15px]">{e.type}</span>
-                          <span className="mono text-[10px] tracking-[0.18em] uppercase">{e.region}</span>
+                          <span className="mono text-[10px] text-muted-foreground group-hover:text-bone/60">{time}</span>
+                          <span className="mono text-[10px] text-signal">{code}</span>
+                          <span className="serif text-[15px] truncate">{type}</span>
+                          <span className="mono text-[10px] tracking-[0.18em] uppercase truncate">{region}</span>
                           <span className="text-right">
                             <span className={`mono text-[9px] tracking-[0.22em] px-1.5 py-0.5 ${
-                              e.sev === "high" ? "bg-signal text-bone" : e.sev === "med" ? "bg-ink text-bone group-hover:bg-bone group-hover:text-ink" : "hairline"
+                              sev === "high" ? "bg-signal text-bone" : sev === "med" ? "bg-ink text-bone group-hover:bg-bone group-hover:text-ink" : "hairline"
                             }`}>
-                              {e.sev.toUpperCase()}
+                              {sev.toUpperCase()}
                             </span>
                           </span>
                         </motion.div>
-                      ))}
+                      )})}
                     </Panel>
 
                     <div className="space-y-5">
@@ -608,14 +624,7 @@ const KPIS = [
   { code: "K-04", label: "Conversion", value: "68.9%", delta: "+2.1%", icon: TrendingUp },
 ];
 
-const EVENTS = [
-  { time: "02:14", code: "EV-9981", type: "Vehicle Breakdown", region: "Lal Chowk", sev: "high" },
-  { time: "02:09", code: "EV-9980", type: "Surge Pricing Activated", region: "SXR Airport", sev: "med" },
-  { time: "01:58", code: "EV-9979", type: "Driver KYC Approved", region: "Rajbagh", sev: "low" },
-  { time: "01:42", code: "EV-9978", type: "Refund Issued ₹420", region: "Dal Gate", sev: "med" },
-  { time: "01:31", code: "EV-9977", type: "Promo Code BURST24 Created", region: "—", sev: "low" },
-  { time: "01:12", code: "EV-9976", type: "Failed Payment ×3", region: "Hazratbal", sev: "high" },
-];
+
 
 const LINKS = [
   { id: "overview", label: "Overview", code: "00", icon: LayoutGrid },

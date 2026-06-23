@@ -3,20 +3,21 @@
 import { PageHead, Panel } from "@/components/partner/shared";
 import { CommandSearch } from "@/components/admin/CommandSearch";
 
-const USERS = [
-  { id: "USR-4421", name: "Zuhaib Rashid", role: "Partner", region: "SXR", rides: 312, rating: 4.92, status: "active" },
-  { id: "USR-4422", name: "Mehraj Bhat", role: "Rider", region: "SXR", rides: 28, rating: 4.74, status: "active" },
-  { id: "USR-4423", name: "Aisha Khan", role: "Rider", region: "JMU", rides: 104, rating: 4.88, status: "active" },
-  { id: "USR-4424", name: "Imran Lone", role: "Partner", region: "SXR", rides: 188, rating: 4.61, status: "frozen" },
-  { id: "USR-4425", name: "Sara Mir", role: "Rider", region: "SXR", rides: 9, rating: 4.20, status: "active" },
-  { id: "USR-4426", name: "Bilal Wani", role: "Partner", region: "SXR", rides: 421, rating: 4.95, status: "active" },
-  { id: "USR-4427", name: "Hina Qureshi", role: "Rider", region: "SXR", rides: 71, rating: 4.80, status: "active" },
-];
+import useSWR from "swr";
+import { useState } from "react";
+
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function UsersDir() {
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useSWR(`/api/admin/users?page=${page}&limit=50`, fetcher);
+  
+  const users = data?.users || [];
+  const total = data?.pagination?.total || 0;
+
   return (
     <div className="space-y-6">
-      <PageHead code="ADM / 04" title="User Directory" subtitle="1,204 active accounts · indexed live" />
+      <PageHead code="ADM / 04" title="User Directory" subtitle={`${isLoading ? "..." : total} accounts · indexed live`} />
       <CommandSearch placeholder="search_user_by_id_or_name" />
       <Panel code="DIR / 04" title="Account Ledger">
         <div className="overflow-x-auto">
@@ -27,21 +28,28 @@ export default function UsersDir() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {USERS.map((u) => (
-                <tr key={u.id} className="hover:bg-ink hover:text-bone transition-colors group">
-                  <td className="py-2.5 px-2 text-signal">{u.id}</td>
+              {isLoading ? (
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Loading directory...</td></tr>
+              ) : users.length === 0 ? (
+                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No users found.</td></tr>
+              ) : users.map((u: any) => {
+                const isFrozen = u.isPartnerBlocked;
+                const statusStr = isFrozen ? "frozen" : "active";
+                return (
+                <tr key={u._id} className="hover:bg-ink hover:text-bone transition-colors group">
+                  <td className="py-2.5 px-2 text-signal">USR-{u._id.substring(u._id.length - 4).toUpperCase()}</td>
                   <td className="py-2.5 px-2 serif text-[14px]">{u.name}</td>
                   <td className="py-2.5 px-2">{u.role}</td>
-                  <td className="py-2.5 px-2">{u.region}</td>
-                  <td className="py-2.5 px-2">{u.rides}</td>
-                  <td className="py-2.5 px-2">{u.rating}</td>
+                  <td className="py-2.5 px-2">SXR</td>
+                  <td className="py-2.5 px-2">{u.totalRides || 0}</td>
+                  <td className="py-2.5 px-2">{u.rating || "5.0"}</td>
                   <td className="py-2.5 px-2 text-right">
                     <span className={`mono text-[9px] tracking-[0.22em] px-1.5 py-0.5 ${
-                      u.status === "frozen" ? "bg-signal text-bone" : "hairline group-hover:border-bone"
-                    }`}>{u.status.toUpperCase()}</span>
+                      isFrozen ? "bg-signal text-bone" : "hairline group-hover:border-bone"
+                    }`}>{statusStr.toUpperCase()}</span>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>

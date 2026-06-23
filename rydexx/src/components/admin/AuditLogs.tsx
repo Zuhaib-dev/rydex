@@ -2,25 +2,26 @@
 
 import { PageHead, Panel } from "@/components/partner/shared";
 import { ShieldAlert } from "lucide-react";
+import useSWR from "swr";
 
-const LOGS = [
-  { ts: "02:14:31", code: "SEC-9981", actor: "USR-4424", event: "Multiple failed logins", ip: "103.21.44.10", sev: "high" },
-  { ts: "02:11:02", code: "SEC-9980", actor: "ADM-0001", event: "Promo BURST24 created", ip: "10.0.0.4", sev: "low" },
-  { ts: "02:08:48", code: "SEC-9979", actor: "USR-4421", event: "Password rotated", ip: "192.168.1.21", sev: "low" },
-  { ts: "01:58:11", code: "SEC-9978", actor: "—", event: "WAF blocked SQLi attempt", ip: "45.83.12.99", sev: "high" },
-  { ts: "01:42:09", code: "SEC-9977", actor: "ADM-0002", event: "Role granted: support", ip: "10.0.0.7", sev: "med" },
-];
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+
 
 export default function AuditLogs() {
+  const { data, isLoading } = useSWR("/api/admin/audit-logs?limit=50", fetcher);
+  const logs = data?.logs || [];
+  const total = data?.pagination?.total || 0;
+
   return (
     <div className="space-y-6">
-      <PageHead code="ADM / 08" title="Security Logs" subtitle="Audit trail · immutable · WORM stored 365d" />
+      <PageHead code="ADM / 08" title="Security Logs" subtitle={`Audit trail · immutable · ${isLoading ? "..." : total} logs stored`} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {[
-          { l: "Events · 24H", v: "1,481" },
-          { l: "Blocked Attacks", v: "38" },
-          { l: "Active Sessions", v: "2,114" },
+          { l: "Events · 24H", v: isLoading ? "..." : logs.length },
+          { l: "Blocked Attacks", v: "0" },
+          { l: "Active Sessions", v: "1" },
         ].map((k) => (
           <div key={k.l} className="hairline bg-card p-4">
             <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">{k.l}</div>
@@ -38,23 +39,33 @@ export default function AuditLogs() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {LOGS.map((l) => (
-                <tr key={l.code} className="hover:bg-ink hover:text-bone transition-colors group">
-                  <td className="py-2.5 px-2 text-muted-foreground group-hover:text-bone/60">{l.ts}</td>
-                  <td className="py-2.5 px-2 text-signal">{l.code}</td>
-                  <td className="py-2.5 px-2">{l.actor}</td>
+              {isLoading ? (
+                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Loading audit trail...</td></tr>
+              ) : logs.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No audit logs found.</td></tr>
+              ) : logs.map((l: any) => {
+                const date = new Date(l.createdAt);
+                const ts = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+                const code = "SEC-" + l._id.substring(l._id.length - 4).toUpperCase();
+                const sev = l.severity === "critical" || l.severity === "error" ? "high" : l.severity === "warning" ? "med" : "low";
+                
+                return (
+                <tr key={l._id} className="hover:bg-ink hover:text-bone transition-colors group">
+                  <td className="py-2.5 px-2 text-muted-foreground group-hover:text-bone/60">{ts}</td>
+                  <td className="py-2.5 px-2 text-signal">{code}</td>
+                  <td className="py-2.5 px-2">{l.actor || "system"}</td>
                   <td className="py-2.5 px-2 serif text-[14px] flex items-center gap-2">
-                    {l.sev === "high" && <ShieldAlert className="h-3 w-3 text-signal" />}
-                    {l.event}
+                    {sev === "high" && <ShieldAlert className="h-3 w-3 text-signal" />}
+                    {l.action}
                   </td>
-                  <td className="py-2.5 px-2">{l.ip}</td>
+                  <td className="py-2.5 px-2">{l.correlationId?.substring(0, 8) || "—"}</td>
                   <td className="py-2.5 px-2 text-right">
                     <span className={`mono text-[9px] tracking-[0.22em] px-1.5 py-0.5 ${
-                      l.sev === "high" ? "bg-signal text-bone" : l.sev === "med" ? "brick" : "hairline group-hover:border-bone"
-                    }`}>{l.sev.toUpperCase()}</span>
+                      sev === "high" ? "bg-signal text-bone" : sev === "med" ? "brick" : "hairline group-hover:border-bone"
+                    }`}>{sev.toUpperCase()}</span>
                   </td>
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
