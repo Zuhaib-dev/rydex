@@ -1,5 +1,5 @@
 import AdminDashboard from "@/components/AdminDashboard";
-import Footer from "@/components/Footer";
+
 import GeoUpdater from "@/components/GeoUpdater";
 import FaceLiftLanding from "@/components/landing/FaceLiftLanding";
 import { auth } from "@/lib/auth";
@@ -30,7 +30,6 @@ export default async function Home() {
       {user?.role === "admin" ? (
         <>
           <AdminDashboard />
-          <Footer />
         </>
       ) : (
         <FaceLiftLanding />

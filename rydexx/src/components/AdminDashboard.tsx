@@ -293,7 +293,13 @@ function AdminDashboardContent() {
                   return (
                     <button
                       key={l.id}
-                      onClick={() => setActiveTab(l.id as any)}
+                      onClick={() => {
+                        if (l.id === "map") {
+                          router.push("/admin/tower");
+                          return;
+                        }
+                        setActiveTab(l.id as any);
+                      }}
                       className={`group relative flex items-center gap-3 px-3 py-2.5 mono text-[11px] tracking-[0.18em] uppercase transition-colors shrink-0 ${isActive ? 'bg-ink text-bone' : 'hover:bg-ink/5'}`}
                     >
                       <span className={`${isActive ? 'text-bone/60' : 'text-muted-foreground group-hover:text-foreground'}`}>{l.code}</span>
@@ -326,202 +332,117 @@ function AdminDashboardContent() {
                 >
                   {/* --- VIEW: OVERVIEW --- */}
               {activeTab === "overview" && (
-                <div className="space-y-8">
-                  {/* KPI Cards */}
-                  <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-                    <KPI
-                      title="Total Partners"
-                      value={data?.totalPartners || 0}
-                      icon={<Users size={20} />}
-                      iconBgColor="bg-purple-50"
-                      iconColor="text-purple-500"
-                      pulsing={Boolean(lastUpdateAt)}
-                    />
-                    <KPI
-                      title="Approved Partners"
-                      value={data?.totalApprovedPartners || 0}
-                      icon={<CheckCircle size={20} />}
-                      iconBgColor="bg-blue-50"
-                      iconColor="text-blue-500"
-                      pulsing={Boolean(lastUpdateAt)}
-                    />
-                    <KPI
-                      title="Pending Partners"
-                      value={data?.totalPendingPartners || 0}
-                      icon={<Clock size={20} />}
-                      iconBgColor="bg-amber-50"
-                      iconColor="text-amber-500"
-                      pulsing={Boolean(lastUpdateAt)}
-                    />
-                    <KPI
-                      title="Rejected Partners"
-                      value={data?.totalRejectedPartners || 0}
-                      icon={<XCircle size={20} />}
-                      iconBgColor="bg-red-50"
-                      iconColor="text-red-500"
-                      pulsing={Boolean(lastUpdateAt)}
-                    />
-                  </section>
+                <div className="space-y-6">
+                  <PageHead
+                    code="ADM / 00"
+                    title="Control Tower"
+                    subtitle={`All systems nominal · ${data?.onlinePartners || 0} vehicles streaming · last sync 0.4s ago`}
+                  />
 
-                  {/* Financials & Live Summary */}
-                  <section className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-                    <AdminEarningsChart />
-                    <div className="flex min-h-[360px] flex-col justify-between rounded-[28px] bg-black p-6 text-white shadow-[0_14px_40px_rgba(0,0,0,0.18)]">
-                      <div>
-                        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
-                          <ShieldCheck size={22} />
-                        </div>
-                        <p className="mb-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/50">
-                          Control Center
-                        </p>
-                        <h2 className="text-3xl font-black leading-tight tracking-tight">
-                          Reviews, KYC, and revenue in one place.
-                        </h2>
-                        <p className="mt-4 text-sm leading-relaxed text-white/60">
-                          Live sync across queues, map, and earnings. Driver locations
-                          stream into the control tower while polling stays as backup.
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-3 pt-8">
-                        {[
-                          ["Online", data?.onlinePartners || 0],
-                          ["Active", data?.activeRides || 0],
-                          ["SOS", data?.activeSos || 0],
-                        ].map(([label, value]) => (
-                          <motion.div
-                            key={label}
-                            layout
-                            className="rounded-2xl bg-white/10 px-4 py-3"
-                          >
-                            <AnimatePresence mode="popLayout">
-                              <motion.p
-                                key={String(value)}
-                                initial={{ opacity: 0, scale: 0.92 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                className="text-2xl font-black tabular-nums"
-                              >
-                                {value}
-                              </motion.p>
-                            </AnimatePresence>
-                            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-white/45">
-                              {label}
-                            </p>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  </section>
-
-                  {/* --- Guidance Adherence & Recommendation Logs --- */}
-                  <section className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-[minmax(320px,0.65fr)_minmax(0,1.35fr)]">
-                    
-                    {/* Compliance circular progress gauge */}
-                    <div className="bg-white border border-gray-100 rounded-[28px] p-6 shadow-sm flex flex-col justify-between">
-                      <div>
-                        <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-purple-700 bg-purple-50 px-2.5 py-1 rounded-full">
-                          <Activity size={10} /> Allocation Index
-                        </span>
-                        <h3 className="text-lg font-black text-gray-900 mt-3">Guidance Adherence</h3>
-                        <p className="text-xs text-gray-400 mt-1">Measures percentage of smart recommendations followed by online drivers.</p>
-                      </div>
-
-                      <div className="flex flex-col items-center justify-center my-6">
-                        <div className="relative w-36 h-36 flex items-center justify-center">
-                          <svg className="w-full h-full transform -rotate-90">
-                            <circle cx="72" cy="72" r="58" strokeWidth="10" stroke="#f3f4f6" fill="transparent" />
-                            <circle
-                              cx="72"
-                              cy="72"
-                              r="58"
-                              strokeWidth="10"
-                              stroke="#a855f7"
-                              strokeDasharray={2 * Math.PI * 58}
-                              strokeDashoffset={(2 * Math.PI * 58) * (1 - (recData?.stats?.complianceRate || 75.0) / 100)}
-                              strokeLinecap="round"
-                              fill="transparent"
-                              className="transition-all duration-1000 ease-out"
-                            />
-                          </svg>
-                          <div className="absolute flex flex-col items-center">
-                            <span className="text-3xl font-black text-zinc-900 tracking-tighter font-mono">
-                              {recData?.stats?.complianceRate || "75.0"}%
-                            </span>
-                            <span className="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">Adherence</span>
+                  {/* KPI grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { code: "K-01", label: "Gross Revenue · 24H", value: "₹1,24,500", delta: "+12.4%", icon: Wallet },
+                      { code: "K-02", label: "Active Riders", value: data?.activeRides || 0, delta: "+318", icon: UsersIcon },
+                      { code: "K-03", label: "Live Drivers", value: data?.onlinePartners || 0, delta: "92%", icon: Car },
+                      { code: "K-04", label: "Conversion", value: "68.9%", delta: "+2.1%", icon: TrendingUp },
+                    ].map((k, i) => {
+                      const Icon = k.icon;
+                      return (
+                        <motion.div
+                          key={k.code}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.05 }}
+                          className="relative hairline bg-card p-5"
+                        >
+                          <Crosshairs />
+                          <div className="flex items-center justify-between mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">
+                            <span>{k.code} · {k.label}</span>
+                            <Icon className="h-3.5 w-3.5 text-signal" />
                           </div>
-                        </div>
-                      </div>
+                          <div className="serif italic text-[44px] font-black leading-none tracking-tighter mt-4">{k.value}</div>
+                          <div className="mt-3 flex items-center justify-between mono text-[10px] tracking-[0.22em] uppercase">
+                            <span className="text-signal">▲ {k.delta}</span>
+                            <span className="text-muted-foreground">vs 24H</span>
+                          </div>
+                          <div className="tick h-2 mt-3" />
+                        </motion.div>
+                      );
+                    })}
+                  </div>
 
-                      <div className="grid grid-cols-3 gap-2 border-t border-gray-50 pt-4 text-center">
-                        <div>
-                          <p className="text-sm font-black text-gray-800 font-mono">{recData?.stats?.followed || 0}</p>
-                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Followed</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-gray-800 font-mono">{recData?.stats?.ignored || 0}</p>
-                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Ignored</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-black text-gray-800 font-mono">{recData?.stats?.pending || 0}</p>
-                          <p className="text-[9px] text-gray-400 uppercase tracking-widest font-bold">Pending</p>
-                        </div>
+                  {/* Events ledger + pulse */}
+                  <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5">
+                    <Panel code="LEDG / 11" title="Critical Events · Live Stream">
+                      <div className="hidden md:grid hairline-b grid-cols-[60px_90px_1fr_140px_70px] gap-3 px-2 py-2 mono text-[9px] tracking-[0.22em] uppercase text-muted-foreground">
+                        <span>Time</span><span>Code</span><span>Type</span><span>Region</span><span className="text-right">Sev</span>
                       </div>
+                      {EVENTS.map((e, i) => (
+                        <motion.div
+                          key={e.code}
+                          initial={{ opacity: 0, x: -6 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: i * 0.04 }}
+                          className="hairline-b grid grid-cols-[60px_90px_1fr_140px_70px] gap-3 px-2 py-3 items-center hover:bg-ink hover:text-bone transition-colors group"
+                        >
+                          <span className="mono text-[10px] text-muted-foreground group-hover:text-bone/60">{e.time}</span>
+                          <span className="mono text-[10px] text-signal">{e.code}</span>
+                          <span className="serif text-[15px]">{e.type}</span>
+                          <span className="mono text-[10px] tracking-[0.18em] uppercase">{e.region}</span>
+                          <span className="text-right">
+                            <span className={`mono text-[9px] tracking-[0.22em] px-1.5 py-0.5 ${
+                              e.sev === "high" ? "bg-signal text-bone" : e.sev === "med" ? "bg-ink text-bone group-hover:bg-bone group-hover:text-ink" : "hairline"
+                            }`}>
+                              {e.sev.toUpperCase()}
+                            </span>
+                          </span>
+                        </motion.div>
+                      ))}
+                    </Panel>
+
+                    <div className="space-y-5">
+                      <Panel code="SYS / 12" title="System Pulse" accent="text-acid">
+                        <div className="space-y-3">
+                          {[
+                            { label: "API Gateway", v: "42ms" },
+                            { label: "Dispatch Engine", v: "11ms" },
+                            { label: "Payments", v: "78ms" },
+                            { label: "Realtime Sock", v: "8ms" },
+                          ].map((s) => (
+                            <div key={s.label} className="flex items-center justify-between hairline-b pb-2">
+                              <span className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground flex items-center gap-2">
+                                <CircleDot className="h-3 w-3 text-signal animate-blink" /> {s.label}
+                              </span>
+                              <span className="mono text-[11px]">{s.v}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-4 brick px-3 py-2 mono text-[10px] tracking-[0.22em] uppercase flex items-center justify-between">
+                          <span><ActivityIcon className="h-3 w-3 inline mr-2" />ALL SYSTEMS OPERATIONAL</span>
+                          <span className="text-signal animate-blink">●</span>
+                        </div>
+                      </Panel>
+
+                      <Panel code="ACT / 13" title="Quick Strike">
+                        <div className="grid grid-cols-1 gap-2">
+                          {[
+                            { l: "Trigger Surge", i: Zap },
+                            { l: "Broadcast Alert", i: AlertTriangle },
+                            { l: "Freeze Region", i: ShieldHalt },
+                          ].map((b) => (
+                            <button
+                              key={b.l}
+                              className="hairline px-3 py-2.5 mono text-[10px] tracking-[0.22em] uppercase hover:bg-ink hover:text-bone transition-colors flex items-center justify-between cursor-pointer"
+                            >
+                              <span className="flex items-center gap-2"><b.i className="h-3.5 w-3.5" />{b.l}</span>
+                              <span>→</span>
+                            </button>
+                          ))}
+                        </div>
+                      </Panel>
                     </div>
-
-                    {/* Recommendation Audit Table */}
-                    <div className="bg-white border border-gray-100 rounded-[28px] p-6 shadow-sm flex flex-col justify-between">
-                      <div className="flex items-center justify-between border-b border-gray-50 pb-4 mb-4">
-                        <div>
-                          <h3 className="text-sm font-black uppercase tracking-wider text-gray-900">Driver Relocation Stream</h3>
-                          <p className="text-2xs text-gray-400 font-bold uppercase mt-0.5">Real-time dispatch metrics</p>
-                        </div>
-                        <span className="text-2xs bg-purple-50 text-purple-700 px-3 py-1 rounded-full font-black uppercase tracking-wider">
-                          Active Dispatch Index
-                        </span>
-                      </div>
-
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-left text-xs border-separate border-spacing-y-2">
-                          <thead>
-                            <tr className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">
-                              <th className="py-2 px-3">Driver</th>
-                              <th className="py-2 px-3">Sector Target</th>
-                              <th className="py-2 px-3 text-center">Distance</th>
-                              <th className="py-2 px-3 text-center">Multiplier</th>
-                              <th className="py-2 px-3 text-right">Status</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {!recData?.recent?.length ? (
-                              <tr>
-                                <td colSpan={5} className="text-center py-6 text-gray-400 font-medium">No guidance logs streamed yet.</td>
-                              </tr>
-                            ) : (
-                              recData.recent.slice(0, 5).map((log: any) => (
-                                <tr key={log._id} className="bg-gray-50/50 hover:bg-gray-50 transition-colors">
-                                  <td className="py-3 px-3 rounded-l-2xl font-bold">
-                                    <div>{log.driverName}</div>
-                                    <div className="text-[10px] text-gray-400 font-semibold">{log.driverEmail}</div>
-                                  </td>
-                                  <td className="py-3 px-3 font-semibold text-gray-800">{log.recommendedPlaceName}</td>
-                                  <td className="py-3 px-3 text-center font-mono text-gray-500 font-semibold">{log.distanceKm} km</td>
-                                  <td className="py-3 px-3 text-center font-mono text-purple-600 font-bold">{log.multiplier}x</td>
-                                  <td className="py-3 px-3 rounded-r-2xl text-right">
-                                    <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                                      log.status === "followed" ? "bg-emerald-50 text-emerald-600" :
-                                      log.status === "ignored" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
-                                    }`}>
-                                      {log.status}
-                                    </span>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-
-                  </section>
+                  </div>
                 </div>
               )}
 
