@@ -5,7 +5,8 @@ import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
 import { startRegistration } from "@simplewebauthn/browser";
-import { Fingerprint } from "lucide-react";
+import { Fingerprint, Smartphone, Monitor } from "lucide-react";
+import { Panel, PageHead } from "@/components/partner/shared";
 
 interface SessionData {
   sessionId: string;
@@ -56,14 +57,11 @@ export default function DeviceManagement() {
   const handleRegisterPasskey = async () => {
     setRegisteringPasskey(true);
     try {
-      // 1. Get options from server
       const optRes = await axios.get("/api/auth/webauthn/register/generate");
       const options = optRes.data;
 
-      // 2. Pass to browser authenticator
       const attResp = await startRegistration(options);
 
-      // 3. Verify with server
       await axios.post("/api/auth/webauthn/register/verify", attResp);
       
       toast.success("Passkey registered successfully! You can now use it to sign in.");
@@ -77,88 +75,102 @@ export default function DeviceManagement() {
 
   if (loading) {
     return (
-      <div className="w-full flex justify-center py-8">
-        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+      <div className="space-y-6">
+        <PageHead 
+          code="SEC / 01" 
+          title="Security Protocol" 
+          subtitle="Manage your active sessions and secure your account access" 
+        />
+        <Panel code="SYS / 02" title="Active Devices">
+          <div className="p-8 text-center mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">
+            Loading devices...
+          </div>
+        </Panel>
       </div>
     );
   }
 
   return (
-    <div className="w-full space-y-4">
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold text-white mb-1">Active Devices & Security</h2>
-          <p className="text-sm text-gray-400">
-            Manage your logged in sessions and passkeys.
-          </p>
+    <div className="space-y-6">
+      <PageHead 
+        code="SEC / 01" 
+        title="Security Protocol" 
+        subtitle="Manage your active sessions and secure your account access" 
+      />
+      <Panel code="SYS / 02" title="Active Devices">
+      <div className="p-4 border-b border-border bg-secondary/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
+          Authorized Sessions: {sessions.length}
         </div>
         <button
           onClick={handleRegisterPasskey}
           disabled={registeringPasskey}
-          className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+          className="brick px-4 py-2 font-mono text-[11px] tracking-[0.18em] uppercase hover:bg-signal transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          <Fingerprint size={16} />
+          <Fingerprint size={14} />
           {registeringPasskey ? "Registering..." : "Add New Passkey"}
         </button>
       </div>
 
       {sessions.length === 0 ? (
-        <p className="text-sm text-gray-500">No active devices found.</p>
+        <div className="p-8 text-center mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">
+          No active devices found.
+        </div>
       ) : (
-        <div className="space-y-3">
-          {sessions.map((session) => (
-            <div
-              key={session.sessionId}
-              className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
-                session.isCurrent
-                  ? "bg-white/10 border-primary/40"
-                  : "bg-white/5 border-white/10 hover:bg-white/10"
-              } backdrop-blur-md`}
-            >
-              <div className="flex items-start gap-3">
-                <div className="mt-1">
-                  {session.userAgent.toLowerCase().includes("mobile") ? (
-                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                    </svg>
-                  )}
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium text-gray-200 flex items-center gap-2">
-                    {session.userAgent}
-                    {session.isCurrent && (
-                      <span className="px-2 py-0.5 rounded-full bg-primary/20 text-primary text-[10px] font-bold uppercase tracking-wider">
-                        Current
-                      </span>
-                    )}
-                  </h3>
-                  <div className="text-xs text-gray-400 mt-1 flex flex-col sm:flex-row sm:gap-4 gap-1">
-                    <span>IP: {session.ipAddress}</span>
-                    <span className="hidden sm:inline">•</span>
-                    <span>
-                      Active: {formatDistanceToNow(new Date(session.lastActive), { addSuffix: true })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {!session.isCurrent && (
-                <button
-                  onClick={() => handleRevoke(session.sessionId)}
-                  disabled={revokingId === session.sessionId}
-                  className="px-4 py-2 text-sm font-medium text-red-400 bg-red-400/10 hover:bg-red-400/20 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors whitespace-nowrap"
+        <div className="overflow-x-auto">
+          <table className="w-full mono text-[11px] text-left">
+            <thead>
+              <tr className="hairline-b text-muted-foreground tracking-[0.18em] uppercase text-[9px]">
+                <th className="py-3 px-4 font-normal w-12">Type</th>
+                <th className="py-3 px-4 font-normal">Device / Browser</th>
+                <th className="py-3 px-4 font-normal">IP Address</th>
+                <th className="py-3 px-4 font-normal">Last Active</th>
+                <th className="py-3 px-4 font-normal text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {sessions.map((session) => (
+                <tr 
+                  key={session.sessionId}
+                  className={`hover:bg-secondary/20 transition-colors ${session.isCurrent ? 'bg-signal/5' : ''}`}
                 >
-                  {revokingId === session.sessionId ? "Signing out..." : "Sign Out Device"}
-                </button>
-              )}
-            </div>
-          ))}
+                  <td className="py-4 px-4 text-muted-foreground">
+                    {session.userAgent.toLowerCase().includes("mobile") ? <Smartphone size={16} /> : <Monitor size={16} />}
+                  </td>
+                  <td className="py-4 px-4">
+                    <div className="font-bold uppercase tracking-wider text-foreground flex items-center gap-2">
+                      {session.userAgent}
+                      {session.isCurrent && (
+                        <span className="text-[8px] uppercase tracking-wider bg-signal text-background px-1.5 py-0.5 rounded-sm">
+                          Current
+                        </span>
+                      )}
+                    </div>
+                  </td>
+                  <td className="py-4 px-4 text-muted-foreground">
+                    {session.ipAddress}
+                  </td>
+                  <td className="py-4 px-4 text-muted-foreground">
+                    {formatDistanceToNow(new Date(session.lastActive), { addSuffix: true })}
+                  </td>
+                  <td className="py-4 px-4 text-right">
+                    {!session.isCurrent && (
+                      <button
+                        onClick={() => handleRevoke(session.sessionId)}
+                        disabled={revokingId === session.sessionId}
+                        className="text-signal hover:text-signal/80 transition-colors uppercase tracking-widest text-[9px] disabled:opacity-50"
+                      >
+                        {revokingId === session.sessionId ? "Revoking..." : "Revoke"}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
+    </Panel>
     </div>
   );
 }
