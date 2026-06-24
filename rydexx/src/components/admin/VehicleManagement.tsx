@@ -86,9 +86,9 @@ export default function VehiclesDir() {
                 return (
                   <tr key={v._id} className="hover:bg-secondary/20 transition-colors">
                     <td className="py-4 px-4">
-                      <div className="serif text-[15px] font-bold text-foreground mb-1">{v.modelName || v.vehicleModel || v.brand}</div>
-                      <div className="mono text-[12px] text-signal uppercase mb-1">{v.registrationPlate || v.vehicleNumber}</div>
-                      <div className="text-muted-foreground lowercase">{v.type} &bull; {v.fuelType || "N/A"} &bull; {v.seats || "N/A"} Seats</div>
+                      <div className="serif text-[15px] font-bold text-foreground mb-1">{v.vehicleModel || v.brand}</div>
+                      <div className="mono text-[12px] text-signal uppercase mb-1">{v.vehicleNumber}</div>
+                      <div className="text-muted-foreground lowercase">{v.type} &bull; {v.fuelType || "N/A"} &bull; {v.seatingCapacity || "N/A"} Seats</div>
                     </td>
                     <td className="py-4 px-4">
                       <div className="font-bold text-foreground mb-1 truncate max-w-[150px]">{v.owner?.name || "System"}</div>
@@ -170,8 +170,8 @@ export default function VehiclesDir() {
                 <div>
                   <h3 className="mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-3">Vehicle Registration Photo</h3>
                   <div className="w-full h-[250px] bg-secondary/20 border border-border flex items-center justify-center overflow-hidden">
-                    {selectedVehicle.vehicleImage ? (
-                      <img src={selectedVehicle.vehicleImage} alt="Vehicle" className="w-full h-full object-cover" />
+                    {selectedVehicle.imageUrl ? (
+                      <img src={selectedVehicle.imageUrl} alt="Vehicle" className="w-full h-full object-cover" />
                     ) : (
                       <span className="mono text-[10px] uppercase text-muted-foreground tracking-widest">No Image Available</span>
                     )}
@@ -184,19 +184,19 @@ export default function VehiclesDir() {
                   <div className="grid grid-cols-2 gap-y-6 gap-x-4">
                     <div>
                       <div className="mono text-[9px] text-muted-foreground uppercase tracking-widest mb-1">Make & Model</div>
-                      <div className="serif text-[16px] text-foreground">{selectedVehicle.modelName || selectedVehicle.vehicleModel || selectedVehicle.brand}</div>
+                      <div className="serif text-[16px] text-foreground">{selectedVehicle.vehicleModel || selectedVehicle.brand}</div>
                     </div>
                     <div>
                       <div className="mono text-[9px] text-muted-foreground uppercase tracking-widest mb-1">Registration Plate</div>
-                      <div className="mono text-[14px] text-signal uppercase">{selectedVehicle.registrationPlate || selectedVehicle.vehicleNumber}</div>
+                      <div className="mono text-[14px] text-signal uppercase">{selectedVehicle.vehicleNumber}</div>
                     </div>
                     <div>
                       <div className="mono text-[9px] text-muted-foreground uppercase tracking-widest mb-1">Manufacture Year</div>
-                      <div className="mono text-[12px]">{selectedVehicle.mfgYear || "N/A"}</div>
+                      <div className="mono text-[12px]">{selectedVehicle.manufacturingYear || "N/A"}</div>
                     </div>
                     <div>
                       <div className="mono text-[9px] text-muted-foreground uppercase tracking-widest mb-1">Fuel Type / Seats</div>
-                      <div className="mono text-[12px] lowercase">{selectedVehicle.fuelType || "N/A"} &bull; {selectedVehicle.seats || "N/A"} Seats</div>
+                      <div className="mono text-[12px] lowercase">{selectedVehicle.fuelType || "N/A"} &bull; {selectedVehicle.seatingCapacity || "N/A"} Seats</div>
                     </div>
                     <div>
                       <div className="mono text-[9px] text-muted-foreground uppercase tracking-widest mb-1">Base / Per Km Rates</div>
@@ -204,7 +204,7 @@ export default function VehiclesDir() {
                     </div>
                     <div>
                       <div className="mono text-[9px] text-muted-foreground uppercase tracking-widest mb-1">Waiting Fees</div>
-                      <div className="mono text-[12px]">₹{selectedVehicle.waitingFees || 0}/min</div>
+                      <div className="mono text-[12px]">₹{selectedVehicle.waitingCharge || 0}/min</div>
                     </div>
                   </div>
                 </div>
