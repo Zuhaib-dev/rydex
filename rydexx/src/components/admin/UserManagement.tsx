@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { PageHead, Panel } from "@/components/partner/shared";
-import { Eye, EyeOff } from "lucide-react";
-import useSWR from "swr";
+import { Eye, EyeOff, X } from "lucide-react";
+import useSWR, { mutate } from "swr";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -26,6 +26,8 @@ export default function UsersDir() {
   const [role, setRole] = useState("");
   const [status, setStatus] = useState("");
   const [showData, setShowData] = useState(false); // privacy mode by default
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
   const limit = 10;
 
   // Debounce search slightly
@@ -47,6 +49,26 @@ export default function UsersDir() {
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
     setPage(1); // reset to page 1 on search
+  };
+
+  const handleUpdateStatus = async (userId: string, currentBlocked: boolean) => {
+    setIsUpdating(true);
+    try {
+      const res = await fetch(`/api/admin/users/${userId}/block`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ block: !currentBlocked })
+      });
+      if (!res.ok) throw new Error("Failed to update status");
+      mutate(url);
+      if (selectedUser && selectedUser._id === userId) {
+        setSelectedUser({ ...selectedUser, isPartnerBlocked: !currentBlocked });
+      }
+    } catch (err) {
+      alert("Error updating user status");
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   return (
@@ -144,8 +166,22 @@ export default function UsersDir() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-right">
-                      <button className="px-4 py-1.5 border border-border hover:border-signal text-foreground hover:text-signal transition-colors uppercase tracking-widest text-[9px]">
-                        Impersonate
+                      <button 
+                        onClick={() => setSelectedUser(u)}
+                        className="px-4 py-1.5 border border-border hover:border-signal text-foreground hover:text-signal transition-colors uppercase tracking-widest text-[9px] mr-2"
+                      >
+                        View
+                      </button>
+                      <button 
+                        onClick={() => handleUpdateStatus(u._id, u.isPartnerBlocked)}
+                        disabled={isUpdating}
+                        className={`px-4 py-1.5 border transition-colors uppercase tracking-widest text-[9px] disabled:opacity-50 ${
+                          isBlocked 
+                            ? "border-emerald-500/20 text-emerald-500 hover:bg-emerald-500 hover:text-white" 
+                            : "border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"
+                        }`}
+                      >
+                        {isUpdating ? "..." : isBlocked ? "Activate" : "Suspend"}
                       </button>
                     </td>
                   </tr>
@@ -178,6 +214,72 @@ export default function UsersDir() {
           </div>
         )}
       </Panel>
+
+      {/* User Profile Details Modal */}
+      {selectedUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="bg-card hairline w-full max-w-md shadow-2xl flex flex-col">
+            <div className="flex justify-between items-center p-4 border-b border-border bg-secondary/10 shrink-0">
+              <h2 className="mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground flex items-center gap-3">
+                <span className="w-1.5 h-1.5 bg-signal rounded-full animate-pulse"></span>
+                Profile Details
+              </h2>
+              <button 
+                onClick={() => setSelectedUser(null)} 
+                className="text-muted-foreground hover:text-foreground transition-colors p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-16 h-16 shrink-0 bg-signal/10 text-signal flex items-center justify-center font-bold text-[24px] uppercase border border-signal/20">
+                  {selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : "?"}
+                </div>
+                <div>
+                  <div className="serif text-[20px] font-bold text-foreground leading-none mb-1">{selectedUser.name}</div>
+                  <div className="mono text-[10px] uppercase tracking-widest text-signal mb-1">{selectedUser.role}</div>
+                  <div className="mono text-[11px] text-muted-foreground">{showData ? selectedUser.email : maskEmail(selectedUser.email)}</div>
+                </div>
+              </div>
+
+              <div className="space-y-4 mb-8">
+                <div>
+                  <div className="mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Joined</div>
+                  <div className="mono text-[13px]">{new Date(selectedUser.createdAt).toLocaleDateString()}</div>
+                </div>
+                <div>
+                  <div className="mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Mobile Number</div>
+                  <div className="mono text-[13px]">{showData ? (selectedUser.mobileNumber || "Not Linked") : maskPhone(selectedUser.mobileNumber)}</div>
+                </div>
+                <div>
+                  <div className="mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1">Email Verified</div>
+                  <div className={`mono text-[13px] ${selectedUser.isEmailVerified ? "text-emerald-500" : "text-amber-500"}`}>
+                    {selectedUser.isEmailVerified ? "Verified" : "Unverified"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button className="w-full py-3 bg-secondary text-foreground uppercase tracking-widest text-[11px] mono border border-border hover:bg-foreground hover:text-background transition-colors">
+                  Impersonate Session
+                </button>
+                <button 
+                  onClick={() => handleUpdateStatus(selectedUser._id, selectedUser.isPartnerBlocked)}
+                  disabled={isUpdating}
+                  className={`w-full py-3 uppercase tracking-widest text-[11px] mono transition-colors disabled:opacity-50 ${
+                    selectedUser.isPartnerBlocked
+                      ? "bg-emerald-500 text-white hover:bg-emerald-600"
+                      : "bg-red-500 text-white hover:bg-red-600"
+                  }`}
+                >
+                  {isUpdating ? "..." : selectedUser.isPartnerBlocked ? "Activate" : "Suspend"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
