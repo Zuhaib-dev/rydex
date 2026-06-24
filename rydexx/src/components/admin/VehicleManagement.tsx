@@ -273,7 +273,9 @@ export default function VehiclesDir() {
             {/* Footer */}
             <div className="p-4 border-t border-border bg-secondary/10 flex justify-between items-center shrink-0">
               <button 
-                className="px-6 py-2.5 mono text-[11px] tracking-[0.2em] uppercase text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors"
+                onClick={() => handleUpdateStatus(selectedVehicle._id, "rejected")}
+                disabled={isUpdating}
+                className="px-6 py-2.5 mono text-[11px] tracking-[0.2em] uppercase text-red-500 border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors disabled:opacity-50"
               >
                 Reject Information
               </button>
