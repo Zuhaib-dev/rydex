@@ -1,58 +1,182 @@
 "use client";
 
-import { PageHead, Panel } from "@/components/partner/shared";
-import { CommandSearch } from "@/components/admin/CommandSearch";
-
-import useSWR from "swr";
 import { useState } from "react";
+import { PageHead, Panel } from "@/components/partner/shared";
+import { Eye, EyeOff } from "lucide-react";
+import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+const maskEmail = (email: string | undefined | null) => {
+  if (!email) return "N/A";
+  const [local, domain] = email.split("@");
+  if (!domain) return email;
+  return `${local[0] || ""}***@${domain}`;
+};
+
+const maskPhone = (phone: string | undefined | null) => {
+  if (!phone) return "Not Linked";
+  if (phone.length < 6) return phone;
+  return `${phone.slice(0, 3)}****${phone.slice(-3)}`;
+};
+
 export default function UsersDir() {
   const [page, setPage] = useState(1);
-  const { data, isLoading } = useSWR(`/api/admin/users?page=${page}&limit=50`, fetcher);
+  const [search, setSearch] = useState("");
+  const [role, setRole] = useState("");
+  const [status, setStatus] = useState("");
+  const [showData, setShowData] = useState(false); // privacy mode by default
+  const limit = 10;
+
+  // Debounce search slightly
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  
+  // Use a simple timeout for debouncing in a useEffect (omitted here for simplicity, using standard search)
+  // To keep it clean, we'll just use the raw search state for now, but in a real app you'd debounce it.
+
+  let url = `/api/admin/users?page=${page}&limit=${limit}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (role) url += `&role=${role}`;
+  if (status) url += `&status=${status}`;
+
+  const { data, isLoading } = useSWR(url, fetcher);
   
   const users = data?.users || [];
-  const total = data?.pagination?.total || 0;
+  const totalPages = data?.pagination?.totalPages || 1;
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setPage(1); // reset to page 1 on search
+  };
 
   return (
     <div className="space-y-6">
-      <PageHead code="ADM / 04" title="User Directory" subtitle={`${isLoading ? "..." : total} accounts · indexed live`} />
-      <CommandSearch placeholder="search_user_by_id_or_name" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <PageHead 
+          code="ADM / 04" 
+          title="User Directory" 
+          subtitle="Manage customer accounts, dispatch partners, and system permissions" 
+        />
+        <button 
+          onClick={() => setShowData(!showData)}
+          className={`px-4 py-2 mono text-[10px] tracking-widest uppercase border transition-colors flex items-center gap-2 ${
+            showData ? "border-signal text-signal bg-signal/10" : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {showData ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          {showData ? "Hide Data" : "Show Data"}
+        </button>
+      </div>
+      
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex-1">
+          <input 
+            type="text"
+            value={search}
+            onChange={handleSearchChange}
+            placeholder="Search by name, email, or mobile number..."
+            className="w-full bg-background border border-border p-3 mono text-[11px] focus:outline-none focus:border-signal transition-colors"
+          />
+        </div>
+        <select 
+          value={role} 
+          onChange={(e) => { setRole(e.target.value); setPage(1); }} 
+          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[150px]"
+        >
+          <option value="">All Roles</option>
+          <option value="user">User</option>
+          <option value="partner">Partner</option>
+          <option value="admin">Admin</option>
+        </select>
+        <select 
+          value={status} 
+          onChange={(e) => { setStatus(e.target.value); setPage(1); }} 
+          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[150px]"
+        >
+          <option value="">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="blocked">Blocked</option>
+        </select>
+      </div>
+
       <Panel code="DIR / 04" title="Account Ledger">
         <div className="overflow-x-auto">
-          <table className="w-full mono text-[11px]">
+          <table className="w-full mono text-[11px] text-left">
             <thead>
-              <tr className="hairline-b text-left text-muted-foreground tracking-[0.18em] uppercase text-[9px]">
-                <th className="py-2 px-2">USR_ID</th><th className="py-2 px-2">Name</th><th className="py-2 px-2">Role</th><th className="py-2 px-2">Region</th><th className="py-2 px-2">Rides</th><th className="py-2 px-2">Rating</th><th className="py-2 px-2 text-right">Status</th>
+              <tr className="hairline-b text-muted-foreground tracking-[0.18em] uppercase text-[9px]">
+                <th className="py-3 px-4 font-normal">User</th>
+                <th className="py-3 px-4 font-normal">Role</th>
+                <th className="py-3 px-4 font-normal">Phone</th>
+                <th className="py-3 px-4 font-normal">Status</th>
+                <th className="py-3 px-4 font-normal text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">Loading directory...</td></tr>
+                <tr><td colSpan={5} className="text-center py-8 text-muted-foreground uppercase tracking-widest text-[10px]">Loading directory...</td></tr>
               ) : users.length === 0 ? (
-                <tr><td colSpan={7} className="text-center py-8 text-muted-foreground">No users found.</td></tr>
+                <tr><td colSpan={5} className="text-center py-8 text-muted-foreground uppercase tracking-widest text-[10px]">No users found</td></tr>
               ) : users.map((u: any) => {
-                const isFrozen = u.isPartnerBlocked;
-                const statusStr = isFrozen ? "frozen" : "active";
+                const isBlocked = u.isPartnerBlocked;
+                const statusStr = isBlocked ? "Blocked" : "Active";
+                const displayEmail = showData ? u.email : maskEmail(u.email);
+                const displayPhone = showData ? (u.mobileNumber || "Not Linked") : maskPhone(u.mobileNumber);
+                const initial = u.name ? u.name.charAt(0).toUpperCase() : "?";
+
                 return (
-                <tr key={u._id} className="hover:bg-ink hover:text-bone transition-colors group">
-                  <td className="py-2.5 px-2 text-signal">USR-{u._id.substring(u._id.length - 4).toUpperCase()}</td>
-                  <td className="py-2.5 px-2 serif text-[14px]">{u.name}</td>
-                  <td className="py-2.5 px-2">{u.role}</td>
-                  <td className="py-2.5 px-2">SXR</td>
-                  <td className="py-2.5 px-2">{u.totalRides || 0}</td>
-                  <td className="py-2.5 px-2">{u.rating || "5.0"}</td>
-                  <td className="py-2.5 px-2 text-right">
-                    <span className={`mono text-[9px] tracking-[0.22em] px-1.5 py-0.5 ${
-                      isFrozen ? "bg-signal text-bone" : "hairline group-hover:border-bone"
-                    }`}>{statusStr.toUpperCase()}</span>
-                  </td>
-                </tr>
-              )})}
+                  <tr key={u._id} className="hover:bg-secondary/20 transition-colors">
+                    <td className="py-3 px-4 flex items-center gap-4">
+                      <div className="w-10 h-10 shrink-0 bg-signal/10 text-signal flex items-center justify-center font-bold text-[14px] uppercase border border-signal/20">
+                        {initial}
+                      </div>
+                      <div>
+                        <div className="serif text-[15px] font-bold text-foreground mb-1">{u.name}</div>
+                        <div className="mono text-[10px] text-muted-foreground">{displayEmail}</div>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 text-signal uppercase tracking-widest">{u.role}</td>
+                    <td className="py-3 px-4 text-muted-foreground tracking-widest">{displayPhone}</td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center px-2 py-1 uppercase tracking-widest text-[9px] ${
+                        isBlocked ? "bg-red-500/10 text-red-500 border border-red-500/20" : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                      }`}>
+                        {statusStr}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <button className="px-4 py-1.5 border border-border hover:border-signal text-foreground hover:text-signal transition-colors uppercase tracking-widest text-[9px]">
+                        Impersonate
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-border flex items-center justify-between">
+            <button 
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+              className="px-4 py-2 mono text-[10px] uppercase tracking-widest border border-border hover:bg-secondary disabled:opacity-50 transition-colors"
+            >
+              Prev
+            </button>
+            <span className="mono text-[10px] tracking-widest text-muted-foreground">
+              Page {page} of {totalPages}
+            </span>
+            <button 
+              disabled={page === totalPages}
+              onClick={() => setPage(page + 1)}
+              className="px-4 py-2 mono text-[10px] uppercase tracking-widest border border-border hover:bg-secondary disabled:opacity-50 transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
       </Panel>
     </div>
   );
