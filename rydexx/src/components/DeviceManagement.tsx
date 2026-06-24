@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
 import { startRegistration } from "@simplewebauthn/browser";
 import { Fingerprint, Smartphone, Monitor } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { Panel, PageHead } from "@/components/partner/shared";
 
 interface SessionData {
@@ -22,6 +23,20 @@ export default function DeviceManagement() {
   const [loading, setLoading] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [registeringPasskey, setRegisteringPasskey] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  
+  useEffect(() => {
+    if (searchParams.get("passkey") === "new") {
+      handleRegisterPasskey();
+      // Remove query param to prevent infinite loops on re-renders
+      router.replace("/settings/security");
+    }
+  }, [searchParams]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  const totalPages = Math.ceil(sessions.length / itemsPerPage);
+  const paginatedSessions = sessions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   const fetchSessions = async () => {
     try {
@@ -123,7 +138,7 @@ export default function DeviceManagement() {
           No active devices found.
         </div>
       ) : (
-        <div className="overflow-x-auto">
+        <>      <div className="overflow-x-auto">
           <table className="w-full mono text-[11px] text-left">
             <thead>
               <tr className="hairline-b text-muted-foreground tracking-[0.18em] uppercase text-[9px]">
@@ -135,7 +150,7 @@ export default function DeviceManagement() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {sessions.map((session) => (
+              {paginatedSessions.map((session) => (
                 <tr 
                   key={session.sessionId}
                   className={`hover:bg-secondary/20 transition-colors ${session.isCurrent ? 'bg-signal/5' : ''}`}
@@ -173,9 +188,35 @@ export default function DeviceManagement() {
                 </tr>
               ))}
             </tbody>
+
           </table>
         </div>
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-border bg-secondary/10 flex items-center justify-between">
+            <div className="mono text-[10px] tracking-widest text-muted-foreground uppercase">
+              Page {currentPage} of {totalPages}
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 border border-border hover:bg-secondary transition-colors disabled:opacity-50 disabled:hover:bg-transparent font-mono text-[10px] tracking-widest uppercase"
+              >
+                Prev
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 border border-border hover:bg-secondary transition-colors disabled:opacity-50 disabled:hover:bg-transparent font-mono text-[10px] tracking-widest uppercase"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+        </>
       )}
+
     </Panel>
     </div>
   );
