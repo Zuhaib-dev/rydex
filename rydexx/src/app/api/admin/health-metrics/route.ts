@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
       uptime,
       nodeVersion: process.version,
       platform: process.platform,
+      mongooseVersion: mongoose.version,
     });
   } catch (error: any) {
     console.error("Fetch health metrics error:", error);

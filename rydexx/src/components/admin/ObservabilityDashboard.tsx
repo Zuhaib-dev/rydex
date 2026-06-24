@@ -11,11 +11,14 @@ export default function ObservabilityDashboard() {
   const [searchTerm, setSearchTerm] = useState("");
   const [severityFilter, setSeverityFilter] = useState("All Severities");
   const [categoryFilter, setCategoryFilter] = useState("All Categories");
+  const [page, setPage] = useState(1);
+  const limit = 20;
 
   const { data: health, isLoading: healthLoading } = useSWR("/api/admin/health-metrics", fetcher, { refreshInterval: 5000 });
-  const { data: logsData, isLoading: logsLoading } = useSWR("/api/admin/audit-logs?limit=100", fetcher, { refreshInterval: 5000 });
+  const { data: logsData, isLoading: logsLoading } = useSWR(`/api/admin/audit-logs?page=${page}&limit=${limit}`, fetcher, { refreshInterval: 5000 });
 
   const logs = logsData?.logs || [];
+  const totalPages = logsData?.pagination?.totalPages || 1;
   
   // Calculate derived or simulated metrics for the brutalist view based on real health data
   const socketClients = health?.socketClientsCount || 0;
@@ -61,7 +64,7 @@ export default function ObservabilityDashboard() {
         />
         <div className="flex items-center gap-2 px-3 py-1.5 border border-border bg-card mt-2">
           <div className="w-2 h-2 rounded-full bg-signal animate-pulse" />
-          <span className="mono text-[10px] tracking-[0.1em] uppercase text-signal">Real-time Stream Connected</span>
+          <span className="mono text-[10px] tracking-widest uppercase text-signal">Real-time Stream Connected</span>
         </div>
       </div>
 
@@ -198,6 +201,29 @@ export default function ObservabilityDashboard() {
               })}
             </div>
           )}
+        </div>
+        
+        {/* Pagination Controls */}
+        <div className="px-4 py-3 border-t border-border flex items-center justify-between bg-secondary/10">
+          <div className="mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
+            Page {page} of {totalPages}
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="brick px-3 py-1.5 mono text-[10px] uppercase hover:bg-signal transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+            >
+              Prev
+            </button>
+            <button 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="brick px-3 py-1.5 mono text-[10px] uppercase hover:bg-signal transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </Panel>
     </div>
