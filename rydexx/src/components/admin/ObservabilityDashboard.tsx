@@ -199,7 +199,7 @@ export default function ObservabilityDashboard() {
                       <td className="py-3 px-4 font-bold uppercase tracking-wider text-foreground">
                         {log.action}
                       </td>
-                      <td className="py-3 px-4 text-muted-foreground whitespace-normal break-words max-w-xs">
+                      <td className="py-3 px-4 text-muted-foreground whitespace-normal break-all max-w-xs">
                         {log.details}
                       </td>
                       <td className="py-3 px-4 text-foreground/50">
