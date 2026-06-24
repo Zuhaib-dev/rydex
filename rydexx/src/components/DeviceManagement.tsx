@@ -67,7 +67,13 @@ export default function DeviceManagement() {
       toast.success("Passkey registered successfully! You can now use it to sign in.");
     } catch (err: any) {
       console.error("Passkey registration failed:", err);
-      toast.error(err.response?.data?.message || err.message || "Failed to register passkey. Try again.");
+      
+      const errorMessage = err.message || "";
+      if (err.name === "NotAllowedError" || errorMessage.includes("timed out") || errorMessage.includes("not allowed")) {
+        toast.error("Passkey registration was cancelled.");
+      } else {
+        toast.error(err.response?.data?.message || errorMessage || "Failed to register passkey. Try again.");
+      }
     } finally {
       setRegisteringPasskey(false);
     }
