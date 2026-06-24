@@ -24,6 +24,7 @@ import {
   LogOut,
   Star,
   Bell,
+  LayoutDashboard
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
@@ -152,7 +153,11 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
 
                                         {/* Menu Items */}
                     <div className="p-2 flex flex-col gap-0.5 font-mono text-[11px] tracking-[0.15em] uppercase">
-                      {user.role === "partner" ? (
+                      {user.role === "admin" ? (
+                        <>
+                          <MenuItem icon={LayoutDashboard} label="Control Tower" href="/admin/tower" />
+                        </>
+                      ) : user.role === "partner" ? (
                         <>
                           <MenuItem icon={User} label="Partner Profile" href="/partner/profile" />
                           <MenuItem icon={Briefcase} label="Operator Console" href="/partner" />

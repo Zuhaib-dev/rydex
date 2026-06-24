@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { formatDistanceToNow } from "date-fns";
 import toast from "react-hot-toast";
+import { startRegistration } from "@simplewebauthn/browser";
+import { Fingerprint } from "lucide-react";
 
 interface SessionData {
   sessionId: string;
@@ -18,6 +20,7 @@ export default function DeviceManagement() {
   const [sessions, setSessions] = useState<SessionData[]>([]);
   const [loading, setLoading] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [registeringPasskey, setRegisteringPasskey] = useState(false);
 
   const fetchSessions = async () => {
     try {
@@ -50,6 +53,28 @@ export default function DeviceManagement() {
     }
   };
 
+  const handleRegisterPasskey = async () => {
+    setRegisteringPasskey(true);
+    try {
+      // 1. Get options from server
+      const optRes = await axios.get("/api/auth/webauthn/register/generate");
+      const options = optRes.data;
+
+      // 2. Pass to browser authenticator
+      const attResp = await startRegistration(options);
+
+      // 3. Verify with server
+      await axios.post("/api/auth/webauthn/register/verify", attResp);
+      
+      toast.success("Passkey registered successfully! You can now use it to sign in.");
+    } catch (err: any) {
+      console.error("Passkey registration failed:", err);
+      toast.error(err.response?.data?.message || err.message || "Failed to register passkey. Try again.");
+    } finally {
+      setRegisteringPasskey(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="w-full flex justify-center py-8">
@@ -60,11 +85,21 @@ export default function DeviceManagement() {
 
   return (
     <div className="w-full space-y-4">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-white mb-1">Active Devices</h2>
-        <p className="text-sm text-gray-400">
-          Manage the devices currently logged into your account.
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-semibold text-white mb-1">Active Devices & Security</h2>
+          <p className="text-sm text-gray-400">
+            Manage your logged in sessions and passkeys.
+          </p>
+        </div>
+        <button
+          onClick={handleRegisterPasskey}
+          disabled={registeringPasskey}
+          className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/20 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 whitespace-nowrap"
+        >
+          <Fingerprint size={16} />
+          {registeringPasskey ? "Registering..." : "Add New Passkey"}
+        </button>
       </div>
 
       {sessions.length === 0 ? (
