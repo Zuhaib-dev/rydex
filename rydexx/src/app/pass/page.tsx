@@ -8,6 +8,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "motion/react";
 import { Loader2, ShieldCheck, CreditCard, X, QrCode, Radio, SmartphoneNfc, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { PageHead, Panel } from "@/components/partner/shared";
 
 export default function PassPage() {
   const router = useRouter();
@@ -137,137 +138,125 @@ export default function PassPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-neutral-950 flex items-center justify-center">
-        <Loader2 className="animate-spin text-indigo-500" size={48} />
+      <div className="space-y-6 max-w-5xl mx-auto p-4 sm:p-8 flex items-center justify-center min-h-[50vh]">
+        <div className="p-8 text-center mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground flex items-center"><Loader2 className="animate-spin mr-2" size={16} />Loading Pass Data...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white font-sans p-6">
-      <div className="max-w-md mx-auto space-y-8 mt-12">
-        <header className="relative text-center flex items-center justify-center">
-          <button 
-            onClick={() => router.back()} 
-            className="absolute left-0 p-2 bg-neutral-900 rounded-full hover:bg-neutral-800 transition text-neutral-400 hover:text-white"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white/90">My Passes</h1>
-            <p className="text-neutral-400 mt-2">Manage your active subscriptions</p>
-          </div>
-        </header>
+    <div className="space-y-6 max-w-5xl mx-auto p-4 sm:p-8 relative">
+      <PageHead 
+        code="USR / 02" 
+        title="My Passes" 
+        subtitle="Manage your active subscriptions" 
+      />
 
-        {passes.filter(p => p.balance > 0).length > 0 && (
-          <div className="space-y-6 mt-10">
-            <h2 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              Active Subscriptions
-            </h2>
+      {passes.filter(p => p.balance > 0).length > 0 && (
+        <Panel code="SUB / 01" title="Active Subscriptions">
+          <div className="space-y-4 p-6">
             {passes.filter(p => p.balance > 0).map(pass => (
-              <motion.div 
+              <div 
                 key={pass._id}
-                className="bg-linear-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/10 border border-white/20 rounded-3xl p-6 relative overflow-hidden backdrop-blur-2xl shadow-[0_0_40px_-10px_rgba(99,102,241,0.3)]"
-                whileHover={{ scale: 1.02 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="border border-border bg-secondary/10 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6"
               >
-                <div className="absolute top-0 left-0 w-full h-full bg-noise opacity-20 pointer-events-none"></div>
-                <div className="flex justify-between items-start mb-8 relative z-10">
-                  <div>
-                    <h2 className="text-2xl font-black bg-clip-text text-transparent bg-linear-to-r from-indigo-200 to-purple-200 drop-shadow-sm">{pass.type}</h2>
-                    <p className="text-indigo-200/70 text-sm mt-1 font-medium">Expires: {new Date(pass.expiresAt).toLocaleDateString()}</p>
-                  </div>
-                  <div className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    Active
-                  </div>
+                <div>
+                  <h2 className="text-2xl font-bold tracking-widest uppercase text-foreground mb-1">{pass.type}</h2>
+                  <p className="text-muted-foreground font-mono text-[11px] tracking-widest uppercase">Expires: {new Date(pass.expiresAt).toLocaleDateString()}</p>
                 </div>
 
-                <div className="flex justify-between items-end relative z-10">
-                  <div>
-                    <p className="text-4xl font-black tracking-tighter text-white drop-shadow-md">{pass.balance}</p>
-                    <p className="text-xs text-indigo-300 uppercase tracking-widest mt-1 font-bold">Rides Left</p>
+                <div className="flex items-center gap-6">
+                  <div className="text-center sm:text-right">
+                    <p className="text-4xl font-bold tracking-tighter text-foreground">{pass.balance}</p>
+                    <p className="text-[10px] text-signal uppercase tracking-widest mt-1 font-bold">Rides Left</p>
                   </div>
                   <button 
                     onClick={() => { setActivePassId(pass._id); setIsBoarding(true); }}
-                    className="bg-white text-indigo-950 font-black px-6 py-3 rounded-full hover:bg-neutral-200 transition-all active:scale-95 shadow-xl hover:shadow-indigo-500/50"
+                    className="brick px-6 py-4 font-mono text-xs tracking-[0.2em] uppercase hover:bg-signal transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                   >
                     Tap to Board
                   </button>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
-        )}
+        </Panel>
+      )}
 
-        {passes.filter(p => p.balance <= 0).length > 0 && (
-          <div className="space-y-4 mt-12">
-            <h2 className="text-xs font-bold tracking-widest text-neutral-500 uppercase border-b border-neutral-800 pb-2">Past Passes</h2>
+      {passes.filter(p => p.balance <= 0).length > 0 && (
+        <Panel code="HST / 01" title="Past Passes">
+          <div className="divide-y divide-border">
             {passes.filter(p => p.balance <= 0).map(pass => (
-              <motion.div 
+              <div 
                 key={pass._id}
-                className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 flex items-center justify-between opacity-80"
+                className="p-6 flex items-center justify-between bg-background opacity-60 grayscale"
               >
                 <div>
-                  <h3 className="text-lg font-bold text-neutral-400">{pass.type}</h3>
-                  <p className="text-neutral-600 text-xs mt-0.5 font-medium">Ended: {new Date(pass.expiresAt).toLocaleDateString()}</p>
+                  <h3 className="text-lg font-bold uppercase tracking-widest text-foreground">{pass.type}</h3>
+                  <p className="text-muted-foreground font-mono text-[10px] mt-1 tracking-widest uppercase">Ended: {new Date(pass.expiresAt).toLocaleDateString()}</p>
                 </div>
                 <div className="text-right">
-                  <span className="bg-neutral-800 text-neutral-500 px-3 py-1.5 rounded-lg text-xs font-bold border border-neutral-700/50">Exhausted</span>
+                  <span className="bg-secondary/50 text-muted-foreground px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] font-bold border border-border">Exhausted</span>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
-        )}
+        </Panel>
+      )}
 
-        <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-8 text-center space-y-6 shadow-xl mt-8">
-          <div className="w-20 h-20 bg-indigo-500/20 rounded-full flex items-center justify-center mx-auto">
-            <ShieldCheck size={40} className="text-indigo-400" />
+      <Panel code="PRC / 01" title="Available Plans">
+        <div className="p-8 flex flex-col md:flex-row items-center justify-between gap-8 bg-secondary/5">
+          <div className="flex-1 text-center md:text-left space-y-4">
+            <div className="w-16 h-16 bg-signal/10 flex items-center justify-center border border-signal/30 mx-auto md:mx-0">
+              <ShieldCheck size={32} className="text-signal" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-foreground mb-2 tracking-widest uppercase">7-Day Commuter</h2>
+              <p className="text-muted-foreground font-mono text-[11px] tracking-widest uppercase max-w-md">Get 10 rides to use anytime within 7 days. Skip the payment process and simply tap your phone with the driver to ride.</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-2">7-Day Commuter</h2>
-            <p className="text-neutral-400 text-sm">Get 10 rides to use anytime within 7 days. Skip the payment process and simply tap your phone with the driver to ride.</p>
+          
+          <div className="flex flex-col items-center md:items-end gap-4 w-full md:w-auto border-t md:border-t-0 md:border-l border-border pt-6 md:pt-0 md:pl-8">
+            <div className="text-3xl font-bold text-foreground">
+              ₹500 <span className="text-[11px] font-mono text-muted-foreground tracking-widest uppercase">/ 10 rides</span>
+            </div>
+            <button 
+              onClick={handleBuyPass}
+              disabled={buying}
+              className="brick w-full md:w-auto px-8 py-4 font-mono text-xs tracking-[0.2em] uppercase hover:bg-signal transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {buying ? <Loader2 size={16} className="animate-spin" /> : <CreditCard size={16} />}
+              {buying ? "Processing" : "Purchase Pass"}
+            </button>
           </div>
-          <div className="text-3xl font-black text-indigo-400 border-y border-neutral-800 py-4">
-            ₹500 <span className="text-sm font-medium text-neutral-500 tracking-wide uppercase">/ 10 rides</span>
-          </div>
-          <button 
-            onClick={handleBuyPass}
-            disabled={buying}
-            className="w-full bg-white text-black font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-neutral-200 transition-colors disabled:opacity-50"
-          >
-            {buying ? <Loader2 size={20} className="animate-spin" /> : <CreditCard size={20} />}
-            {buying ? "Processing..." : "Purchase Pass Now"}
-          </button>
         </div>
-      </div>
+      </Panel>
 
       <AnimatePresence>
         {isBoarding && activePassId && (
           <motion.div 
-            initial={{ opacity: 0, y: "100%" }}
+            initial={{ opacity: 0, y: "10%" }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: "100%" }}
-            className="fixed inset-0 z-50 bg-neutral-900/95 backdrop-blur-3xl flex flex-col items-center justify-center p-6"
+            exit={{ opacity: 0, y: "10%" }}
+            className="fixed inset-0 z-50 bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 border-4 border-signal m-4"
           >
             <button 
               onClick={() => { setIsBoarding(false); setActivePassId(null); }}
-              className="absolute top-8 right-8 p-3 bg-white/10 rounded-full text-white hover:bg-white/20 transition"
+              className="absolute top-6 right-6 p-2 bg-secondary border border-border text-foreground hover:bg-secondary/80 transition uppercase text-[10px] tracking-widest font-mono"
             >
-              <X size={24} />
+              Close
             </button>
 
-            <h2 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-linear-to-r from-blue-400 to-emerald-400">
+            <h2 className="text-3xl font-bold mb-8 text-center uppercase tracking-widest text-foreground">
               Ready to Board
             </h2>
 
-            <div className="bg-white p-4 rounded-2xl shadow-2xl mb-8 relative">
+            <div className="bg-black p-4 border border-border shadow-2xl mb-8 relative">
               {activeMode === "qr" && (
                 token ? (
-                  <QRCodeSVG value={token} size={240} className="rounded-xl" />
+                  <QRCodeSVG value={token} size={240} className="bg-white p-2" />
                 ) : (
-                  <div className="w-[240px] h-[240px] bg-neutral-100 animate-pulse rounded-xl flex items-center justify-center text-neutral-400">
+                  <div className="w-[240px] h-[240px] bg-secondary flex items-center justify-center font-mono text-[10px] tracking-widest uppercase text-muted-foreground border border-border">
                     Generating Token...
                   </div>
                 )
@@ -275,68 +264,67 @@ export default function PassPage() {
               {activeMode === "nfc" && (
                 <button 
                   onClick={() => { if (token) nfc.write(token) }}
-                  className="w-[240px] h-[240px] bg-indigo-50 rounded-xl flex flex-col items-center justify-center text-indigo-500 cursor-pointer hover:bg-indigo-100 transition border-2 border-transparent hover:border-indigo-300"
+                  className="w-[240px] h-[240px] bg-secondary/10 flex flex-col items-center justify-center text-signal cursor-pointer hover:bg-signal/5 transition border border-signal/30 hover:border-signal"
                 >
                   <SmartphoneNfc size={80} className={`mb-4 ${nfc.isWriting ? 'animate-pulse' : ''}`} />
-                  <span className="font-bold">{nfc.isWriting ? "Ready... Tap Terminal" : "Click to Transmit via NFC"}</span>
+                  <span className="font-mono text-[10px] tracking-widest uppercase">{nfc.isWriting ? "Ready... Tap Terminal" : "Transmit via NFC"}</span>
                 </button>
               )}
               {activeMode === "audio" && (
-                <div className="w-[240px] h-[240px] bg-blue-50 rounded-xl flex flex-col items-center justify-center text-blue-500">
+                <div className="w-[240px] h-[240px] bg-secondary/10 flex flex-col items-center justify-center text-signal border border-signal/30">
                   <Radio size={80} className="mb-4 animate-ping" />
-                  <span className="font-bold">Broadcasting...</span>
+                  <span className="font-mono text-[10px] tracking-widest uppercase">Broadcasting...</span>
                 </div>
               )}
-              <div className="absolute -inset-4 border-2 border-emerald-500/30 rounded-4xl animate-pulse pointer-events-none"></div>
             </div>
 
-            <p className="text-neutral-400 mb-8 max-w-xs text-center text-sm">
+            <p className="text-muted-foreground mb-8 max-w-xs text-center font-mono text-[10px] tracking-widest uppercase">
               Choose a validation method and present it to the terminal.
             </p>
 
             <div className="flex gap-4">
               <button 
                 onClick={() => setActiveMode("qr")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
-                  activeMode === "qr" ? "bg-emerald-500/20 border-emerald-500 text-emerald-300" : "border-white/20 text-neutral-400"
+                className={`flex items-center gap-2 px-4 py-3 border transition-all uppercase font-mono text-[10px] tracking-widest ${
+                  activeMode === "qr" ? "bg-signal/20 border-signal text-signal" : "bg-secondary/10 border-border text-muted-foreground hover:bg-secondary/30 hover:text-foreground"
                 }`}
               >
-                <QrCode size={18} />
-                <span className="text-sm font-medium">QR Code</span>
+                <QrCode size={14} />
+                Optical
               </button>
 
               <button 
                 onClick={() => setActiveMode("audio")}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
-                  activeMode === "audio" ? "bg-blue-500/20 border-blue-500 text-blue-300" : "border-white/20 text-neutral-400"
+                className={`flex items-center gap-2 px-4 py-3 border transition-all uppercase font-mono text-[10px] tracking-widest ${
+                  activeMode === "audio" ? "bg-signal/20 border-signal text-signal" : "bg-secondary/10 border-border text-muted-foreground hover:bg-secondary/30 hover:text-foreground"
                 }`}
               >
-                <Radio size={18} />
-                <span className="text-sm font-medium">Audio</span>
+                <Radio size={14} />
+                Acoustic
               </button>
 
               <button 
                 onClick={() => setActiveMode("nfc")}
                 disabled={!nfc.isSupported}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
-                  activeMode === "nfc" ? "bg-indigo-500/20 border-indigo-500 text-indigo-300" : "border-white/20 text-neutral-400"
-                } ${!nfc.isSupported && "opacity-50 cursor-not-allowed"}`}
+                className={`flex items-center gap-2 px-4 py-3 border transition-all uppercase font-mono text-[10px] tracking-widest ${
+                  activeMode === "nfc" ? "bg-signal/20 border-signal text-signal" : "bg-secondary/10 border-border text-muted-foreground hover:bg-secondary/30 hover:text-foreground"
+                } ${!nfc.isSupported && "opacity-30 cursor-not-allowed"}`}
               >
-                <SmartphoneNfc size={18} />
-                <span className="text-sm font-medium">NFC</span>
+                <SmartphoneNfc size={14} />
+                NFC
               </button>
             </div>
 
             {!nfc.isSupported && (
-              <p className="mt-4 text-xs font-semibold text-red-400 bg-red-500/10 px-3 py-2 rounded-lg text-center max-w-xs mx-auto">
-                NFC is not supported by your browser or device. Please use QR Code or Audio.
+              <p className="mt-6 font-mono text-[10px] tracking-widest text-destructive border border-destructive/20 bg-destructive/5 px-4 py-3 text-center max-w-xs uppercase">
+                NFC not supported by device. Use Optical or Acoustic.
               </p>
             )}
             
             {error && (
-              <div className="mt-8 flex items-center gap-2 text-red-400 bg-red-400/10 px-4 py-3 rounded-xl">
+              <div className="mt-8 flex items-center gap-3 text-destructive bg-destructive/10 border border-destructive/20 px-6 py-4">
                 <AlertCircle size={20} />
-                <span className="text-sm font-medium">{error}</span>
+                <span className="font-mono text-xs tracking-widest uppercase">{error}</span>
               </div>
             )}
           </motion.div>
@@ -349,17 +337,17 @@ export default function PassPage() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.1 }}
-            className="fixed inset-0 z-60 bg-emerald-500 flex flex-col items-center justify-center p-6 text-white"
+            className="fixed inset-0 z-60 bg-signal flex flex-col items-center justify-center p-6 m-4 border-4 border-background"
           >
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", bounce: 0.5 }}
             >
-              <CheckCircle size={120} className="mb-6 drop-shadow-2xl" />
+              <CheckCircle size={100} className="mb-6 text-background" />
             </motion.div>
-            <h2 className="text-5xl font-extrabold tracking-tight mb-2 drop-shadow-md">Verified!</h2>
-            <p className="text-emerald-100 font-medium text-lg">Have a great ride.</p>
+            <h2 className="text-4xl font-bold tracking-widest uppercase mb-4 text-background">Verified</h2>
+            <p className="text-background/80 font-mono text-sm tracking-widest uppercase">Authorization Complete</p>
           </motion.div>
         )}
       </AnimatePresence>
