@@ -56,9 +56,13 @@ const getHandler = async (req: Request) => {
       await user.save();
     }
     const userObj: any = user.toObject();
-    if (user.role === "partner" && user.activeVehicleId) {
-      const activeVehicle = await Vehicle.findById(user.activeVehicleId).lean();
-      userObj.activeVehicle = activeVehicle;
+    if (user.role === "partner") {
+      const vehicles = await Vehicle.find({ owner: user._id }).lean();
+      userObj.vehicles = vehicles;
+      
+      if (user.activeVehicleId) {
+        userObj.activeVehicle = vehicles.find((v: any) => v._id.toString() === user.activeVehicleId.toString()) || null;
+      }
     }
 
     return Response.json(

@@ -215,6 +215,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
                     <div className="p-2 flex flex-col gap-0.5 font-mono text-[11px] tracking-[0.15em] uppercase">
                       {user.role === "admin" ? (
                         <>
+                          <MenuItem icon={User} label="Profile" href="/profile" />
                           <MenuItem icon={LayoutDashboard} label="Control Tower" href="/admin/tower" />
                         </>
                       ) : user.role === "partner" ? (
