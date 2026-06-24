@@ -213,8 +213,12 @@ export default function VehiclesDir() {
                 <div>
                   <h3 className="mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-3 pb-2 border-b border-border">Driver Owner Information</h3>
                   <div className="flex items-center gap-4 bg-secondary/10 p-4 border border-border">
-                    <div className="w-12 h-12 rounded-full bg-signal/20 text-signal flex items-center justify-center shrink-0 border border-signal/30">
-                      <UserIcon className="w-6 h-6" />
+                    <div className="w-12 h-12 rounded-full bg-signal/20 text-signal flex items-center justify-center shrink-0 border border-signal/30 overflow-hidden">
+                      {selectedVehicle.owner?.image ? (
+                        <img src={selectedVehicle.owner.image} alt="Owner" className="w-full h-full object-cover" />
+                      ) : (
+                        <UserIcon className="w-6 h-6" />
+                      )}
                     </div>
                     <div>
                       <div className="font-bold text-foreground text-[14px]">{selectedVehicle.owner?.name || "System"}</div>

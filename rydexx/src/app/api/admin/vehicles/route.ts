@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("owner", "name email mobileNumber partnerStatus")
+      .populate("owner", "name email mobileNumber partnerStatus image")
       .lean();
 
     const vehicleIds = vehicles.map((v) => v._id);
