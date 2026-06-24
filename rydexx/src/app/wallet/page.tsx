@@ -16,6 +16,7 @@ import {
 import { useRouter } from "next/navigation";
 import Nav from "@/components/landing/sections/Nav";
 import Foot from "@/components/landing/sections/Foot";
+import { PageHead, Panel } from "@/components/partner/shared";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -133,8 +134,8 @@ export default function WalletPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-        <Loader2 className="animate-spin text-zinc-900 w-8 h-8" />
+      <div className="min-h-[50vh] flex items-center justify-center">
+        <div className="p-8 text-center mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground flex items-center"><Loader2 className="animate-spin mr-2" size={16} />Loading Ledger...</div>
       </div>
     );
   }
@@ -142,128 +143,99 @@ export default function WalletPage() {
   return (
     <>
       <Nav onAuthRequired={() => {}} />
-      <div className="min-h-screen bg-[#fafafa] pt-28 pb-20 px-4 sm:px-6 relative">
-        <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: "radial-gradient(circle, #d4d4d8 1px, transparent 1px)", backgroundSize: "28px 28px", opacity: 0.45 }} />
+      <div className="pt-28 pb-20 px-4 sm:px-8 max-w-5xl mx-auto space-y-6">
+        <PageHead 
+          code="USR / 03" 
+          title="Digital Wallet" 
+          subtitle="Manage your balance and transactions" 
+        />
 
-        <div className="max-w-4xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column: Balance & Topup */}
           <div className="lg:col-span-1 space-y-6">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-zinc-900 rounded-4xl p-8 text-white shadow-xl relative overflow-hidden"
-            >
-              <div className="absolute -right-10 -top-10 w-40 h-40 bg-zinc-800 rounded-full blur-3xl opacity-50" />
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-3 mb-8">
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md">
-                    <Wallet size={18} className="text-white" />
+            <Panel code="BAL / 01" title="Current Balance">
+              <div className="p-6">
+                <p className="text-[10px] font-mono tracking-widest text-muted-foreground uppercase mb-2">Available Funds</p>
+                <div className="flex items-baseline gap-1 text-foreground">
+                  <span className="text-2xl font-bold">₹</span>
+                  <span className="text-5xl font-black tracking-tighter">{balance.toLocaleString()}</span>
+                </div>
+              </div>
+            </Panel>
+
+            <Panel code="TOP / 01" title="Add Funds">
+              <div className="p-6 border-b border-border bg-secondary/5">
+                <div className="grid grid-cols-3 gap-2 mb-6">
+                  {[100, 500, 1000].map((amt) => (
+                    <button
+                      key={amt}
+                      onClick={() => setTopupAmount(amt.toString())}
+                      className="py-3 bg-secondary/10 hover:bg-signal hover:text-background border border-border text-[11px] font-mono tracking-widest transition-colors uppercase"
+                    >
+                      +₹{amt}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="relative mb-6">
+                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <span className="text-muted-foreground font-mono text-[11px]">₹</span>
                   </div>
-                  <span className="font-semibold tracking-wide text-white/80">Rydex Wallet</span>
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="AMOUNT"
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(e.target.value)}
+                    className="w-full bg-background border border-border focus:border-signal rounded-none py-4 pl-8 pr-4 text-sm font-mono tracking-widest text-foreground outline-none transition-colors uppercase"
+                  />
                 </div>
 
-                <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-white/50 mb-2">Available Balance</p>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold text-white/60">₹</span>
-                    <span className="text-5xl font-black tracking-tight">{balance.toLocaleString()}</span>
-                  </div>
-                </div>
+                <button
+                  onClick={handleTopup}
+                  disabled={isProcessing || !topupAmount}
+                  className="brick w-full bg-foreground hover:bg-signal disabled:opacity-50 text-background font-mono text-[11px] tracking-[0.2em] uppercase py-4 flex items-center justify-center gap-2 transition-colors"
+                >
+                  {isProcessing ? (
+                    <><Loader2 size={16} className="animate-spin" /> Processing</>
+                  ) : (
+                    <>Proceed to Pay <IndianRupee size={14} /></>
+                  )}
+                </button>
               </div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white rounded-4xl p-6 border border-zinc-200 shadow-sm"
-            >
-              <h3 className="text-lg font-black text-zinc-900 mb-4 flex items-center gap-2">
-                <Plus size={18} /> Add Money
-              </h3>
-              
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                {[100, 500, 1000].map((amt) => (
-                  <button
-                    key={amt}
-                    onClick={() => setTopupAmount(amt.toString())}
-                    className="py-3 bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 rounded-xl text-sm font-bold text-zinc-700 transition-colors"
-                  >
-                    +₹{amt}
-                  </button>
-                ))}
-              </div>
-
-              <div className="relative mb-6">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="text-zinc-500 font-bold">₹</span>
-                </div>
-                <input
-                  type="number"
-                  min="1"
-                  placeholder="Enter amount"
-                  value={topupAmount}
-                  onChange={(e) => setTopupAmount(e.target.value)}
-                  className="w-full bg-white border-2 border-zinc-200 focus:border-zinc-900 rounded-2xl py-4 pl-8 pr-4 text-lg font-black text-zinc-900 outline-none transition-colors"
-                />
-              </div>
-
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={handleTopup}
-                disabled={isProcessing || !topupAmount}
-                className="w-full bg-zinc-900 hover:bg-black disabled:opacity-50 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-2 shadow-md transition-colors"
-              >
-                {isProcessing ? (
-                  <><Loader2 size={18} className="animate-spin" /> Processing...</>
-                ) : (
-                  <>Proceed to Pay <IndianRupee size={16} /></>
-                )}
-              </motion.button>
-            </motion.div>
+            </Panel>
           </div>
 
           {/* Right Column: Transaction History */}
           <div className="lg:col-span-2">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white rounded-4xl p-6 sm:p-8 border border-zinc-200 shadow-sm min-h-full"
-            >
-              <h2 className="text-2xl font-black text-zinc-900 mb-6 flex items-center gap-3">
-                <Clock size={24} className="text-zinc-400" /> Transaction History
-              </h2>
-
+            <Panel code="HST / 02" title="Transaction Log">
               {transactions.length === 0 ? (
                 <div className="py-20 flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 rounded-full bg-zinc-100 flex items-center justify-center mb-4">
-                    <AlertCircle size={24} className="text-zinc-400" />
+                  <div className="w-12 h-12 bg-secondary/10 border border-border flex items-center justify-center mb-4">
+                    <AlertCircle size={20} className="text-muted-foreground" />
                   </div>
-                  <h3 className="text-lg font-bold text-zinc-900 mb-1">No transactions yet</h3>
-                  <p className="text-zinc-500 text-sm max-w-xs">Your wallet history will appear here once you top up or take a ride.</p>
+                  <h3 className="text-xs font-mono tracking-widest uppercase text-foreground mb-1">No Ledger Entries</h3>
+                  <p className="text-muted-foreground text-[10px] font-mono tracking-widest uppercase max-w-xs">Transactions will appear here after wallet activity.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="divide-y divide-border">
                   {transactions.slice().reverse().map((tx, idx) => {
                     const isCredit = tx.type === "credit";
                     return (
-                      <div key={idx} className="flex items-center justify-between p-4 rounded-2xl border border-zinc-100 bg-zinc-50 hover:bg-zinc-100/50 transition-colors">
+                      <div key={idx} className="flex items-center justify-between p-4 bg-background hover:bg-secondary/10 transition-colors">
                         <div className="flex items-center gap-4">
-                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${isCredit ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                            {isCredit ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
+                          <div className={`w-10 h-10 border flex items-center justify-center shrink-0 ${isCredit ? 'border-signal bg-signal/10 text-signal' : 'border-destructive bg-destructive/10 text-destructive'}`}>
+                            {isCredit ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
                           </div>
                           <div>
-                            <p className="font-bold text-zinc-900 text-sm sm:text-base mb-0.5">{tx.reason}</p>
-                            <p className="text-xs text-zinc-500 font-medium">
+                            <p className="font-bold text-foreground text-xs uppercase tracking-wider mb-0.5">{tx.reason}</p>
+                            <p className="text-[10px] font-mono tracking-widest uppercase text-muted-foreground">
                               {new Date(tx.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                             </p>
                           </div>
                         </div>
                         <div className="text-right pl-4">
-                          <p className={`font-black text-lg ${isCredit ? 'text-emerald-600' : 'text-zinc-900'}`}>
+                          <p className={`font-mono text-sm tracking-wider font-bold ${isCredit ? 'text-signal' : 'text-foreground'}`}>
                             {isCredit ? '+' : '-'}₹{tx.amount}
                           </p>
                         </div>
@@ -272,9 +244,8 @@ export default function WalletPage() {
                   })}
                 </div>
               )}
-            </motion.div>
+            </Panel>
           </div>
-
         </div>
       </div>
       <Foot />
