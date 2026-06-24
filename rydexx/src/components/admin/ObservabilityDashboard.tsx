@@ -3,6 +3,7 @@
 import { useState } from "react";
 import useSWR from "swr";
 import { PageHead, Panel } from "@/components/partner/shared";
+import { CommandSearch } from "@/components/admin/CommandSearch";
 import { Search, Filter, Activity } from "lucide-react";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
@@ -136,14 +137,11 @@ export default function ObservabilityDashboard() {
             Filtered logs: {filteredLogs.length} / Max 1000 items in buffer
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <input 
-                type="text" 
+            <div className="w-full sm:w-64">
+              <CommandSearch 
                 placeholder="Search action, details, trace ID..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 bg-background border border-border mono text-[11px] placeholder:text-muted-foreground focus:outline-none focus:border-signal"
               />
             </div>
             <select 
@@ -169,38 +167,53 @@ export default function ObservabilityDashboard() {
           </div>
         </div>
         
-        <div className="max-h-[600px] overflow-y-auto">
-          {logsLoading ? (
-            <div className="p-8 text-center mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">Connecting to log stream...</div>
-          ) : filteredLogs.length === 0 ? (
-            <div className="p-8 text-center mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">No logs found matching criteria</div>
-          ) : (
-            <div className="divide-y divide-border">
-              {filteredLogs.map((log: any) => {
-                const isAuth = log.action.includes("user.") || log.action.includes("login");
-                const category = isAuth ? "AUTH" : "SYS";
-                
-                return (
-                  <div key={log._id} className="p-3 hover:bg-secondary/40 transition-colors flex gap-4">
-                    <div className="shrink-0 flex flex-col items-center gap-1 w-12 pt-1">
-                      <span className="mono text-[9px] uppercase tracking-wider text-signal">info</span>
-                      <span className="mono text-[8px] uppercase tracking-wider bg-border/50 px-1 rounded text-muted-foreground">[{category}]</span>
-                    </div>
-                    <div className="flex-1 mono text-[11px] leading-relaxed break-all">
-                      <span className="font-bold uppercase tracking-wider text-foreground">{log.action}:</span> 
-                      {" "}
-                      <span className="text-muted-foreground">{log.details}</span>
-                      {" "}
-                      {log.userType && <span className="text-foreground/50">({log.userType})</span>}
-                      {log.metadata && log.metadata.userId && (
-                        <span className="text-signal/70 ml-2">ID: {log.metadata.userId}</span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+          <table className="w-full mono text-[11px] text-left">
+            <thead>
+              <tr className="hairline-b text-muted-foreground tracking-[0.18em] uppercase text-[9px]">
+                <th className="py-3 px-4 font-normal w-24">Severity</th>
+                <th className="py-3 px-4 font-normal w-48">Action</th>
+                <th className="py-3 px-4 font-normal">Details</th>
+                <th className="py-3 px-4 font-normal w-24">Context</th>
+                <th className="py-3 px-4 font-normal text-right w-32">Trace ID</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {logsLoading ? (
+                <tr><td colSpan={5} className="text-center py-8 text-muted-foreground uppercase tracking-widest text-[10px]">Connecting to log stream...</td></tr>
+              ) : filteredLogs.length === 0 ? (
+                <tr><td colSpan={5} className="text-center py-8 text-muted-foreground uppercase tracking-widest text-[10px]">No logs found matching criteria</td></tr>
+              ) : (
+                filteredLogs.map((log: any) => {
+                  const isAuth = log.action.includes("user.") || log.action.includes("login");
+                  const category = isAuth ? "AUTH" : "SYS";
+                  
+                  return (
+                    <tr key={log._id} className="hover:bg-secondary/40 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col items-start gap-1">
+                          <span className="text-[9px] uppercase tracking-wider text-signal">info</span>
+                          <span className="text-[8px] uppercase tracking-wider bg-border/50 px-1 rounded text-muted-foreground">[{category}]</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 font-bold uppercase tracking-wider text-foreground">
+                        {log.action}
+                      </td>
+                      <td className="py-3 px-4 text-muted-foreground whitespace-normal break-words max-w-xs">
+                        {log.details}
+                      </td>
+                      <td className="py-3 px-4 text-foreground/50">
+                        {log.userType || "SYS"}
+                      </td>
+                      <td className="py-3 px-4 text-right text-signal/70">
+                        {log.metadata && log.metadata.userId ? log.metadata.userId.slice(-6) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
         
         {/* Pagination Controls */}
