@@ -142,7 +142,7 @@ export default function VehiclesDir() {
 
       {/* Vehicle Verification Modal */}
       {selectedVehicle && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
           <div className="bg-card hairline w-full max-w-4xl shadow-2xl flex flex-col max-h-[95vh]">
             {/* Header */}
             <div className="flex justify-between items-center p-4 border-b border-border bg-secondary/10 shrink-0">
@@ -245,8 +245,8 @@ export default function VehiclesDir() {
                       return (
                         <div key={i} className="border border-border bg-background p-4 relative group">
                           <div className="mb-3">
-                            <div className="font-bold text-[13px] text-foreground flex items-center gap-2">
-                              {doc.docType}
+                            <div className="font-bold text-[13px] text-foreground flex items-center gap-2 uppercase">
+                              {doc.documentType}
                               {isExpired && <span className="bg-red-500 text-white text-[8px] px-1.5 py-0.5 uppercase tracking-wider">Expired</span>}
                             </div>
                             <div className="mono text-[10px] text-muted-foreground mt-1 tracking-widest">
@@ -255,7 +255,7 @@ export default function VehiclesDir() {
                           </div>
                           
                           <a 
-                            href={doc.docUrl} 
+                            href={doc.fileUrl} 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="w-full flex items-center justify-center gap-2 py-2 border border-signal text-signal hover:bg-signal hover:text-white transition-colors mono text-[10px] uppercase tracking-widest"
