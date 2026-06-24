@@ -321,10 +321,10 @@ export default function PassPage() {
               </p>
             )}
             
-            {error && (
+            {(error || nfc.error) && (
               <div className="mt-8 flex items-center gap-3 text-destructive bg-destructive/10 border border-destructive/20 px-6 py-4">
                 <AlertCircle size={20} />
-                <span className="font-mono text-xs tracking-widest uppercase">{error}</span>
+                <span className="font-mono text-xs tracking-widest uppercase">{error || nfc.error}</span>
               </div>
             )}
           </motion.div>

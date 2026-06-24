@@ -228,11 +228,15 @@ function ValidatorContent() {
                 </button>
                 <h3 className="text-xl font-bold mb-2 uppercase tracking-widest text-foreground">{nfc.isReading ? "Ready to Scan" : "Initialize Scanner"}</h3>
                 <p className="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-4">Hold passenger device near terminal</p>
-                {!nfc.isSupported && (
+                {!nfc.isSupported ? (
                   <p className="text-destructive font-mono text-[10px] tracking-widest uppercase bg-destructive/10 border border-destructive/20 px-4 py-3 text-center max-w-xs">
                     NFC module unavailable. Use fallback scanning methods.
                   </p>
-                )}
+                ) : nfc.error ? (
+                  <p className="text-destructive font-mono text-[10px] tracking-widest uppercase bg-destructive/10 border border-destructive/20 px-4 py-3 text-center max-w-xs">
+                    {nfc.error}
+                  </p>
+                ) : null}
               </div>
             )}
 
