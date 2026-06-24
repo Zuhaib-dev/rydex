@@ -8,6 +8,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import { motion, AnimatePresence } from "motion/react";
 import { CheckCircle, XCircle, Volume2, SmartphoneNfc, QrCode, ShieldCheck } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { PageHead, Panel } from "@/components/partner/shared";
 
 function ValidatorContent() {
   const router = useRouter();
@@ -149,34 +150,31 @@ function ValidatorContent() {
   }, [activeTab, audio.startListening, audio.stopListening, handleTokenScanned]);
 
   return (
-    <div className="min-h-screen bg-neutral-900 text-white font-sans flex flex-col">
+    <div className="space-y-6 max-w-5xl mx-auto p-4 sm:p-8 relative">
       <style dangerouslySetInnerHTML={{ __html: `
         #qr-reader__dashboard_section_swaplink { display: none !important; }
         #qr-reader__dashboard_section_csr span { display: none !important; }
       `}} />
-      <header className="bg-neutral-950 p-4 shadow-md flex items-center justify-between z-10">
-        <div className="flex items-center gap-2 text-emerald-400">
-          <ShieldCheck size={28} />
-          <h1 className="text-xl font-bold tracking-tight text-white">Ticket Validator</h1>
-        </div>
-        <div className="text-xs font-mono px-2 py-1 bg-neutral-800 rounded-md text-neutral-400">
-          Terminal ID: V-492
-        </div>
-      </header>
 
-      <main className="flex-1 flex flex-col relative overflow-hidden">
+      <PageHead 
+        code="VAL / 01" 
+        title="Ticket Validator" 
+        subtitle="Terminal ID: V-492" 
+      />
+
+      <Panel code="SCN / 02" title="Scanning Interface" className="relative overflow-hidden">
         {/* Status Overlays */}
         <AnimatePresence>
           {status === "success" && (
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="absolute inset-0 z-50 bg-emerald-500 flex flex-col items-center justify-center p-6 text-center"
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-signal flex flex-col items-center justify-center p-6 text-center"
             >
-              <CheckCircle size={100} className="text-white drop-shadow-xl mb-4" />
-              <h2 className="text-4xl font-extrabold text-white mb-2 shadow-sm">VERIFIED</h2>
-              <p className="text-emerald-100 font-medium text-lg bg-emerald-900/30 px-4 py-2 rounded-lg">{message}</p>
+              <CheckCircle size={80} className="text-background mb-4" />
+              <h2 className="text-3xl font-bold text-background mb-2 tracking-widest uppercase">VERIFIED</h2>
+              <p className="text-background/80 font-mono text-sm tracking-widest uppercase">{message}</p>
             </motion.div>
           )}
 
@@ -184,119 +182,119 @@ function ValidatorContent() {
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="absolute inset-0 z-50 bg-red-600 flex flex-col items-center justify-center p-6 text-center"
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 bg-destructive flex flex-col items-center justify-center p-6 text-center"
             >
-              <XCircle size={100} className="text-white drop-shadow-xl mb-4" />
-              <h2 className="text-4xl font-extrabold text-white mb-2 shadow-sm">INVALID TICKET</h2>
-              <p className="text-red-100 font-medium text-lg bg-red-900/30 px-4 py-2 rounded-lg">{message}</p>
+              <XCircle size={80} className="text-background mb-4" />
+              <h2 className="text-3xl font-bold text-background mb-2 tracking-widest uppercase">INVALID TICKET</h2>
+              <p className="text-background/80 font-mono text-sm tracking-widest uppercase">{message}</p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="flex-1 p-6 flex flex-col max-w-lg mx-auto w-full">
+        <div className="flex flex-col">
           {/* Main Scanner Area */}
-          <div className="flex-1 bg-neutral-800 rounded-3xl overflow-hidden border border-neutral-700 shadow-2xl relative">
+          <div className="h-[400px] bg-black relative border-b border-border overflow-hidden">
             {activeTab === "qr" && (
               <div className="relative w-full h-full flex flex-col items-center justify-center bg-black">
                 <div id="qr-reader" className="w-full h-full [&>video]:object-cover" />
-                <div className="absolute inset-0 border-30 border-black/60 pointer-events-none"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border-2 border-emerald-500/50 rounded-3xl pointer-events-none overflow-hidden flex items-start">
+                <div className="absolute inset-0 border-[40px] border-black/80 pointer-events-none"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border border-signal/50 pointer-events-none overflow-hidden flex items-start">
                   <motion.div 
                     animate={{ y: [0, 248, 0] }}
                     transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
-                    className="w-full h-[3px] bg-emerald-400 shadow-[0_0_15px_#34d399]"
+                    className="w-full h-[2px] bg-signal shadow-[0_0_10px_var(--color-signal)]"
                   />
                 </div>
-                <p className="absolute bottom-8 text-neutral-300 text-sm font-semibold px-5 py-2.5 bg-black/70 rounded-full backdrop-blur-md shadow-2xl">
-                  Point camera at the QR code
-                </p>
+                <div className="absolute bottom-4 text-signal font-mono text-[10px] tracking-widest uppercase bg-black/80 px-4 py-2 border border-signal/30 backdrop-blur-sm">
+                  Awaiting QR Code
+                </div>
               </div>
             )}
 
             {activeTab === "nfc" && (
-              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-linear-to-b from-neutral-800 to-indigo-900/40">
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-secondary/10">
                 <button 
                   onClick={() => nfc.read(handleTokenScanned)}
                   disabled={!nfc.isSupported}
-                  className={`w-32 h-32 rounded-full flex items-center justify-center mb-6 relative transition-colors border-[3px] ${
+                  className={`w-32 h-32 flex items-center justify-center mb-6 relative transition-colors border ${
                     nfc.isSupported 
-                      ? 'bg-indigo-500/20 hover:bg-indigo-500/30 border-transparent hover:border-indigo-400 cursor-pointer' 
-                      : 'bg-neutral-800 border-neutral-700 opacity-50 cursor-not-allowed'
+                      ? 'bg-signal/5 hover:bg-signal/10 border-signal/30 hover:border-signal cursor-pointer' 
+                      : 'bg-secondary border-border opacity-50 cursor-not-allowed'
                   }`}
                 >
-                  <div className={`absolute inset-0 rounded-full border-[3px] border-indigo-500/30 ${nfc.isReading ? 'animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]' : 'hidden'}`}></div>
-                  <SmartphoneNfc size={48} className={nfc.isSupported ? "text-indigo-400" : "text-neutral-500"} />
+                  <div className={`absolute inset-0 border border-signal/50 ${nfc.isReading ? 'animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]' : 'hidden'}`}></div>
+                  <SmartphoneNfc size={48} className={nfc.isSupported ? "text-signal" : "text-muted-foreground"} />
                 </button>
-                <h3 className="text-2xl font-bold mb-2">{nfc.isReading ? "Ready to Scan" : "Click to Start Scanner"}</h3>
-                <p className="text-neutral-400 mb-4">Hold passenger's phone near the terminal</p>
+                <h3 className="text-xl font-bold mb-2 uppercase tracking-widest text-foreground">{nfc.isReading ? "Ready to Scan" : "Initialize Scanner"}</h3>
+                <p className="font-mono text-xs tracking-widest uppercase text-muted-foreground mb-4">Hold passenger device near terminal</p>
                 {!nfc.isSupported && (
-                  <p className="text-red-400 mt-2 text-xs font-semibold bg-red-500/10 px-4 py-3 rounded-xl text-center max-w-xs">
-                    NFC is not supported by your browser or device. Please use the QR Code or Audio scanner instead.
+                  <p className="text-destructive font-mono text-[10px] tracking-widest uppercase bg-destructive/10 border border-destructive/20 px-4 py-3 text-center max-w-xs">
+                    NFC module unavailable. Use fallback scanning methods.
                   </p>
                 )}
               </div>
             )}
 
             {activeTab === "audio" && (
-              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-linear-to-b from-neutral-800 to-blue-900/40">
-                <div className="w-32 h-32 rounded-full bg-blue-500/20 flex items-center justify-center mb-6 relative">
-                  <div className="absolute inset-0 rounded-full border-[3px] border-blue-500/30 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
-                  <Volume2 size={48} className="text-blue-400" />
+              <div className="flex flex-col items-center justify-center h-full p-8 text-center bg-secondary/10">
+                <div className="w-32 h-32 bg-signal/5 border border-signal/30 flex items-center justify-center mb-6 relative">
+                  <div className="absolute inset-0 border border-signal/50 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
+                  <Volume2 size={48} className="text-signal" />
                 </div>
-                <h3 className="text-2xl font-bold mb-2">Listening...</h3>
-                <p className="text-neutral-400">Detecting high-frequency ticket signals</p>
+                <h3 className="text-xl font-bold mb-2 uppercase tracking-widest text-foreground">Listening</h3>
+                <p className="font-mono text-xs tracking-widest uppercase text-muted-foreground">Detecting high-frequency telemetry</p>
               </div>
             )}
             
             {status === "verifying" && (
-              <div className="absolute inset-0 z-40 bg-neutral-900/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                <div className="w-12 h-12 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                <p className="font-semibold text-emerald-400 animate-pulse">Verifying Pass...</p>
+              <div className="absolute inset-0 z-40 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center border border-signal/20">
+                <div className="w-12 h-12 border-2 border-signal border-t-transparent animate-spin mb-6"></div>
+                <p className="font-mono text-xs tracking-widest uppercase text-signal animate-pulse">Verifying Access...</p>
               </div>
             )}
           </div>
 
           {/* Mode Selector */}
-          <div className="mt-6 flex bg-neutral-800 p-2 rounded-2xl gap-2">
+          <div className="flex divide-x divide-border bg-secondary/5">
             <button
               onClick={() => setActiveTab("qr")}
-              className={`flex-1 flex flex-col items-center py-3 rounded-xl transition-all ${
-                activeTab === "qr" ? "bg-neutral-700 text-white shadow-md" : "text-neutral-500 hover:text-neutral-300"
+              className={`flex-1 flex flex-col items-center justify-center py-4 transition-all ${
+                activeTab === "qr" ? "bg-signal/10 text-signal border-b-2 border-b-signal" : "text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
               }`}
             >
-              <QrCode size={24} className="mb-1" />
-              <span className="text-xs font-semibold">QR Scan</span>
+              <QrCode size={20} className="mb-2" />
+              <span className="font-mono text-[10px] tracking-widest uppercase">Optical</span>
             </button>
             <button
               disabled={!nfc.isSupported}
               onClick={() => setActiveTab("nfc")}
-              className={`flex-1 flex flex-col items-center py-3 rounded-xl transition-all ${
-                activeTab === "nfc" ? "bg-indigo-600/30 text-indigo-300 shadow-md" : "text-neutral-500 hover:text-neutral-300"
+              className={`flex-1 flex flex-col items-center justify-center py-4 transition-all ${
+                activeTab === "nfc" ? "bg-signal/10 text-signal border-b-2 border-b-signal" : "text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
               } ${!nfc.isSupported ? "opacity-30 cursor-not-allowed" : ""}`}
             >
-              <SmartphoneNfc size={24} className="mb-1" />
-              <span className="text-xs font-semibold">NFC</span>
+              <SmartphoneNfc size={20} className="mb-2" />
+              <span className="font-mono text-[10px] tracking-widest uppercase">NFC</span>
             </button>
             <button
               onClick={() => setActiveTab("audio")}
-              className={`flex-1 flex flex-col items-center py-3 rounded-xl transition-all ${
-                activeTab === "audio" ? "bg-blue-600/30 text-blue-300 shadow-md" : "text-neutral-500 hover:text-neutral-300"
+              className={`flex-1 flex flex-col items-center justify-center py-4 transition-all ${
+                activeTab === "audio" ? "bg-signal/10 text-signal border-b-2 border-b-signal" : "text-muted-foreground hover:bg-secondary/20 hover:text-foreground"
               }`}
             >
-              <Volume2 size={24} className="mb-1" />
-              <span className="text-xs font-semibold">Audio</span>
+              <Volume2 size={20} className="mb-2" />
+              <span className="font-mono text-[10px] tracking-widest uppercase">Acoustic</span>
             </button>
           </div>
         </div>
-      </main>
+      </Panel>
     </div>
   );
 }
 
 export default function ValidatorPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-neutral-900 flex items-center justify-center text-white">Loading...</div>}>
+    <Suspense fallback={<div className="p-8 text-center mono text-[11px] tracking-[0.2em] uppercase text-muted-foreground">Initializing Terminal...</div>}>
       <ValidatorContent />
     </Suspense>
   );
