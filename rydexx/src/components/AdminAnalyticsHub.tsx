@@ -16,6 +16,7 @@ export default function Analytics() {
 
   const dailyStats = data?.dailyStats || [];
   const driverStats = data?.driverStats || [];
+  const regionMatrix = data?.regionMatrix || [];
 
   const totalRev = dailyStats.reduce((sum: number, day: any) => sum + day.revenue, 0);
   const totalRides = dailyStats.reduce((sum: number, day: any) => sum + day.rideVolume, 0);
@@ -73,17 +74,17 @@ export default function Analytics() {
               </tr>
             </thead>
             <tbody>
-              {[
-                ["Lal Chowk", "4,210", "₹6,12,300", "3.1%", "12h", "0.94"],
-                ["SXR Airport", "2,118", "₹9,84,210", "2.4%", "38h", "0.98"],
-                ["Dal Gate", "1,902", "₹3,11,400", "5.8%", "6h", "0.81"],
-                ["Rajbagh", "1,640", "₹2,18,900", "4.2%", "4h", "0.86"],
-                ["Hazratbal", "1,201", "₹1,72,500", "6.9%", "2h", "0.74"],
-              ].map((r) => (
-                <tr key={r[0]} className="hairline-b hover:bg-ink hover:text-bone transition-colors">
-                  {r.map((c, i) => (
-                    <td key={i} className={`py-2.5 px-2 ${i === 0 ? "serif text-[14px]" : ""} ${i === 5 ? "text-right text-signal" : ""}`}>{c}</td>
-                  ))}
+              {regionMatrix.length === 0 && !isLoading && (
+                <tr><td colSpan={6} className="py-8 text-center text-muted-foreground uppercase tracking-widest text-[10px]">No region data available</td></tr>
+              )}
+              {regionMatrix.map((r: any) => (
+                <tr key={r.region} className="hairline-b hover:bg-ink hover:text-bone transition-colors">
+                  <td className="py-2.5 px-2 serif text-[14px]">{r.region}</td>
+                  <td className="py-2.5 px-2">{r.trips}</td>
+                  <td className="py-2.5 px-2">{r.revenue}</td>
+                  <td className="py-2.5 px-2">{r.cancelRate}</td>
+                  <td className="py-2.5 px-2">{r.surgeHours}</td>
+                  <td className="py-2.5 px-2 text-right text-signal">{r.index}</td>
                 </tr>
               ))}
             </tbody>
