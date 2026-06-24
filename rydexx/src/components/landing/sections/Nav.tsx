@@ -24,7 +24,9 @@ import {
   LogOut,
   Star,
   Bell,
-  LayoutDashboard
+  LayoutDashboard,
+  RefreshCcw,
+  Activity
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
@@ -32,16 +34,50 @@ import Link from "next/link";
 
 import AuthModel from "../../AuthModel";
 import InstallModal from "../../InstallModal";
+import { getSocket } from "@/lib/socket";
+import { useSWRConfig } from "swr";
 
 /* ───────────────────────── NAV ───────────────────────── */
 function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => void }) {
   const { data: session, status } = useSession();
-  const isLoading = status === "loading";
+  const isLoadingSession = status === "loading";
   const [mockLoggedIn, setMockLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [installOpen, setInstallOpen] = useState(false);
+  const [isSocketLive, setIsSocketLive] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const { mutate } = useSWRConfig();
+
+  useEffect(() => {
+    if (session?.user) {
+      setUser(session.user);
+    } else {
+      setUser(null);
+    }
+  }, [session]);
+
+  useEffect(() => {
+    if (user?.role !== "admin") return;
+    const socket = getSocket();
+    
+    const onConnect = () => setIsSocketLive(true);
+    const onDisconnect = () => setIsSocketLive(false);
+
+    if (socket.connected) {
+      setIsSocketLive(true);
+    }
+
+    socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
+
+    return () => {
+      socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
+    };
+  }, [user?.role]);
 
   useEffect(() => {
     const handler = (e: any) => {
@@ -56,13 +92,13 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
     setInstallOpen(true);
   };
 
-  const isLoggedIn = mockLoggedIn || !!session?.user;
-  const user = session?.user || {
-    name: "Yanis",
-    email: "yanis40942@dyleris.com",
-    role: "USER",
-    image: null
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await mutate(() => true, undefined, { revalidate: true });
+    setTimeout(() => setIsRefreshing(false), 800);
   };
+
+  const isLoggedIn = mockLoggedIn || !!user;
 
   return (
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border">
@@ -87,7 +123,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
         </nav>
 
         <div className="flex items-center justify-end gap-2 relative min-h-[40px] min-w-[80px]">
-          {isLoading ? (
+          {isLoadingSession ? (
             <div className="h-10 w-10 sm:w-28 bg-foreground/10 animate-pulse rounded-full sm:rounded-none" />
           ) : !isLoggedIn ? (
             <>
@@ -110,9 +146,28 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
               </button>
             </>
           ) : (
-            <div className="relative">
-              <button 
-                onClick={() => setMenuOpen(!menuOpen)}
+            <div className="flex items-center gap-4">
+              {user?.role === "admin" && (
+                <div className="hidden sm:flex items-center gap-4 mr-2">
+                  <button 
+                    onClick={handleRefresh} 
+                    className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground hover:text-signal transition-colors"
+                  >
+                    <RefreshCcw size={12} className={isRefreshing ? "animate-spin text-signal" : ""} />
+                    <span className="hidden lg:inline">{isRefreshing ? "Refreshing" : "Refresh"}</span>
+                  </button>
+                  <div className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.18em] uppercase">
+                    <span className="relative flex h-2 w-2">
+                      {isSocketLive && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-signal opacity-75"></span>}
+                      <span className={`relative inline-flex rounded-full h-2 w-2 ${isSocketLive ? "bg-signal" : "bg-muted-foreground/30"}`}></span>
+                    </span>
+                    <span className={isSocketLive ? "text-signal" : "text-muted-foreground"}>LIVE</span>
+                  </div>
+                </div>
+              )}
+              <div className="relative">
+                <button 
+                  onClick={() => setMenuOpen(!menuOpen)}
                 className="flex items-center justify-center h-10 w-10 rounded-full border border-border bg-bone text-ink font-serif font-bold hover:bg-signal hover:text-bone hover:border-signal transition-colors uppercase overflow-hidden"
               >
                 {user.image && !imgError && user.image.trim() !== "" ? (
@@ -151,7 +206,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
                       </div>
                     </div>
 
-                                        {/* Menu Items */}
+                    {/* Menu Items */}
                     <div className="p-2 flex flex-col gap-0.5 font-mono text-[11px] tracking-[0.15em] uppercase">
                       {user.role === "admin" ? (
                         <>
@@ -201,6 +256,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
                 </>
               )}
             </div>
+          </div>
           )}
         </div>
       </div>
