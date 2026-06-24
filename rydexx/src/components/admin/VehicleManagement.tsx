@@ -10,7 +10,17 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function VehiclesDir() {
   const [page, setPage] = useState(1);
-  const { data, isLoading, mutate } = useSWR(`/api/admin/vehicles?page=${page}&limit=50`, fetcher);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [filter, setFilter] = useState("");
+  const limit = 50;
+
+  let url = `/api/admin/vehicles?page=${page}&limit=${limit}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+  if (status) url += `&status=${status}`;
+  if (filter) url += `&filter=${filter}`;
+
+  const { data, isLoading, mutate } = useSWR(url, fetcher);
   
   const vehicles = data?.vehicles || [];
   const total = data?.pagination?.total || 0;
@@ -47,14 +57,28 @@ export default function VehiclesDir() {
       />
       
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1"><CommandSearch placeholder="Search by model, brand, or number plate..." /></div>
-        <select className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[200px]">
+        <div className="flex-1">
+          <CommandSearch 
+            placeholder="Search by model, brand, or number plate..." 
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          />
+        </div>
+        <select 
+          value={status}
+          onChange={(e) => { setStatus(e.target.value); setPage(1); }}
+          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[200px]"
+        >
           <option value="">All Statuses</option>
           <option value="approved">Approved</option>
           <option value="suspended">Suspended</option>
           <option value="pending">Pending</option>
         </select>
-        <select className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[200px]">
+        <select 
+          value={filter}
+          onChange={(e) => { setFilter(e.target.value); setPage(1); }}
+          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[200px]"
+        >
           <option value="">Document Expiry</option>
           <option value="expiring">Expiring Soon</option>
           <option value="expired">Expired</option>

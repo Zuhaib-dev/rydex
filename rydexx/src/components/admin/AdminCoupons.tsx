@@ -9,7 +9,14 @@ import useSWR from "swr";
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function AdminCoupons() {
-  const { data, isLoading, mutate } = useSWR("/api/admin/coupons?limit=50", fetcher);
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const limit = 50;
+
+  let url = `/api/admin/coupons?page=${page}&limit=${limit}`;
+  if (search) url += `&search=${encodeURIComponent(search)}`;
+
+  const { data, isLoading, mutate } = useSWR(url, fetcher);
   const promos = data?.coupons || [];
   const total = data?.pagination?.total || 0;
 
@@ -81,7 +88,13 @@ export default function AdminCoupons() {
     <div className="space-y-6 relative">
       <PageHead code="ADM / 06" title="Promo Codes" subtitle={`${isLoading ? "..." : total} active codes`} />
       <div className="flex flex-col sm:flex-row gap-3">
-        <div className="flex-1"><CommandSearch placeholder="search_promo_code" /></div>
+        <div className="flex-1">
+          <CommandSearch 
+            placeholder="search_promo_code" 
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          />
+        </div>
         <button 
           onClick={() => setIsModalOpen(true)}
           className="brick mono text-[10px] tracking-[0.22em] uppercase px-4 py-3 hover:bg-signal transition-colors cursor-pointer flex items-center gap-2 justify-center"
