@@ -108,19 +108,21 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
           <span className="font-mono text-[10px] text-muted-foreground">™</span>
         </Link>
 
-        <nav className="hidden md:flex items-center justify-center gap-8 font-mono text-[11px] tracking-[0.18em] uppercase">
-          {[
-            { label: "Bookings", href: "/bookings" },
-            { label: "Fleet", href: "/fleet" },
-            { label: "FAQ", href: "/faq" },
-            { label: "Contact", href: "/contact" }
-          ].map((link) => (
-            <a key={link.label} href={link.href} className="relative group">
-              {link.label}
-              <span className="absolute -bottom-1 left-0 right-0 h-px bg-foreground scale-x-0 group-hover:scale-x-100 origin-left transition-transform" />
-            </a>
-          ))}
-        </nav>
+        {user?.role !== "admin" && (
+          <nav className="hidden md:flex items-center justify-center gap-8 font-mono text-[11px] tracking-[0.18em] uppercase">
+            {[
+              { label: "Bookings", href: "/bookings" },
+              { label: "Fleet", href: "/fleet" },
+              { label: "FAQ", href: "/faq" },
+              { label: "Contact", href: "/contact" }
+            ].map((link) => (
+              <a key={link.label} href={link.href} className="relative group">
+                {link.label}
+                <span className="absolute -bottom-1 left-0 right-0 h-px bg-foreground scale-x-0 group-hover:scale-x-100 origin-left transition-transform" />
+              </a>
+            ))}
+          </nav>
+        )}
 
         <div className="flex items-center justify-end gap-2 relative min-h-[40px] min-w-[80px]">
           {isLoadingSession ? (
