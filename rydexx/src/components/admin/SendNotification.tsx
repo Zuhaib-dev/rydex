@@ -1,71 +1,178 @@
 "use client";
 
 import { useState } from "react";
-import { Radio, Send } from "lucide-react";
+import { Send, CheckCircle2 } from "lucide-react";
 import { PageHead, Panel } from "@/components/partner/shared";
+import useSWR from "swr";
 
-const HISTORY = [
-  { id: "BC-0091", ts: "02:11", channel: "All Drivers", msg: "Surge active across SXR sector. Move to Lal Chowk.", reach: 412 },
-  { id: "BC-0090", ts: "01:42", channel: "Riders · SXR", msg: "Heavy rain expected. ETAs may extend.", reach: 1204 },
-  { id: "BC-0089", ts: "00:58", channel: "All Partners", msg: "Payout cycle complete. Check settlements.", reach: 412 },
-];
+const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function Broadcast() {
-  const [audience, setAudience] = useState("all");
-  const [msg, setMsg] = useState("");
+  const [target, setTarget] = useState("all");
+  const [email, setEmail] = useState("");
+  const [title, setTitle] = useState("");
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+
+  const { data, mutate } = useSWR("/api/admin/audit-logs?action=NOTIFICATION.BROADCAST&limit=10", fetcher, { refreshInterval: 10000 });
+  const logs = data?.logs || [];
+
+  const handleSend = async () => {
+    if (!title.trim() || !message.trim()) {
+      setError("Title and Message Body are required.");
+      return;
+    }
+    if (target === "specific" && !email.trim()) {
+      setError("User Email is required for Specific User.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const res = await fetch("/api/admin/notifications/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target,
+          email: target === "specific" ? email : undefined,
+          title,
+          message
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send notification");
+
+      setSuccess(`Successfully sent notification to ${data.message.match(/\d+/) || "targeted"} user(s).`);
+      setTitle("");
+      setMessage("");
+      if (target === "specific") setEmail("");
+      mutate();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
-      <PageHead code="ADM / 07" title="Broadcast" subtitle="Push directives across the fleet · throttled 1 msg / 30s" />
+      <PageHead 
+        code="ADM / 07" 
+        title="Send Broadcast Notification" 
+        subtitle="Push real-time notifications to users and partners. They will see a toast alert immediately if online, and can view it in their notification bell later." 
+      />
 
-      <Panel code="TX / 07" title="Compose Transmission" accent="text-signal">
-        <div className="space-y-4">
+      <Panel code="TX / 07" title="Compose Message" accent="text-signal">
+        <div className="space-y-6">
+          
+          {error && <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 mono text-[11px] uppercase tracking-wider">{error}</div>}
+          {success && <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center gap-2 mono text-[11px] uppercase tracking-wider"><CheckCircle2 className="w-4 h-4" /> {success}</div>}
+
           <div>
-            <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-2">Audience</div>
-            <div className="hairline grid grid-cols-2 sm:grid-cols-4 bg-background">
+            <label className="block mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-3">Recipient Target</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {[
-                { v: "all", l: "All Users" },
-                { v: "drivers", l: "Drivers" },
-                { v: "riders", l: "Riders" },
-                { v: "region", l: "By Region" },
-              ].map((a) => (
+                { id: "all", label: "Everyone" },
+                { id: "users", label: "All Users" },
+                { id: "partners", label: "All Partners" },
+                { id: "specific", label: "Specific User" }
+              ].map(opt => (
                 <button
-                  key={a.v}
-                  onClick={() => setAudience(a.v)}
-                  className={`px-3 py-2.5 mono text-[10px] tracking-[0.22em] uppercase transition-colors cursor-pointer ${
-                    audience === a.v ? "brick" : "hover:bg-secondary"
+                  key={opt.id}
+                  onClick={() => setTarget(opt.id)}
+                  className={`py-3 px-4 mono text-[11px] tracking-wider uppercase border transition-colors ${
+                    target === opt.id 
+                      ? "border-signal bg-signal/10 text-signal" 
+                      : "border-border hover:border-signal/50 bg-background text-muted-foreground hover:text-foreground"
                   }`}
-                >{a.l}</button>
+                >
+                  {opt.label}
+                </button>
               ))}
             </div>
           </div>
+
+          {target === "specific" && (
+            <div>
+              <label className="block mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">User Email</label>
+              <input 
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="user@example.com"
+                className="w-full bg-background border border-border p-3 mono text-[12px] focus:outline-none focus:border-signal transition-colors"
+              />
+            </div>
+          )}
+
           <div>
-            <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground mb-2">Payload · max 240 chars</div>
-            <textarea
-              value={msg}
-              onChange={(e) => setMsg(e.target.value.slice(0, 240))}
-              rows={4}
-              className="w-full hairline bg-background p-3 font-mono text-[12px] focus:outline-none focus:ring-1 focus:ring-signal resize-none"
-              placeholder="> type_transmission_..."
+            <label className="block mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">Notification Title</label>
+            <input 
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. System Update or Promo Offer"
+              className="w-full bg-background border border-border p-3 mono text-[12px] focus:outline-none focus:border-signal transition-colors"
             />
-            <div className="mono text-[9px] tracking-[0.22em] text-muted-foreground mt-1 text-right">{msg.length} / 240</div>
           </div>
-          <button className="brick mono text-[11px] tracking-[0.22em] uppercase px-5 py-3 hover:bg-signal transition-colors cursor-pointer inline-flex items-center gap-2">
-            <Send className="h-3.5 w-3.5" /> Transmit
+
+          <div>
+            <label className="block mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-2">Message Body</label>
+            <textarea
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={5}
+              placeholder="Enter the notification details here..."
+              className="w-full bg-background border border-border p-3 mono text-[12px] focus:outline-none focus:border-signal transition-colors resize-none"
+            />
+          </div>
+
+          <button 
+            onClick={handleSend}
+            disabled={loading}
+            className="brick mono text-[11px] tracking-[0.2em] uppercase px-6 py-3.5 hover:bg-signal transition-colors cursor-pointer inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="h-4 w-4" /> {loading ? "Transmitting..." : "Send Notification"}
           </button>
         </div>
       </Panel>
 
       <Panel code="LOG / 07" title="Transmission History">
-        <div className="divide-y divide-border">
-          {HISTORY.map((h) => (
-            <div key={h.id} className="py-3 grid grid-cols-1 md:grid-cols-[80px_120px_1fr_80px] gap-3 items-start hover:bg-secondary/40 transition-colors px-2">
-              <span className="mono text-[10px] text-signal">{h.id}</span>
-              <span className="mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground">{h.ts} · {h.channel}</span>
-              <span className="serif text-[15px] flex items-center gap-2"><Radio className="h-3 w-3 text-signal shrink-0" />{h.msg}</span>
-              <span className="mono text-[10px] tracking-[0.22em] text-right">{h.reach} rx</span>
-            </div>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="w-full mono text-[11px] text-left">
+            <thead>
+              <tr className="hairline-b text-muted-foreground tracking-[0.18em] uppercase text-[9px]">
+                <th className="py-3 px-4 font-normal">Timestamp</th>
+                <th className="py-3 px-4 font-normal">Target</th>
+                <th className="py-3 px-4 font-normal">Title</th>
+                <th className="py-3 px-4 font-normal">Reach</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {logs.length === 0 ? (
+                <tr><td colSpan={4} className="text-center py-8 text-muted-foreground uppercase tracking-widest text-[10px]">No recent broadcasts</td></tr>
+              ) : logs.map((l: any) => {
+                const date = new Date(l.createdAt).toLocaleString("en-GB", {
+                  day: "numeric", month: "short", hour: "numeric", minute: "2-digit"
+                });
+                
+                return (
+                  <tr key={l._id} className="hover:bg-secondary/20 transition-colors">
+                    <td className="py-3 px-4 text-muted-foreground whitespace-nowrap">{date}</td>
+                    <td className="py-3 px-4 text-signal uppercase tracking-wider text-[10px]">{l.target === "specific" ? l.metadata?.emailTarget : l.target}</td>
+                    <td className="py-3 px-4">{l.details}</td>
+                    <td className="py-3 px-4">{l.metadata?.recipients} Users</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </Panel>
     </div>

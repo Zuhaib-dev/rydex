@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import dbConnect from "@/lib/db";
 import User from "@/models/user.model";
 import Notification from "@/models/notification.model";
+import AuditLog from "@/models/auditLog.model";
 import { emitToSocketServer } from "@/lib/socketServer";
 
 export async function POST(req: Request) {
@@ -76,6 +77,19 @@ export async function POST(req: Request) {
         },
       })),
     );
+
+    // Create Audit Log
+    await AuditLog.create({
+      action: "NOTIFICATION.BROADCAST",
+      actor: session.user.email || session.user.id,
+      target: target,
+      details: title,
+      severity: "info",
+      metadata: {
+        recipients: recipients.length,
+        emailTarget: email || null
+      }
+    });
 
     return NextResponse.json({
       success: true,
