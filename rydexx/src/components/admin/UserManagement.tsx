@@ -148,8 +148,12 @@ export default function UsersDir() {
                 return (
                   <tr key={u._id} className="hover:bg-secondary/20 transition-colors">
                     <td className="py-3 px-4 flex items-center gap-4">
-                      <div className="w-10 h-10 shrink-0 bg-signal/10 text-signal flex items-center justify-center font-bold text-[14px] uppercase border border-signal/20">
-                        {initial}
+                      <div className="w-10 h-10 shrink-0 bg-signal/10 text-signal flex items-center justify-center font-bold text-[14px] uppercase border border-signal/20 overflow-hidden">
+                        {u.image ? (
+                          <img src={u.image} alt={u.name} className="w-full h-full object-cover" />
+                        ) : (
+                          initial
+                        )}
                       </div>
                       <div>
                         <div className="serif text-[15px] font-bold text-foreground mb-1">{u.name}</div>
@@ -233,8 +237,12 @@ export default function UsersDir() {
             </div>
             <div className="p-6">
               <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 shrink-0 bg-signal/10 text-signal flex items-center justify-center font-bold text-[24px] uppercase border border-signal/20">
-                  {selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : "?"}
+                <div className="w-16 h-16 shrink-0 bg-signal/10 text-signal flex items-center justify-center font-bold text-[24px] uppercase border border-signal/20 overflow-hidden">
+                  {selectedUser.image ? (
+                    <img src={selectedUser.image} alt={selectedUser.name} className="w-full h-full object-cover" />
+                  ) : (
+                    selectedUser.name ? selectedUser.name.charAt(0).toUpperCase() : "?"
+                  )}
                 </div>
                 <div>
                   <div className="serif text-[20px] font-bold text-foreground leading-none mb-1">{selectedUser.name}</div>
