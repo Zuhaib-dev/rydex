@@ -1,73 +1,91 @@
 "use client";
 
+import { useState } from "react";
 import { PageHead, Panel } from "@/components/partner/shared";
-import { ShieldAlert } from "lucide-react";
 import useSWR from "swr";
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
 
-
-
 export default function AuditLogs() {
-  const { data, isLoading } = useSWR("/api/admin/audit-logs?limit=50", fetcher);
+  const [page, setPage] = useState(1);
+  const limit = 15;
+
+  const { data, isLoading } = useSWR(`/api/admin/audit-logs?page=${page}&limit=${limit}`, fetcher);
   const logs = data?.logs || [];
   const total = data?.pagination?.total || 0;
+  const totalPages = data?.pagination?.totalPages || 1;
 
   return (
     <div className="space-y-6">
-      <PageHead code="ADM / 08" title="Security Logs" subtitle={`Audit trail · immutable · ${isLoading ? "..." : total} logs stored`} />
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { l: "Events · 24H", v: isLoading ? "..." : logs.length },
-          { l: "Blocked Attacks", v: "0" },
-          { l: "Active Sessions", v: "1" },
-        ].map((k) => (
-          <div key={k.l} className="hairline bg-card p-4">
-            <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">{k.l}</div>
-            <div className="serif italic text-[36px] font-black leading-none mt-3 tracking-tighter">{k.v}</div>
-          </div>
-        ))}
-      </div>
+      <PageHead 
+        code="ADM / 08" 
+        title="Security Audit Logs" 
+        subtitle="Chronological history of all admin interventions" 
+      />
 
       <Panel code="LOG / 08" title="Audit Stream">
         <div className="overflow-x-auto">
-          <table className="w-full mono text-[11px]">
+          <table className="w-full mono text-[11px] text-left">
             <thead>
-              <tr className="hairline-b text-left text-muted-foreground tracking-[0.18em] uppercase text-[9px]">
-                <th className="py-2 px-2">TS</th><th className="py-2 px-2">Code</th><th className="py-2 px-2">Actor</th><th className="py-2 px-2">Event</th><th className="py-2 px-2">IP</th><th className="py-2 px-2 text-right">Sev</th>
+              <tr className="hairline-b text-muted-foreground tracking-[0.18em] uppercase text-[9px]">
+                <th className="py-3 px-4 font-normal">Timestamp</th>
+                <th className="py-3 px-4 font-normal">Administrator</th>
+                <th className="py-3 px-4 font-normal">Action</th>
+                <th className="py-3 px-4 font-normal">Target</th>
+                <th className="py-3 px-4 font-normal">Details</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {isLoading ? (
-                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Loading audit trail...</td></tr>
+                <tr><td colSpan={5} className="text-center py-8 text-muted-foreground uppercase tracking-widest text-[10px]">Loading logs...</td></tr>
               ) : logs.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">No audit logs found.</td></tr>
+                <tr><td colSpan={5} className="text-center py-8 text-muted-foreground uppercase tracking-widest text-[10px]">No logs found</td></tr>
               ) : logs.map((l: any) => {
-                const date = new Date(l.createdAt);
-                const ts = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-                const code = "SEC-" + l._id.substring(l._id.length - 4).toUpperCase();
-                const sev = l.severity === "critical" || l.severity === "error" ? "high" : l.severity === "warning" ? "med" : "low";
+                const date = new Date(l.createdAt).toLocaleString("en-GB", {
+                  day: "numeric",
+                  month: "numeric",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: true
+                });
                 
                 return (
-                <tr key={l._id} className="hover:bg-ink hover:text-bone transition-colors group">
-                  <td className="py-2.5 px-2 text-muted-foreground group-hover:text-bone/60">{ts}</td>
-                  <td className="py-2.5 px-2 text-signal">{code}</td>
-                  <td className="py-2.5 px-2">{l.actor || "system"}</td>
-                  <td className="py-2.5 px-2 serif text-[14px] flex items-center gap-2">
-                    {sev === "high" && <ShieldAlert className="h-3 w-3 text-signal" />}
-                    {l.action}
-                  </td>
-                  <td className="py-2.5 px-2">{l.correlationId?.substring(0, 8) || "—"}</td>
-                  <td className="py-2.5 px-2 text-right">
-                    <span className={`mono text-[9px] tracking-[0.22em] px-1.5 py-0.5 ${
-                      sev === "high" ? "bg-signal text-bone" : sev === "med" ? "brick" : "hairline group-hover:border-bone"
-                    }`}>{sev.toUpperCase()}</span>
-                  </td>
-                </tr>
-              )})}
+                  <tr key={l._id} className="hover:bg-secondary/20 transition-colors">
+                    <td className="py-3 px-4 text-muted-foreground">{date}</td>
+                    <td className="py-3 px-4">{l.metadata?.adminEmail || l.actor || "—"}</td>
+                    <td className="py-3 px-4 text-signal uppercase tracking-wider text-[10px]">{l.action}</td>
+                    <td className="py-3 px-4 text-muted-foreground">—</td>
+                    <td className="py-3 px-4">{l.details}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="px-4 py-3 border-t border-border flex items-center justify-between bg-secondary/10">
+          <div className="mono text-[10px] tracking-[0.15em] text-muted-foreground uppercase">
+            Showing Page {page} of {totalPages} ({total} total logs)
+          </div>
+          <div className="flex items-center gap-2">
+            <button 
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="brick px-3 py-1.5 mono text-[10px] uppercase hover:bg-signal transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+            >
+              Prev
+            </button>
+            <button 
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages || totalPages === 0}
+              className="brick px-3 py-1.5 mono text-[10px] uppercase hover:bg-signal transition-colors disabled:opacity-50 disabled:hover:bg-transparent"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </Panel>
     </div>
