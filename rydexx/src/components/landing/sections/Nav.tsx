@@ -151,6 +151,9 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
             <div className="flex items-center gap-4">
               {user?.role === "admin" && (
                 <div className="hidden sm:flex items-center gap-4 mr-2">
+                  <a href="https://app.netlify.com/projects/rydexx/deploys" target="_blank" rel="noopener noreferrer" className="opacity-80 hover:opacity-100 transition-opacity">
+                    <img src="https://api.netlify.com/api/v1/badges/a5ed84fe-b787-4f6c-8e53-c55f72061d3c/deploy-status" alt="Netlify Status" className="h-4" />
+                  </a>
                   <button 
                     onClick={handleRefresh} 
                     className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground hover:text-signal transition-colors"
