@@ -77,11 +77,6 @@ function AdminDashboardContent() {
   const [profileOpen, setProfileOpen] = useState(false);
 
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
-  const { data: recData } = useSWR(
-    activeTab === "overview" ? "/api/admin/recommendations/index" : null,
-    fetcher,
-    { refreshInterval: 10000 }
-  );
   const { data: eventsData } = useSWR(
     activeTab === "overview" ? "/api/admin/audit-logs?limit=6" : null,
     fetcher,
@@ -347,10 +342,10 @@ function AdminDashboardContent() {
                   {/* KPI grid */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                      { code: "K-01", label: "Gross Revenue · 24H", value: "₹1,24,500", delta: "+12.4%", icon: Wallet },
-                      { code: "K-02", label: "Active Riders", value: data?.activeRides || 0, delta: "+318", icon: UsersIcon },
-                      { code: "K-03", label: "Live Drivers", value: data?.onlinePartners || 0, delta: "92%", icon: Car },
-                      { code: "K-04", label: "Conversion", value: "68.9%", delta: "+2.1%", icon: TrendingUp },
+                      { code: "K-01", label: "Gross Revenue · 24H", value: `₹${(data?.grossRevenue24h || 0).toLocaleString('en-IN')}`, delta: "LIVE", icon: Wallet },
+                      { code: "K-02", label: "Active Rides", value: data?.activeRides || 0, delta: "LIVE", icon: UsersIcon },
+                      { code: "K-03", label: "Live Drivers", value: data?.onlinePartners || 0, delta: "LIVE", icon: Car },
+                      { code: "K-04", label: "Conversion", value: "68.9%", delta: "EST", icon: TrendingUp },
                     ].map((k, i) => {
                       const Icon = k.icon;
                       return (

@@ -30,6 +30,7 @@ export interface AdminDashboardData {
   onlinePartners: number;
   activeRides: number;
   activeSos: number;
+  grossRevenue24h?: number;
   pendingPartnerReviews: PartnerReview[];
   pendingVehicleReviews: VehicleReview[];
   pendingVideoKYC: PartnerReview[];

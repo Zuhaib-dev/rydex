@@ -38,6 +38,18 @@ export async function GET() {
       sosTriggered: true,
     });
 
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentBookings = await Booking.find({
+      status: "completed",
+      completedAt: { $gte: twentyFourHoursAgo }
+    }).lean();
+
+    const grossRevenue24h = recentBookings.reduce((sum, b) => {
+      let aCommission = b.adminCommission;
+      if (aCommission == null) aCommission = (b.fare || 0) * 0.10;
+      return sum + aCommission;
+    }, 0);
+
     const pendingPartnerUsers = await User.find({
       role: "partner",
       partnerStatus: "pending",
@@ -79,6 +91,7 @@ export async function GET() {
         onlinePartners,
         activeRides,
         activeSos,
+        grossRevenue24h: Math.round(grossRevenue24h),
         pendingPartnerReviews,
         pendingVehicleReviews,
         pendingVideoKYC,
