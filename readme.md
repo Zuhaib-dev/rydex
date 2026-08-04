@@ -191,7 +191,7 @@ graph TB
 | **nodemon** | 3.x | Dev auto-restart |
 | **OpenTelemetry SDK** | 0.203.x / 2.x | Distributed tracing, auto-instrumentation & trace propagation |
 
----
+--- 
 
 ## Feature Map
 
