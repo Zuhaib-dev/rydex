@@ -102,7 +102,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
 
   return (
     <header className="sticky top-0 z-40 bg-background/85 backdrop-blur-md border-b border-border">
-      <div className="mx-auto max-w-[1400px] px-5 sm:px-8 grid grid-cols-[auto_1fr_auto] items-center gap-6 py-3">
+      <div className="mx-auto max-w-350 px-5 sm:px-8 grid grid-cols-[auto_1fr_auto] items-center gap-6 py-3">
         <Link href="/" className="flex items-baseline gap-1.5">
           <span className="font-serif text-[28px] font-black leading-none tracking-tighter">Rydex</span>
           <span className="font-mono text-[10px] text-muted-foreground">™</span>
@@ -124,7 +124,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
           </nav>
         )}
 
-        <div className="flex items-center justify-end gap-2 relative min-h-[40px] min-w-[80px]">
+        <div className="flex items-center justify-end gap-2 relative min-h-10 min-w-20">
           {isLoadingSession ? (
             <div className="h-10 w-10 sm:w-28 bg-foreground/10 animate-pulse rounded-full sm:rounded-none" />
           ) : !isLoggedIn ? (
@@ -190,7 +190,7 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
                     initial={{ opacity: 0, y: 10, scale: 0.98 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: 10, scale: 0.98 }}
-                    className="absolute right-0 top-full mt-3 w-[280px] bg-card border border-border shadow-[8px_8px_0_0_var(--color-ink)] z-40 overflow-hidden"
+                    className="absolute right-0 top-full mt-3 w-70 bg-card border border-border shadow-[8px_8px_0_0_var(--color-ink)] z-40 overflow-hidden"
                   >
                     {/* Header */}
                     <div className="p-5 border-b border-border bg-secondary/30">

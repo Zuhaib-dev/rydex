@@ -44,7 +44,7 @@ export default function SystemHealth() {
       {/* Grid for top metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Database */}
-        <div className="hairline bg-card p-4 flex flex-col justify-between h-[120px]">
+        <div className="hairline bg-card p-4 flex flex-col justify-between h-30">
           <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">Database</div>
           <div className={`serif italic text-[34px] font-black leading-none tracking-tighter ${dbStatus === "Connected" ? "text-foreground" : "text-signal"}`}>
             {isLoading ? "..." : dbStatus}
@@ -55,7 +55,7 @@ export default function SystemHealth() {
         </div>
 
         {/* Socket Engine */}
-        <div className="hairline bg-card p-4 flex flex-col justify-between h-[120px]">
+        <div className="hairline bg-card p-4 flex flex-col justify-between h-30">
           <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">Socket Engine</div>
           <div className={`serif italic text-[34px] font-black leading-none tracking-tighter ${socketStatus === "Online" ? "text-foreground" : "text-signal"}`}>
             {isLoading ? "..." : socketStatus}
@@ -66,7 +66,7 @@ export default function SystemHealth() {
         </div>
 
         {/* WebSockets */}
-        <div className="hairline bg-card p-4 flex flex-col justify-between h-[120px]">
+        <div className="hairline bg-card p-4 flex flex-col justify-between h-30">
           <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">WebSockets</div>
           <div className="serif italic text-[34px] font-black leading-none tracking-tighter">
             <span className="text-[14px] text-muted-foreground not-italic mr-2">Active Channels</span>
@@ -78,7 +78,7 @@ export default function SystemHealth() {
         </div>
 
         {/* App Process Uptime */}
-        <div className="hairline bg-card p-4 flex flex-col justify-between h-[120px]">
+        <div className="hairline bg-card p-4 flex flex-col justify-between h-30">
           <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground">App Process Uptime</div>
           <div className="serif italic text-[34px] font-black leading-none tracking-tighter">
             {isLoading ? "..." : formatUptime(uptime)}

@@ -67,7 +67,7 @@ export default function VehiclesDir() {
         <select 
           value={status}
           onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[200px]"
+          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-50"
         >
           <option value="">All Statuses</option>
           <option value="approved">Approved</option>
@@ -77,7 +77,7 @@ export default function VehiclesDir() {
         <select 
           value={filter}
           onChange={(e) => { setFilter(e.target.value); setPage(1); }}
-          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[200px]"
+          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-50"
         >
           <option value="">Document Expiry</option>
           <option value="expiring">Expiring Soon</option>
@@ -115,8 +115,8 @@ export default function VehiclesDir() {
                       <div className="text-muted-foreground lowercase">{v.type} &bull; {v.fuelType || "N/A"} &bull; {v.seatingCapacity || "N/A"} Seats</div>
                     </td>
                     <td className="py-4 px-4">
-                      <div className="font-bold text-foreground mb-1 truncate max-w-[150px]">{v.owner?.name || "System"}</div>
-                      <div className="text-muted-foreground mb-1 truncate max-w-[150px]">{v.owner?.email || "N/A"}</div>
+                      <div className="font-bold text-foreground mb-1 truncate max-w-37.5">{v.owner?.name || "System"}</div>
+                      <div className="text-muted-foreground mb-1 truncate max-w-37.5">{v.owner?.email || "N/A"}</div>
                       <div className="text-muted-foreground">{v.owner?.mobileNumber || "N/A"}</div>
                     </td>
                     <td className="py-4 px-4">
@@ -193,7 +193,7 @@ export default function VehiclesDir() {
                 {/* Image */}
                 <div>
                   <h3 className="mono text-[10px] tracking-[0.2em] uppercase text-muted-foreground mb-3">Vehicle Registration Photo</h3>
-                  <div className="w-full h-[250px] bg-secondary/20 border border-border flex items-center justify-center overflow-hidden">
+                  <div className="w-full h-62.5 bg-secondary/20 border border-border flex items-center justify-center overflow-hidden">
                     {selectedVehicle.imageUrl ? (
                       <img src={selectedVehicle.imageUrl} alt="Vehicle" className="w-full h-full object-cover" />
                     ) : (

@@ -194,16 +194,16 @@ function ValidatorContent() {
 
         <div className="flex flex-col">
           {/* Main Scanner Area */}
-          <div className="h-[400px] bg-black relative border-b border-border overflow-hidden">
+          <div className="h-100 bg-black relative border-b border-border overflow-hidden">
             {activeTab === "qr" && (
               <div className="relative w-full h-full flex flex-col items-center justify-center bg-black">
                 <div id="qr-reader" className="w-full h-full [&>video]:object-cover" />
-                <div className="absolute inset-0 border-[40px] border-black/80 pointer-events-none"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[250px] border border-signal/50 pointer-events-none overflow-hidden flex items-start">
+                <div className="absolute inset-0 border-40 border-black/80 pointer-events-none"></div>
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-62.5 h-62.5 border border-signal/50 pointer-events-none overflow-hidden flex items-start">
                   <motion.div 
                     animate={{ y: [0, 248, 0] }}
                     transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
-                    className="w-full h-[2px] bg-signal shadow-[0_0_10px_var(--color-signal)]"
+                    className="w-full h-0.5 bg-signal shadow-[0_0_10px_var(--color-signal)]"
                   />
                 </div>
                 <div className="absolute bottom-4 text-signal font-mono text-[10px] tracking-widest uppercase bg-black/80 px-4 py-2 border border-signal/30 backdrop-blur-sm">

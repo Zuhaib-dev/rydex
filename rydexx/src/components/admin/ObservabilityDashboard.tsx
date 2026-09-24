@@ -71,7 +71,7 @@ export default function ObservabilityDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* WebSocket Concurrency */}
-        <div className="hairline bg-card p-4 flex flex-col justify-between h-[120px]">
+        <div className="hairline bg-card p-4 flex flex-col justify-between h-30">
           <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground flex justify-between">
             <span>WebSocket Concurrency</span>
           </div>
@@ -86,7 +86,7 @@ export default function ObservabilityDashboard() {
         </div>
 
         {/* Redis Performance */}
-        <div className="hairline bg-card p-4 flex flex-col justify-between h-[120px]">
+        <div className="hairline bg-card p-4 flex flex-col justify-between h-30">
           <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground flex justify-between">
             <span>Redis Performance</span>
           </div>
@@ -101,7 +101,7 @@ export default function ObservabilityDashboard() {
         </div>
 
         {/* API Performance */}
-        <div className="hairline bg-card p-4 flex flex-col justify-between h-[120px]">
+        <div className="hairline bg-card p-4 flex flex-col justify-between h-30">
           <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground flex justify-between">
             <span>API Performance</span>
           </div>
@@ -116,7 +116,7 @@ export default function ObservabilityDashboard() {
         </div>
 
         {/* Host Machine Resources */}
-        <div className="hairline bg-card p-4 flex flex-col justify-between h-[120px]">
+        <div className="hairline bg-card p-4 flex flex-col justify-between h-30">
           <div className="mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground flex justify-between">
             <span>Host Machine Resources</span>
           </div>
@@ -167,7 +167,7 @@ export default function ObservabilityDashboard() {
           </div>
         </div>
         
-        <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+        <div className="overflow-x-auto max-h-150 overflow-y-auto">
           <table className="w-full mono text-[11px] text-left">
             <thead>
               <tr className="hairline-b text-muted-foreground tracking-[0.18em] uppercase text-[9px]">

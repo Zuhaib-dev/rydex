@@ -280,8 +280,8 @@ function AdminDashboardContent() {
         <>
           <Ticker />
           <Nav onAuthRequired={() => {}} />
-          <div className="mx-auto w-full max-w-[1480px] px-5 sm:px-8 py-6 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 flex-1">
-            <aside className="hairline bg-card h-fit lg:sticky lg:top-[88px] z-10">
+          <div className="mx-auto w-full max-w-370 px-5 sm:px-8 py-6 grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 flex-1">
+            <aside className="hairline bg-card h-fit lg:sticky lg:top-22 z-10">
               <div className="brick mono text-[10px] tracking-[0.22em] uppercase px-4 py-2 flex items-center justify-between">
                 <span>Admin Control Tower</span>
                 <span className="text-signal animate-blink">●</span>
@@ -500,7 +500,7 @@ function AdminDashboardContent() {
                   </section>
 
                   {/* Sub-tab content */}
-                  <section className="min-h-[400px] space-y-4">
+                  <section className="min-h-100 space-y-4">
                     <div className="flex items-center justify-between px-2">
                       <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
                         {queueTab === "partner"

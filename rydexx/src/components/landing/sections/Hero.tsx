@@ -38,7 +38,7 @@ function Hero({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => vo
       <Crosshair className="top-6 left-6" />
       <Crosshair className="top-6 right-6" />
 
-      <div className="mx-auto max-w-[1400px] px-5 sm:px-8 pt-10 sm:pt-16 pb-10">
+      <div className="mx-auto max-w-350 px-5 sm:px-8 pt-10 sm:pt-16 pb-10">
         {/* metadata strip */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-y-3 gap-x-6 mono text-[10px] tracking-[0.18em] uppercase text-muted-foreground hairline-b pb-4 mb-10">
           <Meta k="Filed" v="22.06.26" />

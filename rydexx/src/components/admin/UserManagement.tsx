@@ -103,7 +103,7 @@ export default function UsersDir() {
         <select 
           value={role} 
           onChange={(e) => { setRole(e.target.value); setPage(1); }} 
-          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[150px]"
+          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-37.5"
         >
           <option value="">All Roles</option>
           <option value="user">User</option>
@@ -113,7 +113,7 @@ export default function UsersDir() {
         <select 
           value={status} 
           onChange={(e) => { setStatus(e.target.value); setPage(1); }} 
-          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-[150px]"
+          className="bg-background border border-border p-3 mono text-[11px] uppercase focus:outline-none focus:border-signal w-37.5"
         >
           <option value="">All Statuses</option>
           <option value="active">Active</option>

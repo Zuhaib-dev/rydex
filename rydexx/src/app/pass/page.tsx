@@ -256,7 +256,7 @@ export default function PassPage() {
                 token ? (
                   <QRCodeSVG value={token} size={240} className="bg-white p-2" />
                 ) : (
-                  <div className="w-[240px] h-[240px] bg-secondary flex items-center justify-center font-mono text-[10px] tracking-widest uppercase text-muted-foreground border border-border">
+                  <div className="w-60 h-60 bg-secondary flex items-center justify-center font-mono text-[10px] tracking-widest uppercase text-muted-foreground border border-border">
                     Generating Token...
                   </div>
                 )
@@ -264,14 +264,14 @@ export default function PassPage() {
               {activeMode === "nfc" && (
                 <button 
                   onClick={() => { if (token) nfc.write(token) }}
-                  className="w-[240px] h-[240px] bg-secondary/10 flex flex-col items-center justify-center text-signal cursor-pointer hover:bg-signal/5 transition border border-signal/30 hover:border-signal"
+                  className="w-60 h-60 bg-secondary/10 flex flex-col items-center justify-center text-signal cursor-pointer hover:bg-signal/5 transition border border-signal/30 hover:border-signal"
                 >
                   <SmartphoneNfc size={80} className={`mb-4 ${nfc.isWriting ? 'animate-pulse' : ''}`} />
                   <span className="font-mono text-[10px] tracking-widest uppercase">{nfc.isWriting ? "Ready... Tap Terminal" : "Transmit via NFC"}</span>
                 </button>
               )}
               {activeMode === "audio" && (
-                <div className="w-[240px] h-[240px] bg-secondary/10 flex flex-col items-center justify-center text-signal border border-signal/30">
+                <div className="w-60 h-60 bg-secondary/10 flex flex-col items-center justify-center text-signal border border-signal/30">
                   <Radio size={80} className="mb-4 animate-ping" />
                   <span className="font-mono text-[10px] tracking-widest uppercase">Broadcasting...</span>
                 </div>
