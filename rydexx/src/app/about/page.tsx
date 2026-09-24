@@ -72,7 +72,7 @@ export default function AboutPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="mt-8 text-sm md:text-base font-mono tracking-[0.1em] text-muted-foreground max-w-2xl mx-auto leading-relaxed uppercase"
+            className="mt-8 text-sm md:text-base font-mono tracking-widest text-muted-foreground max-w-2xl mx-auto leading-relaxed uppercase"
           >
             Rydex is the world's most premium multi-vehicle logistics aggregator. 
             We build zero-friction coordinate paths to transport everything from simple commutes to industrial freighter cargo.

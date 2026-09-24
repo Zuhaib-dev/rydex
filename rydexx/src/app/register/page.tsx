@@ -135,7 +135,7 @@ export default function RegisterPage() {
           <h1 className="font-serif text-[48px] lg:text-[64px] font-black leading-[0.9] tracking-tighter text-ink">
             Join the Fleet<br/>and take control.
           </h1>
-          <p className="mt-6 font-mono text-[12px] tracking-[0.1em] text-ink/70 max-w-md leading-relaxed uppercase">
+          <p className="mt-6 font-mono text-[12px] tracking-widest text-ink/70 max-w-md leading-relaxed uppercase">
             Create an account to book rides instantly. One terminal, every wheel on the road.
           </p>
         </div>
@@ -154,7 +154,7 @@ export default function RegisterPage() {
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
         </Link>
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-100">
           {/* Mobile brand */}
           <div className="flex md:hidden items-baseline gap-1.5 mb-10 mt-8">
             <Link href="/" className="flex items-baseline gap-1.5 hover:opacity-80 transition-opacity">

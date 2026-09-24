@@ -145,7 +145,7 @@ export default function LoginPage() {
           <h1 className="font-serif text-[48px] lg:text-[64px] font-black leading-[0.9] tracking-tighter text-ink">
             One terminal,<br/>every wheel on the road.
           </h1>
-          <p className="mt-6 font-mono text-[12px] tracking-[0.1em] text-ink/70 max-w-md leading-relaxed uppercase">
+          <p className="mt-6 font-mono text-[12px] tracking-widest text-ink/70 max-w-md leading-relaxed uppercase">
             Log in to manage your bookings, fleet, and operator console. Secure connection verified.
           </p>
         </div>
@@ -163,7 +163,7 @@ export default function LoginPage() {
         >
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
         </Link>
-        <div className="w-full max-w-[400px]">
+        <div className="w-full max-w-100">
           <div className="flex md:hidden items-baseline gap-1.5 mb-10 mt-8">
             <Link href="/" className="flex items-baseline gap-1.5 hover:opacity-80 transition-opacity">
               <span className="font-serif text-[32px] font-black leading-none tracking-tighter text-ink">Rydex</span>
