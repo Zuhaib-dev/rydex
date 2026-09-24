@@ -1,122 +1,280 @@
-import type { Metadata } from "next";
+"use client";
+import React, { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Mail, Lock } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
+import { startAuthentication } from "@simplewebauthn/browser";
+import toast from "react-hot-toast";
+import { CircleDashed, Asterisk, ArrowRight, ArrowUpRight } from "lucide-react";
 
-export const metadata: Metadata = {
-  title: "Login",
-  description: "Sign in to your Rydex account to manage your rides, wallet, and profile. Secure and fast access.",
-  openGraph: {
-    title: "Login | Rydex",
-    description: "Sign in to your Rydex account to manage your rides, wallet, and profile. Secure and fast access.",
-    url: "https://rydexx.netlify.app/login",
-    siteName: "Rydex",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Login | Rydex",
-    description: "Sign in to your Rydex account to manage your rides, wallet, and profile. Secure and fast access.",
-  },
-  alternates: {
-    canonical: "https://rydexx.netlify.app/login",
-  },
+const getCredentialError = (error: string): string => {
+  const msg = error.toLowerCase();
+  if (msg.includes("suspended") || msg.includes("blocked"))
+    return "Your account has been suspended. Contact support.";
+  if (msg.includes("google") || msg.includes("use google"))
+    return "This account was created with Google. Please use the Google sign-in button.";
+  if (msg.includes("not found") || msg.includes("user"))
+    return "No account found with this email.";
+  if (msg.includes("password") || msg.includes("invalid"))
+    return "Incorrect password. Please try again.";
+  if (msg.includes("verified") || msg.includes("email"))
+    return "Please verify your email before logging in.";
+  return "Login failed. Please check your credentials.";
+};
+
+const getPasskeyErrorMessage = (err: any): string => {
+  const name = err?.name || "";
+  const msg = (err?.message || "").toLowerCase();
+  if (name === "NotAllowedError" || msg.includes("timed out") || msg.includes("not allowed"))
+    return "Verification was cancelled or timed out. Please try again.";
+  if (name === "InvalidStateError")
+    return "This passkey is already registered on your account.";
+  if (name === "NotSupportedError")
+    return "Your browser or device doesn't support passkeys. Try Chrome or Safari.";
+  if (name === "SecurityError")
+    return "Security check failed. Make sure you're on the correct website.";
+  if (name === "AbortError")
+    return "Verification was cancelled.";
+  if (name === "TypeError" || msg.includes("failed to read"))
+    return "Something went wrong setting up the passkey. Please try again.";
+  if (msg.includes("challenge expired") || msg.includes("missing"))
+    return "The passkey session expired. Please try again.";
+  if (msg.includes("not registered") || msg.includes("not found"))
+    return "No passkey found for this device. Please register one first.";
+  return "Passkey login failed. Please try a different sign-in method.";
 };
 
 export default function LoginPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [err, setErr] = useState("");
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr("");
+    if (!email.trim()) return setErr("Please enter your email.");
+    if (!password) return setErr("Please enter your password.");
+
+    setLoading(true);
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        setErr(getCredentialError(res.error));
+      } else if (res?.ok) {
+        router.refresh();
+        router.push("/");
+      }
+    } catch {
+      setErr("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      await signIn("google", { callbackUrl: "/" });
+    } catch {
+      setGoogleLoading(false);
+      toast.error("Google sign-in failed. Please try again.", { duration: 3000 });
+    }
+  };
+
+  const handlePasskeyLogin = async () => {
+    let toastId: string | undefined;
+    try {
+      toastId = toast.loading("Waiting for biometric...", { duration: Infinity });
+      const resp = await fetch("/api/auth/webauthn/login/generate");
+      if (!resp.ok) throw new Error("Failed to generate login challenge");
+      const options = await resp.json();
+
+      const asseResp = await startAuthentication(options);
+
+      const res = await signIn("passkey", {
+        response: JSON.stringify(asseResp),
+        redirect: false,
+      });
+
+      if (res?.error) {
+        const friendly = "No passkey found for this account. Register one first.";
+        toast.error(friendly, { id: toastId, duration: 3000 });
+        setErr(friendly);
+      } else if (res?.ok) {
+        toast.success("Logged in!", { id: toastId, duration: 3000 });
+        router.refresh();
+        router.push("/");
+      }
+    } catch (err: any) {
+      const friendly = getPasskeyErrorMessage(err);
+      toast.error(friendly, { id: toastId, duration: 3000 });
+      setErr(friendly);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#fafafa] flex items-center justify-center p-4 selection:bg-black selection:text-white relative overflow-hidden">
-      {/* Decorative background blur */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-black/3 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] rounded-full bg-black/3 blur-[120px] pointer-events-none" />
-
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-100 p-8 sm:p-10 relative z-10">
-        <div className="text-center mb-10">
-          <Link href="/" className="inline-block mb-6 transition-transform hover:scale-105 active:scale-95">
-            <div className="w-12 h-12 bg-black text-white rounded-xl flex items-center justify-center mx-auto shadow-lg shadow-black/10">
-              <span className="font-display font-bold text-xl tracking-tighter">R</span>
-            </div>
+    <div className="facelift-landing min-h-screen flex flex-col md:flex-row">
+      <div className="hidden md:flex w-full md:w-1/2 lg:w-3/5 bg-secondary relative flex-col justify-between p-12 border-r border-border overflow-hidden">
+        <div
+          className="absolute inset-0 opacity-40 mix-blend-multiply"
+          style={{
+            backgroundImage:
+              "linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div className="relative z-10 flex items-baseline gap-1.5 mb-10">
+          <Link href="/" className="flex items-baseline gap-1.5 hover:opacity-80 transition-opacity">
+            <span className="font-serif text-[40px] font-black leading-none tracking-tighter text-ink">Rydex</span>
+            <span className="font-mono text-[12px] text-ink/60">™</span>
           </Link>
-          <h1 className="text-3xl font-display font-bold text-neutral-900 tracking-tight mb-2">Welcome back</h1>
-          <p className="text-neutral-500 text-sm font-medium">Enter your details to access your account</p>
         </div>
+        
+        <div className="relative z-10 max-w-lg mb-10">
+          <div className="font-mono text-[11px] tracking-[0.25em] uppercase text-signal mb-5 flex items-center gap-2">
+            <Asterisk className="h-3 w-3" /> System Access
+          </div>
+          <h1 className="font-serif text-[48px] lg:text-[64px] font-black leading-[0.9] tracking-tighter text-ink">
+            One terminal,<br/>every wheel on the road.
+          </h1>
+          <p className="mt-6 font-mono text-[12px] tracking-[0.1em] text-ink/70 max-w-md leading-relaxed uppercase">
+            Log in to manage your bookings, fleet, and operator console. Secure connection verified.
+          </p>
+        </div>
+        
+        <div className="relative z-10 font-mono text-[10px] tracking-[0.22em] uppercase text-ink/50 flex items-center justify-between">
+          <span>Encrypted · TLS 1.3</span>
+          <span>SRINAGAR · JK</span>
+        </div>
+      </div>
 
-        <form className="space-y-5">
-          <div className="space-y-2">
-            <label htmlFor="email" className="text-xs font-semibold text-neutral-900 uppercase tracking-wider ml-1">
-              Email Address
-            </label>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 group-focus-within:text-black transition-colors">
-                <Mail size={18} />
-              </div>
-              <input
-                id="email"
-                type="email"
-                placeholder="hello@example.com"
-                className="w-full pl-11 pr-4 py-3.5 bg-neutral-50 border border-transparent rounded-xl text-sm transition-all focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none placeholder:text-neutral-400 text-neutral-900 font-medium"
-                required
-              />
-            </div>
+      <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col justify-center items-center p-6 sm:p-12 bg-background relative min-h-screen md:min-h-0">
+        <div className="w-full max-w-[400px]">
+          <div className="flex md:hidden items-baseline gap-1.5 mb-10">
+            <Link href="/" className="flex items-baseline gap-1.5 hover:opacity-80 transition-opacity">
+              <span className="font-serif text-[32px] font-black leading-none tracking-tighter text-ink">Rydex</span>
+              <span className="font-mono text-[10px] text-ink/60">™</span>
+            </Link>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between ml-1">
-              <label htmlFor="password" className="text-xs font-semibold text-neutral-900 uppercase tracking-wider">
-                Password
-              </label>
-              <Link href="/forgot-password" className="text-xs font-medium text-neutral-500 hover:text-black transition-colors">
-                Forgot password?
-              </Link>
+          <div className="mb-8">
+            <div className="font-mono text-[10px] tracking-[0.22em] uppercase text-signal mb-1.5 flex items-center">
+              <Asterisk className="inline h-3 w-3 mr-1" />
+              Re-entry
             </div>
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-neutral-400 group-focus-within:text-black transition-colors">
-                <Lock size={18} />
-              </div>
+            <h2 className="font-serif text-[40px] leading-[0.95] font-black tracking-tighter">
+              Welcome Back
+            </h2>
+          </div>
+
+          <div className="space-y-3 mb-6">
+            <button 
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={googleLoading}
+              className="group w-full flex items-center justify-between hairline bg-background hover:bg-secondary transition-colors px-4 py-3.5 font-mono text-[11px] tracking-[0.18em] uppercase cursor-pointer disabled:opacity-50"
+            >
+              <span className="flex items-center gap-3">
+                {googleLoading ? <CircleDashed className="h-3.5 w-3.5 animate-spin" /> : <GoogleGlyph />} 
+                Continue with Google
+              </span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </button>
+            <button 
+              type="button"
+              onClick={handlePasskeyLogin}
+              className="group w-full flex items-center justify-between hairline bg-background hover:bg-secondary transition-colors px-4 py-3.5 font-mono text-[11px] tracking-[0.18em] uppercase cursor-pointer"
+            >
+              <span className="flex items-center gap-3"><PasskeyGlyph /> Continue with Passkey</span>
+              <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 my-6">
+            <span className="flex-1 h-px bg-border" />
+            <span className="font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground">OR</span>
+            <span className="flex-1 h-px bg-border" />
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <label className="block">
+              <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground block mb-2">Email</span>
               <input
-                id="password"
+                type="email"
+                placeholder="you@dispatch.in"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setErr(""); }}
+                className="w-full hairline bg-background px-4 py-3.5 font-mono text-[12px] tracking-wide focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal transition-colors placeholder:text-muted-foreground/60 text-ink"
+              />
+            </label>
+            <label className="block">
+              <span className="font-mono text-[10px] tracking-[0.22em] uppercase text-muted-foreground block mb-2">Password</span>
+              <input
                 type="password"
                 placeholder="••••••••"
-                className="w-full pl-11 pr-4 py-3.5 bg-neutral-50 border border-transparent rounded-xl text-sm transition-all focus:bg-white focus:border-black focus:ring-4 focus:ring-black/5 outline-none placeholder:text-neutral-400 text-neutral-900 font-medium"
-                required
+                value={password}
+                onChange={(e) => { setPassword(e.target.value); setErr(""); }}
+                className="w-full hairline bg-background px-4 py-3.5 font-mono text-[12px] tracking-wide focus:outline-none focus:border-signal focus:ring-1 focus:ring-signal transition-colors placeholder:text-muted-foreground/60 text-ink"
               />
-            </div>
-          </div>
+            </label>
 
-          <button
-            type="submit"
-            className="w-full group relative flex items-center justify-center gap-2 bg-black text-white py-3.5 rounded-xl text-sm font-semibold hover:bg-neutral-900 transition-all active:scale-[0.98] shadow-lg shadow-black/10 overflow-hidden"
-          >
-            <span className="relative z-10 flex items-center gap-2">
-              Sign In
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </span>
-          </button>
-        </form>
+            {err && (
+              <div className="font-mono text-[10px] text-red-500 uppercase tracking-wide my-2">
+                {err}
+              </div>
+            )}
 
-        <div className="my-8 flex items-center gap-4">
-          <div className="h-px flex-1 bg-neutral-100" />
-          <span className="text-xs font-medium text-neutral-400 uppercase tracking-wider">Or continue with</span>
-          <div className="h-px flex-1 bg-neutral-100" />
+            <button
+              type="submit"
+              disabled={loading}
+              className="group w-full mt-4 brick hover:bg-signal transition-colors px-4 py-4 font-mono text-[11px] tracking-[0.22em] uppercase inline-flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {loading ? <CircleDashed className="h-4 w-4 animate-spin" /> : (
+                <>
+                  Login
+                  <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="mt-8 font-mono text-[11px] text-muted-foreground text-center">
+            Don't have an account?{" "}
+            <Link
+              href="/register"
+              className="text-foreground underline underline-offset-4 decoration-signal decoration-2 hover:text-signal uppercase tracking-[0.18em] text-[10px] ml-1 cursor-pointer transition-colors"
+            >
+              Sign Up
+            </Link>
+          </p>
         </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <button className="flex items-center justify-center gap-2 py-3 border border-neutral-200 rounded-xl hover:bg-neutral-50 hover:border-neutral-300 transition-all text-sm font-medium text-neutral-700 active:scale-[0.98]">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-            Google
-          </button>
-          <button className="flex items-center justify-center gap-2 py-3 border border-neutral-200 rounded-xl hover:bg-neutral-50 hover:border-neutral-300 transition-all text-sm font-medium text-neutral-700 active:scale-[0.98]">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M16.365 7.188c1.144-1.385 1.914-3.125 1.706-4.888-1.52.062-3.344 1.01-4.512 2.39-1.042 1.222-1.927 3.003-1.685 4.726 1.698.13 3.356-.842 4.49-2.228zm3.59 13.918c-1.36 1.986-2.76 3.963-4.945 4.004-2.146.04-2.852-1.264-5.296-1.264-2.456 0-3.232 1.223-5.296 1.305-2.146.082-3.743-2.15-5.114-4.13C-3.486 11.238 2.008 3.593 7.24 3.675c2.103.04 4.015 1.488 5.296 1.488 1.282 0 3.585-1.748 6.14-1.488 1.05.044 4.006.42 5.922 3.226-4.757 2.802-3.996 9.475.357 11.127-.723 1.83-1.696 3.32-2.999 5.228z"/></svg>
-            Apple
-          </button>
-        </div>
-
-        <p className="mt-8 text-center text-sm font-medium text-neutral-500">
-          Don't have an account?{" "}
-          <Link href="/register" className="text-black hover:underline underline-offset-4 font-semibold transition-all">
-            Create account
-          </Link>
-        </p>
       </div>
     </div>
+  );
+}
+
+function GoogleGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden>
+      <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.6 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.4 14.6 2.5 12 2.5 6.8 2.5 2.6 6.7 2.6 12S6.8 21.5 12 21.5c6.9 0 9.5-4.8 9.5-7.3 0-.5 0-.9-.1-1.3H12z"/>
+    </svg>
+  );
+}
+
+function PasskeyGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <circle cx="9" cy="8" r="3.5"/>
+      <path d="M9 11.5v9l2-2 2 2v-9"/>
+      <path d="M15 6h6M15 9h4"/>
+    </svg>
   );
 }
