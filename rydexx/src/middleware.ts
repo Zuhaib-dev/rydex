@@ -9,6 +9,8 @@ const PUBLIC_ROUTES = [
   "/faq",
   "/privacy",
   "/terms",
+  "/login",
+  "/register",
 ];
 
 const PUBLIC_PREFIXES = ["/share/"];
