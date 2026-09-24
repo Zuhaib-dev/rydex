@@ -21,5 +21,26 @@ export const metadata: Metadata = {
 };
 
 export default function LoginLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    "name": "Login | Rydex",
+    "description": "Sign in to your Rydex account to manage your rides, wallet, and profile. Secure and fast access.",
+    "url": "https://rydexx.netlify.app/login",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Rydex",
+      "logo": "https://rydexx.netlify.app/icon-192x192.png"
+    }
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      {children}
+    </>
+  );
 }
