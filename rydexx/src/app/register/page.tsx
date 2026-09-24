@@ -6,7 +6,7 @@ import { signIn } from "next-auth/react";
 import { startAuthentication } from "@simplewebauthn/browser";
 import toast from "react-hot-toast";
 import axios from "axios";
-import { CircleDashed, Asterisk, ArrowRight, ArrowUpRight } from "lucide-react";
+import { CircleDashed, Asterisk, ArrowRight, ArrowUpRight, ArrowLeft } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -148,9 +148,15 @@ export default function RegisterPage() {
 
       {/* Right side - Form */}
       <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col justify-center items-center p-6 sm:p-12 bg-background relative min-h-screen md:min-h-0">
+        <Link 
+          href="/"
+          className="absolute top-6 left-6 md:top-8 md:left-8 group flex items-center justify-center w-10 h-10 rounded-full border border-border bg-background hover:bg-secondary transition-colors cursor-pointer text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5" />
+        </Link>
         <div className="w-full max-w-[400px]">
           {/* Mobile brand */}
-          <div className="flex md:hidden items-baseline gap-1.5 mb-10">
+          <div className="flex md:hidden items-baseline gap-1.5 mb-10 mt-8">
             <Link href="/" className="flex items-baseline gap-1.5 hover:opacity-80 transition-opacity">
               <span className="font-serif text-[32px] font-black leading-none tracking-tighter text-ink">Rydex</span>
               <span className="font-mono text-[10px] text-ink/60">™</span>
