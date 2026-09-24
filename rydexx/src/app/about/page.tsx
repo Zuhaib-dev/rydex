@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Shield, Sparkles, Users, Award, TrendingUp, Compass } from "lucide-react";
+import { Shield, Sparkles, Users, Award, TrendingUp, Compass, Asterisk, ArrowUpRight } from "lucide-react";
 import Nav from "@/components/landing/sections/Nav";
 import Foot from "@/components/landing/sections/Foot";
 
@@ -33,23 +33,29 @@ export default function AboutPage() {
   ];
 
   return (
-    <div className="w-full min-h-screen bg-[#060606] text-white select-none">
+    <div className="facelift-landing min-h-screen overflow-x-hidden flex flex-col">
       <Nav onAuthRequired={() => {}} />
 
-      {/* Hero Section */}
-      <section className="relative pt-36 pb-20 px-4 md:px-8 text-center overflow-hidden">
-        {/* Background ambient lights */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] md:w-[600px] md:h-[600px] bg-blue-600/10 rounded-full blur-[100px] -z-10" />
-        <div className="absolute top-1/3 left-1/4 w-[250px] h-[250px] bg-purple-600/10 rounded-full blur-[80px] -z-10" />
+      <main className="flex-1 relative z-10">
+        {/* Background Grid */}
+        <div
+          className="absolute inset-0 opacity-20 mix-blend-multiply pointer-events-none -z-10"
+          style={{
+            backgroundImage:
+              "linear-gradient(var(--color-border) 1px, transparent 1px), linear-gradient(90deg, var(--color-border) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
 
-        <div className="max-w-4xl mx-auto">
+        {/* Hero Section */}
+        <section className="relative pt-36 pb-20 px-6 md:px-12 text-center max-w-5xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md text-xs font-semibold text-blue-400 mb-6"
+            className="inline-flex items-center gap-2 mb-8 font-mono text-[11px] tracking-[0.25em] uppercase text-signal"
           >
-            <Sparkles size={14} />
+            <Asterisk className="w-3 h-3" />
             <span>Discover Rydex</span>
           </motion.div>
 
@@ -57,104 +63,109 @@ export default function AboutPage() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.1 }}
-            className="text-4xl md:text-7xl font-extrabold tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white via-neutral-200 to-neutral-400 leading-tight"
+            className="font-serif text-[48px] md:text-[80px] lg:text-[96px] font-black leading-[0.9] tracking-tighter text-ink"
           >
-            Revolutionizing Logistics &amp; Travel
+            Revolutionizing Logistics &amp; Travel.
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="mt-6 text-base md:text-xl text-neutral-400 max-w-2xl mx-auto leading-relaxed"
+            className="mt-8 text-sm md:text-base font-mono tracking-[0.1em] text-muted-foreground max-w-2xl mx-auto leading-relaxed uppercase"
           >
             Rydex is the world's most premium multi-vehicle logistics aggregator. 
             We build zero-friction coordinate paths to transport everything from simple commutes to industrial freighter cargo.
           </motion.p>
-        </div>
-      </section>
+        </section>
 
-      {/* Stats Counter Section */}
-      <section className="py-16 px-4 md:px-8 border-y border-white/5 bg-white/1">
-        <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map((stat, i) => {
-            const Icon = stat.icon;
-            return (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="text-center flex flex-col items-center"
-              >
-                <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-blue-400 mb-4 shadow-[0_0_20px_rgba(59,130,246,0.1)]">
-                  <Icon size={20} />
-                </div>
-                <span className="text-3xl md:text-5xl font-black text-white tracking-tight">{stat.value}</span>
-                <span className="text-xs md:text-sm text-neutral-500 font-medium mt-2 uppercase tracking-widest">{stat.label}</span>
-              </motion.div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Values Section */}
-      <section className="py-24 px-4 md:px-8 max-w-6xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight">Our Core Pillars</h2>
-          <p className="text-neutral-400 text-sm md:text-base mt-4 max-w-lg mx-auto">
-            We operate on uncompromising reliability parameters, securing every ride checkpoint.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-8">
-          {values.map((v, i) => {
-            const Icon = v.icon;
-            return (
-              <motion.div
-                key={v.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: i * 0.15 }}
-                className="p-8 rounded-3xl border border-white/10 bg-white/2 backdrop-blur-2xl hover:border-white/20 transition-all group"
-              >
-                <div className="w-12 h-12 rounded-xl bg-blue-600/10 border border-blue-500/20 text-blue-400 flex items-center justify-center mb-6 group-hover:scale-110 transition-all duration-300">
-                  <Icon size={22} />
-                </div>
-                <h3 className="text-xl font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">{v.title}</h3>
-                <p className="text-neutral-400 text-sm leading-relaxed">{v.desc}</p>
-              </motion.div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* Brand CTA */}
-      <section className="py-24 px-4 md:px-8 relative text-center border-t border-white/5">
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-purple-600/10 rounded-full blur-[100px] -z-10" />
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl md:text-6xl font-extrabold tracking-tight">Ready to hit the road?</h2>
-          <p className="text-neutral-400 text-sm md:text-base mt-4 max-w-md mx-auto leading-relaxed">
-            Register as a partner driver or get instant pickup options with the ultimate multi-vehicle scheduler.
-          </p>
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-            <button
-              onClick={() => window.location.href = "/"}
-              className="w-full sm:w-auto px-8 py-3.5 bg-white text-black font-bold rounded-full shadow-lg hover:scale-105 hover:bg-neutral-100 transition-all duration-300"
-            >
-              Book Now
-            </button>
-            <button
-              onClick={() => window.location.href = "/partner/onboarding/vehicle"}
-              className="w-full sm:w-auto px-8 py-3.5 bg-[#121212] border border-white/10 text-white font-bold rounded-full hover:bg-white/5 transition-all duration-300"
-            >
-              Become a Partner
-            </button>
+        {/* Stats Section */}
+        <section className="py-16 px-6 md:px-12 border-y border-border bg-secondary/50">
+          <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
+            {stats.map((stat, i) => {
+              const Icon = stat.icon;
+              return (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.1 }}
+                  className="text-center flex flex-col items-center"
+                >
+                  <div className="w-12 h-12 rounded-full border border-border bg-background flex items-center justify-center text-signal mb-4">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className="font-serif text-[32px] md:text-[48px] font-black text-ink tracking-tighter leading-none">{stat.value}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground mt-3 uppercase tracking-[0.2em]">{stat.label}</span>
+                </motion.div>
+              );
+            })}
           </div>
-        </div>
-      </section>
+        </section>
+
+        {/* Values Section */}
+        <section className="py-24 px-6 md:px-12 max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="font-serif text-[40px] md:text-[56px] font-black text-ink tracking-tighter leading-[0.95]">
+              Our Core Pillars
+            </h2>
+            <p className="font-mono text-[11px] md:text-[12px] uppercase tracking-[0.15em] text-muted-foreground mt-6 max-w-xl mx-auto">
+              We operate on uncompromising reliability parameters, securing every ride checkpoint.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {values.map((v, i) => {
+              const Icon = v.icon;
+              return (
+                <motion.div
+                  key={v.title}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, delay: i * 0.15 }}
+                  className="p-8 hairline bg-background hover:bg-secondary transition-colors group flex flex-col h-full"
+                >
+                  <div className="w-12 h-12 rounded-full border border-border bg-secondary text-ink flex items-center justify-center mb-6 group-hover:text-signal group-hover:border-signal/30 transition-all duration-300">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-serif text-[24px] font-black text-ink tracking-tight mb-4">{v.title}</h3>
+                  <p className="font-mono text-[11px] text-muted-foreground leading-relaxed uppercase tracking-wider">{v.desc}</p>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Brand CTA */}
+        <section className="py-24 px-6 md:px-12 text-center border-t border-border bg-secondary/30">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="font-serif text-[48px] md:text-[72px] font-black tracking-tighter text-ink leading-[0.9]">
+              Ready to hit the road?
+            </h2>
+            <p className="font-mono text-[11px] md:text-[12px] uppercase tracking-[0.15em] text-muted-foreground mt-6 max-w-lg mx-auto leading-relaxed">
+              Register as a partner driver or get instant pickup options with the ultimate multi-vehicle scheduler.
+            </p>
+            <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button
+                onClick={() => window.location.href = "/"}
+                className="w-full sm:w-auto px-8 py-4 brick bg-ink text-bone hover:bg-ink/90 transition-colors font-mono text-[11px] tracking-[0.22em] uppercase flex items-center justify-center gap-2"
+              >
+                Book Now
+                <ArrowUpRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => window.location.href = "/partner/onboarding/vehicle"}
+                className="w-full sm:w-auto px-8 py-4 hairline bg-background text-ink hover:bg-secondary transition-colors font-mono text-[11px] tracking-[0.22em] uppercase flex items-center justify-center gap-2"
+              >
+                Become a Partner
+                <ArrowUpRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
 
       <Foot />
     </div>
