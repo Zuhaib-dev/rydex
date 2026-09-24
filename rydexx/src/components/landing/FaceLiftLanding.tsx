@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import AuthModel from "../AuthModel";
+
 import {
   ArrowUpRight,
   ArrowRight,
@@ -19,6 +19,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 
 
+import { useRouter } from "next/navigation";
 import Ticker from "./sections/Ticker";
 import Nav from "./sections/Nav";
 import Hero from "./sections/Hero";
@@ -32,16 +33,10 @@ import SplitFlapBoard from "./sections/SplitFlapBoard";
 import Ledger from "./sections/Ledger";
 
 export default function FaceLiftLanding() {
-  const [authOpen, setAuthOpen] = useState(false);
-  const [authRedirect, setAuthRedirect] = useState("/");
+  const router = useRouter();
 
   const openAuth = (redirectUrl: string = "/") => {
-    if (typeof redirectUrl === 'string') {
-      setAuthRedirect(redirectUrl);
-    } else {
-      setAuthRedirect("/");
-    }
-    setAuthOpen(true);
+    router.push("/login");
   };
 
   return (
@@ -57,11 +52,6 @@ export default function FaceLiftLanding() {
       <Ledger />
       <Manifesto />
       <Foot />
-      <AuthModel
-        open={authOpen}
-        onClose={() => setAuthOpen(false)}
-        redirectTo={authRedirect}
-      />
     </div>
   );
 }

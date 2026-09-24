@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import AuthModel from "../../AuthModel";
+
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 

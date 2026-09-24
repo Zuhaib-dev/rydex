@@ -32,7 +32,7 @@ import type { LucideIcon } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 
-import AuthModel from "../../AuthModel";
+
 import InstallModal from "../../InstallModal";
 import { getSocket } from "@/lib/socket";
 import { useSWRConfig } from "swr";
@@ -129,23 +129,19 @@ function Nav({ onAuthRequired }: { onAuthRequired: (redirectUrl?: string) => voi
             <div className="h-10 w-10 sm:w-28 bg-foreground/10 animate-pulse rounded-full sm:rounded-none" />
           ) : !isLoggedIn ? (
             <>
-              <button 
-                onClick={(e) => {
-                  if (e.altKey) setMockLoggedIn(true);
-                  else onAuthRequired("/");
-                }} 
-                className="font-mono text-[11px] tracking-[0.18em] uppercase hover:text-signal transition-colors"
-                title="Alt-Click to mock login"
+              <Link 
+                href="/login"
+                className="font-mono text-[11px] tracking-[0.18em] uppercase hover:text-signal transition-colors mr-2"
               >
-                Log in →
-              </button>
-              <button
-                onClick={handleInstallClick}
+                Log in
+              </Link>
+              <Link
+                href="/register"
                 className="group inline-flex items-center gap-2 brick px-4 py-2 font-mono text-[11px] tracking-[0.18em] uppercase hover:bg-signal transition-colors"
               >
-                <span>Get the App</span>
-                <ArrowUpRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-              </button>
+                <span>Sign Up</span>
+                <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+              </Link>
             </>
           ) : (
             <div className="flex items-center gap-4">
