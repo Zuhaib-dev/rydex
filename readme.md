@@ -853,6 +853,6 @@ Full-stack engineer · UI/UX obsessive · Real-time systems nerd
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Zuhaib_Rashid-0A66C2?style=for-the-badge&logo=linkedin)](https://www.linkedin.com/in/zuhaib-rashid-661345318/)
 [![Twitter](https://img.shields.io/badge/Twitter-@xuhaib__x9-1DA1F2?style=for-the-badge&logo=twitter)](https://x.com/xuhaib_x9)
 
-*Built with obsessive attention to detail, real-world production patterns, and way too much coffee.*
+*Built with obsessive attention to detail, real-world production patterns, and way too much coffee and nun chai.*
 
 </div> 
