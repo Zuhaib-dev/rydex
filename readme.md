@@ -846,7 +846,7 @@ npm run dev
 <div align="center">
 
 **Zuhaib Rashid**  
-Full-stack engineer · UI/UX obsessive · Real-time systems nerd
+Full-stack engineer · UI/UX obsessive · Real-time systems  nerd    
 
 [![Portfolio](https://img.shields.io/badge/Portfolio-zuhaibrashid.com-0078D4?style=for-the-badge&logo=microsoft-edge)](https://zuhaibrashid.com)
 [![GitHub](https://img.shields.io/badge/GitHub-Zuhaib--dev-181717?style=for-the-badge&logo=github)](https://github.com/Zuhaib-dev)
