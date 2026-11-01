@@ -1,0 +1,11 @@
+{
+  "name": "rydex",
+  "private": true,
+  "scripts": {
+    "prepare": "husky",
+    "check": "npm --prefix rydexx run lint && npm --prefix rydexx test && npm --prefix socketServer test"
+  },
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
+}
