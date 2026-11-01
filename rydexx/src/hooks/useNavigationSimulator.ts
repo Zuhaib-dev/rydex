@@ -2,32 +2,15 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { distanceMeters, bearingDegrees } from "@/lib/mapboxRouting";
+import type { RouteInstruction } from "@/lib/routeInstructions";
 
-export interface TurnStep {
-  coordinate: [number, number]; // [lng, lat]
-  type: "left" | "right" | "straight" | "destination";
-  instruction: string;
-  distanceFromStart: number;
-}
+export type TurnStep = RouteInstruction;
 
 export function generateTurnSteps(coords: [number, number][]): TurnStep[] {
   if (coords.length < 2) return [];
 
   const steps: TurnStep[] = [];
   
-  // Kashmiri road names for simulation realism
-  const roadNames = [
-    "Residency Road", "M.A. Road", "Airport Bypass", "Lal Chowk Link", 
-    "Dal Lake Boulevard", "Gupkar Road", "Karan Nagar Street", "Hyderpora Highway", 
-    "Hari Singh High Street", "Nowhatta Bazar Road", "Jhelum Boulevard"
-  ];
-
-  // Helper to hash coordinates to get a consistent road name
-  const getRoadName = (lng: number, lat: number, idx: number) => {
-    const hash = Math.abs(Math.round((lng + lat) * 10000)) % roadNames.length;
-    return roadNames[(hash + idx) % roadNames.length];
-  };
-
   // Pre-calculate cumulative distances for each node
   const cumulativeDistances: number[] = [0];
   for (let i = 0; i < coords.length - 1; i++) {
@@ -49,6 +32,7 @@ export function generateTurnSteps(coords: [number, number][]): TurnStep[] {
   }
 
   // Find turns based on bearing changes between adjacent segments
+  let lastTurnDistance = -Infinity;
   for (let i = 1; i < coords.length - 1; i++) {
     const b1 = segmentBearings[i - 1];
     const b2 = segmentBearings[i];
@@ -57,15 +41,15 @@ export function generateTurnSteps(coords: [number, number][]): TurnStep[] {
     if (diff > 180) diff -= 360;
     if (diff < -180) diff += 360;
 
-    if (Math.abs(diff) > 28) {
-      const road = getRoadName(coords[i][0], coords[i][1], i);
+    if (Math.abs(diff) > 35 && cumulativeDistances[i] - lastTurnDistance > 35) {
       const isRight = diff > 0;
       steps.push({
         coordinate: coords[i],
         type: isRight ? "right" : "left",
-        instruction: `Turn ${isRight ? "right" : "left"} onto ${road}`,
+        instruction: `Turn ${isRight ? "right" : "left"}`,
         distanceFromStart: cumulativeDistances[i]
       });
+      lastTurnDistance = cumulativeDistances[i];
     }
   }
 

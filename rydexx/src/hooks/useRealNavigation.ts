@@ -1,100 +1,88 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { distanceMeters } from "@/lib/mapboxRouting";
+import type { RouteInstruction } from "@/lib/routeInstructions";
 import { generateTurnSteps, type TurnStep } from "./useNavigationSimulator";
 
 export function useRealNavigation(
   currentLocation: [number, number] | null, // [lat, lng]
   routeCoords: [number, number][] | undefined, // [lng, lat]
-  voiceMuted: boolean
+  voiceMuted: boolean,
+  routeInstructions?: RouteInstruction[],
 ) {
-  const [nextTurnStep, setNextTurnStep] = useState<TurnStep | null>(null);
-  const [nextTurnDistance, setNextTurnDistance] = useState<number>(0);
-  
-  const lastSpokenInstructionRef = useRef<string>("");
-  const turnStepsRef = useRef<TurnStep[]>([]);
-  const cumulativeDistancesRef = useRef<number[]>([]);
+  const lastSpokenInstructionRef = useRef("");
 
-  // Initialize steps when route changes
-  useEffect(() => {
-    if (!routeCoords || routeCoords.length < 2) {
-      setNextTurnStep(null);
-      turnStepsRef.current = [];
-      cumulativeDistancesRef.current = [];
-      // We don't reset lastSpokenInstructionRef here, so we don't repeat the same instruction if route updates
-      return;
-    }
+  const turnSteps = useMemo(() => {
+    if (!routeCoords || routeCoords.length < 2) return [];
+    return routeInstructions?.length ? routeInstructions : generateTurnSteps(routeCoords);
+  }, [routeCoords, routeInstructions]);
 
-    const steps = generateTurnSteps(routeCoords);
-    turnStepsRef.current = steps;
-
-    const cumulativeDistances: number[] = [0];
+  const cumulativeDistances = useMemo(() => {
+    if (!routeCoords || routeCoords.length < 2) return [];
+    const distances = [0];
     for (let i = 0; i < routeCoords.length - 1; i++) {
-      const d = distanceMeters(
-        [routeCoords[i][1], routeCoords[i][0]], 
-        [routeCoords[i + 1][1], routeCoords[i + 1][0]]
+      const distance = distanceMeters(
+        [routeCoords[i][1], routeCoords[i][0]],
+        [routeCoords[i + 1][1], routeCoords[i + 1][0]],
       );
-      cumulativeDistances.push(cumulativeDistances[i] + d);
+      distances.push(distances[i] + distance);
     }
-    cumulativeDistancesRef.current = cumulativeDistances;
+    return distances;
   }, [routeCoords]);
 
-  const speakInstruction = useCallback((text: string, instructionId: string) => {
-    if (voiceMuted) return;
-    if (lastSpokenInstructionRef.current === instructionId) return;
-    lastSpokenInstructionRef.current = instructionId;
-
-    if (typeof window !== "undefined" && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = 1.05;
-      window.speechSynthesis.speak(utterance);
+  const navigation = useMemo(() => {
+    if (!currentLocation || !routeCoords || turnSteps.length === 0 || cumulativeDistances.length === 0) {
+      return null;
     }
-  }, [voiceMuted]);
 
-  useEffect(() => {
-    if (!currentLocation || !routeCoords || turnStepsRef.current.length === 0) return;
-
-    // 1. Find closest segment to the driver
-    let closestIdx = 0;
-    let minDistance = Infinity;
-
+    let closestIndex = 0;
+    let closestDistance = Infinity;
     for (let i = 0; i < routeCoords.length; i++) {
-      const d = distanceMeters(currentLocation, [routeCoords[i][1], routeCoords[i][0]]);
-      if (d < minDistance) {
-        minDistance = d;
-        closestIdx = i;
+      const distance = distanceMeters(currentLocation, [routeCoords[i][1], routeCoords[i][0]]);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestIndex = i;
       }
     }
 
-    const currentDist = cumulativeDistancesRef.current[closestIdx];
+    const currentDistance = cumulativeDistances[closestIndex] ?? 0;
+    const nextTurn = turnSteps.find((step) => step.distanceFromStart > currentDistance + 15)
+      ?? turnSteps[turnSteps.length - 1];
+    return {
+      nextTurnStep: nextTurn,
+      nextTurnDistance: Math.max(0, nextTurn.distanceFromStart - currentDistance),
+    };
+  }, [currentLocation, routeCoords, turnSteps, cumulativeDistances]);
 
-    // 2. Find next turn
-    // We look for the first step that is ahead of the driver's current distance
-    const nextTurn = turnStepsRef.current.find(step => step.distanceFromStart > currentDist + 15) 
-      || turnStepsRef.current[turnStepsRef.current.length - 1];
-    
-    // Recalculate exact distance to turn
-    const distToTurn = Math.max(0, nextTurn.distanceFromStart - currentDist);
+  const speakInstruction = useCallback((text: string, instructionId: string) => {
+    if (voiceMuted || lastSpokenInstructionRef.current === instructionId) return;
+    lastSpokenInstructionRef.current = instructionId;
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
 
-    setNextTurnStep(nextTurn);
-    setNextTurnDistance(distToTurn);
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.05;
+    window.speechSynthesis.speak(utterance);
+  }, [voiceMuted]);
 
-    // 3. Voice triggers
-    const stepIdx = turnStepsRef.current.indexOf(nextTurn);
-    
-    // Trigger at 120m for a turn, or 60m for destination
-    if (distToTurn > 0 && distToTurn < 120 && nextTurn.type !== "destination") {
-      speakInstruction(`In ${Math.round(distToTurn)} meters, ${nextTurn.instruction}`, nextTurn.instruction);
-    } else if (distToTurn > 0 && distToTurn < 60 && nextTurn.type === "destination") {
-      speakInstruction("Approaching your destination", "destination");
+  useEffect(() => {
+    const nextTurn = navigation?.nextTurnStep;
+    const distance = navigation?.nextTurnDistance ?? 0;
+    if (!nextTurn || distance <= 0) return;
+
+    if (distance < 120 && nextTurn.type !== "destination") {
+      const coordinateId = nextTurn.coordinate?.map((part) => part.toFixed(4)).join(",");
+      const instructionId = `${nextTurn.type}:${nextTurn.instruction}:${coordinateId ?? nextTurn.distanceFromStart.toFixed(0)}`;
+      speakInstruction(`In ${Math.round(distance)} meters, ${nextTurn.instruction}`, instructionId);
+    } else if (distance < 60 && nextTurn.type === "destination") {
+      const coordinateId = nextTurn.coordinate?.map((part) => part.toFixed(4)).join(",");
+      speakInstruction("Approaching your destination", `destination:${coordinateId ?? "end"}`);
     }
-
-  }, [currentLocation, routeCoords, speakInstruction]);
+  }, [navigation, speakInstruction]);
 
   return {
-    nextTurnStep,
-    nextTurnDistance,
+    nextTurnStep: navigation?.nextTurnStep ?? null as TurnStep | null,
+    nextTurnDistance: navigation?.nextTurnDistance ?? 0,
   };
 }

@@ -23,7 +23,7 @@ import { getSocket } from "@/lib/socket";
 import { useBookingRealtime } from "@/hooks/useBookingRealtime";
 import type { RealtimeToast } from "@/hooks/useBookingRealtime";
 import RideToasts from "@/components/ride/RideToasts";
-import { snapToRoute, checkRouteDeviation } from "@/lib/routeDeviation";
+import { checkRouteDeviation } from "@/lib/routeDeviation";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { IUser } from "@/models/user.model";
@@ -55,6 +55,7 @@ export interface IBooking {
   user: IUser;
   driver: IUser;
   vehicle: IVehicle;
+  vehicleType?: string;
   pickupAddress: string;
   dropAddress: string;
   pickupLocation?: { type: "Point"; coordinates: [number, number] };
@@ -73,13 +74,13 @@ export interface IBooking {
 }
 
 /* ─── CONFIG ──────────────────────────────────────────────────────────── */
-const MAP_STATUS: Record<BookingStatus, "arriving" | "ongoing" | "completed"> =
+const MAP_STATUS: Record<BookingStatus, "arriving" | "arrived" | "ongoing" | "completed"> =
   {
     requested: "arriving",
     awaiting_payment: "arriving",
     confirmed: "arriving",
     arriving: "arriving",
-    arrived: "arriving",
+    arrived: "arrived",
     started: "ongoing",
     completed: "completed",
     cancelled: "completed",
@@ -293,7 +294,7 @@ export default function DriverRidePage() {
   }, []);
 
   /* ── GPS — only for active rides, uses shared location to avoid throttling ── */
-  const { position: rawPosition, speedKmh } = useSharedLocation();
+  const { position: rawPosition, speedKmh, headingDegrees } = useSharedLocation();
 
   useEffect(() => {
     const b = bookingRef.current;
@@ -301,10 +302,10 @@ export default function DriverRidePage() {
     if (!rawPosition) return;
 
     const socket = getSocket();
-    let lat = rawPosition.coords.latitude;
-    let lng = rawPosition.coords.longitude;
+    const lat = rawPosition.coords.latitude;
+    const lng = rawPosition.coords.longitude;
 
-    if (b.routePolyline) {
+    if (b.status === "started" && b.routePolyline) {
       const deviated = checkRouteDeviation([lat, lng], b.routePolyline, 500);
       if (deviated) {
         socket.emit("route-deviation", {
@@ -315,10 +316,6 @@ export default function DriverRidePage() {
         });
       }
 
-      // Snap for smooth visual rendering
-      const snapped = snapToRoute([lat, lng], b.routePolyline);
-      lat = snapped[0];
-      lng = snapped[1];
     }
 
     setDriverPos([lat, lng]);
@@ -327,8 +324,12 @@ export default function DriverRidePage() {
       latitude: lat,
       longitude: lng,
       status: b.status,
+      speedKmh,
+      heading: headingDegrees,
+      accuracy: rawPosition.coords.accuracy,
+      at: Date.now(),
     });
-  }, [rawPosition, booking?._id, booking?.status]);
+  }, [rawPosition, speedKmh, headingDegrees, booking?._id, booking?.status]);
 
   useBookingRealtime<IBooking>({
     bookingId: booking?._id,
@@ -578,9 +579,9 @@ export default function DriverRidePage() {
 
   const isActive = ["confirmed", "arriving", "arrived", "started"].includes(status);
   const canChat = ["confirmed", "arriving", "arrived"].includes(status);
-  const displayEta = mapStatus === "arriving" ? etaToPickup : etaToDrop;
+  const displayEta = mapStatus === "arrived" ? 0 : mapStatus === "arriving" ? etaToPickup : etaToDrop;
   const displayDistance =
-    mapStatus === "arriving" ? distanceToPickup : distanceToDrop;
+    mapStatus === "arrived" ? 0 : mapStatus === "arriving" ? distanceToPickup : distanceToDrop;
 
   const panelProps = {
     booking,
@@ -630,12 +631,15 @@ export default function DriverRidePage() {
       {/* MAP */}
       <div className="relative flex-1 h-full z-0">
         <LiveRideMap
+          key={booking?._id}
           driverLocation={driverPos}
           pickupLocation={pickupPos}
           dropLocation={dropPos}
           status={mapStatus}
           smoothDuration={1000}
           driverSpeedKmh={speedKmh}
+          driverHeading={headingDegrees}
+          vehicleType={booking?.vehicleType ?? booking?.vehicle?.type ?? "car"}
           isDriver={true}
           onStats={({
             distanceToPickup,

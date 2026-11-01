@@ -18,7 +18,7 @@ export interface ServerToClientEvents {
   "admin-dashboard-update": (data: { scope: string; reason: string; at: number }) => void;
   "driver-availability-updated": (data: { reason: string; at: number }) => void;
   "admin-driver-location": (data: { driverId: string; latitude: number; longitude: number; at: number }) => void;
-  "driver-location": (data: { bookingId: string; latitude: number; longitude: number; status: string }) => void;
+  "driver-location": (data: { bookingId: string; latitude: number; longitude: number; status: string; speedKmh?: number; heading?: number | null; accuracy?: number; at: number }) => void;
   "chat-message": (msg: any) => void;
   "chat-typing": (data: { rideId: string; sender: "user" | "driver"; isTyping: boolean }) => void;
   "chat-read": (data: { rideId: string; sender: "user" | "driver" }) => void;
@@ -37,7 +37,7 @@ export interface ClientToServerEvents {
   "join-admin": () => void;
   "join-booking": (bookingId: string) => void;
   "leave-booking": (bookingId: string) => void;
-  "driver-location-update": (data: { bookingId: string; latitude: number; longitude: number; status?: string; driverId?: string }) => void;
+  "driver-location-update": (data: { bookingId: string; latitude: number; longitude: number; status?: string; driverId?: string; speedKmh?: number; heading?: number | null; accuracy?: number; at?: number }) => void;
   "chat-message": (msg: { rideId: string; text: string; sender: string }) => void;
   "chat-typing": (data: { rideId: string; sender: "user" | "driver"; isTyping: boolean }) => void;
   "chat-read": (data: { rideId: string; sender: "user" | "driver" }) => void;
@@ -208,28 +208,65 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
       }
     });
 
-    socket.on("join-booking", (bookingId: string) => {
+    socket.on("join-booking", async (bookingId: string) => {
       if (!bookingId || typeof bookingId !== "string" || !/^[0-9a-fA-F]{24}$/.test(bookingId)) return;
-      console.log("joining room:", `booking-${bookingId}`);
-      socket.join(`booking-${bookingId}`);
+      if (!socket.userId) return;
+      try {
+        const booking = await Booking.findOne({
+          _id: bookingId,
+          $or: [{ user: socket.userId }, { driver: socket.userId }],
+        }).select("driver").lean();
+        if (!booking) return;
+        socket.join(`booking-${bookingId}`);
+        if (String(booking.driver) === String(socket.userId)) {
+          socket.join(`booking-driver-${bookingId}`);
+        }
+      } catch (err) {
+        console.error("Failed to authorize booking room join:", err);
+      }
     });
 
     socket.on("leave-booking", (bookingId: string) => {
       if (!bookingId || typeof bookingId !== "string" || !/^[0-9a-fA-F]{24}$/.test(bookingId)) return;
       socket.leave(`booking-${bookingId}`);
+      socket.leave(`booking-driver-${bookingId}`);
     });
 
     socket.on("driver-location-update", async (data) => {
+      const bookingId = typeof data?.bookingId === "string" ? data.bookingId : "";
+      if (!socket.userId || !/^[0-9a-fA-F]{24}$/.test(bookingId)) return;
+      if (!socket.rooms.has(`booking-driver-${bookingId}`)) return;
+      if (data.driverId && String(data.driverId) !== String(socket.userId)) return;
+      if (
+        typeof data.latitude !== "number" || !Number.isFinite(data.latitude) || Math.abs(data.latitude) > 90 ||
+        typeof data.longitude !== "number" || !Number.isFinite(data.longitude) || Math.abs(data.longitude) > 180
+      ) return;
+
+      const at = Date.now();
+      const speedKmh = typeof data.speedKmh === "number" && Number.isFinite(data.speedKmh)
+        ? Math.max(0, Math.min(160, data.speedKmh))
+        : undefined;
+      const heading = typeof data.heading === "number" && Number.isFinite(data.heading)
+        ? ((data.heading % 360) + 360) % 360
+        : null;
+      const accuracy = typeof data.accuracy === "number" && Number.isFinite(data.accuracy)
+        ? Math.max(0, Math.min(10_000, data.accuracy))
+        : undefined;
+
       io.to(`booking-${data.bookingId}`).emit("driver-location", {
         bookingId: data.bookingId,
         latitude: data.latitude,
         longitude: data.longitude,
         status: data.status || "arriving",
+        ...(speedKmh !== undefined ? { speedKmh } : {}),
+        heading,
+        ...(accuracy !== undefined ? { accuracy } : {}),
+        at,
       });
 
-      const targetDriverId = data.driverId || socket.userId;
+      const targetDriverId = socket.userId;
 
-      if (targetDriverId && typeof data.latitude === "number" && typeof data.longitude === "number") {
+      if (targetDriverId) {
         const now = new Date();
 
         // Throttle DB/Redis writes to once every 4 seconds per driver
@@ -365,6 +402,7 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
               latitude,
               longitude,
               status: activeBooking.status,
+              at: now.getTime(),
             });
           }
         } catch (err: any) {

@@ -68,6 +68,7 @@ interface BookingDetails {
     };
   };
   vehicle?: { vehicleModel: string; number: string };
+  vehicleType: string;
   pickupAddress: string;
   dropAddress: string;
   pickupLocation: { coordinates: [number, number] };
@@ -93,7 +94,7 @@ const STATUS_CONFIG: Record<
     label: string;
     sublabel: string;
     dot: string;
-    mapStatus: "arriving" | "ongoing" | "completed";
+    mapStatus: RideMapPhase;
   }
 > = {
   requested: {
@@ -124,7 +125,7 @@ const STATUS_CONFIG: Record<
     label: "Driver Arrived",
     sublabel: "Share pickup OTP to start your ride",
     dot: "bg-sky-400",
-    mapStatus: "arriving",
+    mapStatus: "arrived",
   },
   started: {
     label: "Trip in Progress",
@@ -344,13 +345,10 @@ export default function RidePage() {
     ? ([booking.driver.location.coordinates[1], booking.driver.location.coordinates[0]] as [number, number])
     : null;
 
-  const { driverPosition: driverPos, connectionStatus, isLive } = useRideSocket({
+  const { driverPosition: driverPos, connectionStatus, isLive, driverSpeedKmh, driverHeading } = useRideSocket({
     bookingId: id as string | undefined,
     enabled: Boolean(id && booking),
     initialDriverLocation: driverInitialLoc,
-    driverId: booking?.driver?._id,
-    status: booking?.status,
-    routeGeoJSON: booking?.routePolyline,
   });
 
   useBookingRealtime<BookingDetails>({
@@ -529,11 +527,15 @@ export default function RidePage() {
           />
         ) : (
           <LiveRideMap
+            key={booking._id}
             driverLocation={driverPos}
             pickupLocation={pickupPos!}
             dropLocation={dropPos!}
             status={mapPhase}
             smoothDuration={1000}
+            driverSpeedKmh={driverSpeedKmh}
+            driverHeading={driverHeading}
+            vehicleType={booking.vehicleType}
             onStats={({
               distanceToPickup,
               durationToPickup,

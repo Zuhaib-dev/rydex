@@ -3,6 +3,9 @@
  * Applies a conservative duration factor inside the region and avoids over-snapping.
  */
 import * as turf from "@turf/turf";
+import polyline from "@mapbox/polyline";
+import type { RouteInstruction } from "@/lib/routeInstructions";
+import { normalizeMapboxSteps, normalizeOlaSteps } from "@/lib/routeInstructions";
 
 /** Approximate J&K / Kashmir operational bounds */
 export const KASHMIR_BOUNDS = {
@@ -24,7 +27,14 @@ export type RouteResult = {
   durationMinutes: number;
   distanceKm: number;
   kashmirAdjusted: boolean;
+  navigationSteps?: RouteInstruction[];
 };
+
+function routingMode(vehicleType?: string): "bike" | "auto" | "driving" {
+  if (vehicleType === "bike") return "bike";
+  if (vehicleType === "auto") return "auto";
+  return "driving";
+}
 
 export function isInKashmir(lat: number, lng: number): boolean {
   return (
@@ -44,12 +54,13 @@ export function distanceMeters(a: LatLng, b: LatLng): number {
 
 export async function fetchDrivingRoute(
   waypoints: LatLng[],
-  options?: { signal?: AbortSignal },
+  options?: { signal?: AbortSignal; vehicleType?: string },
 ): Promise<RouteResult | null> {
   if (waypoints.length < 2) return null;
 
   const start = waypoints[0];
   const end = waypoints[waypoints.length - 1];
+  const mode = routingMode(options?.vehicleType);
 
   // Server-side environment check to prevent relative URL fetch errors
   if (typeof window === "undefined") {
@@ -66,7 +77,8 @@ export async function fetchDrivingRoute(
 
       // Try Mapbox if selected
       if (MAP_PROVIDER === "mapbox" && MAPBOX_TOKEN) {
-        const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&overview=full&access_token=${MAPBOX_TOKEN}`;
+        const mapboxProfile = mode === "bike" ? "cycling" : "driving";
+        const url = `https://api.mapbox.com/directions/v5/mapbox/${mapboxProfile}/${startLng},${startLat};${endLng},${endLat}?geometries=geojson&overview=full&steps=true&language=en&access_token=${MAPBOX_TOKEN}`;
         const res = await fetch(url, { signal: options?.signal });
         if (res.ok) {
           const data = await res.json();
@@ -78,6 +90,7 @@ export async function fetchDrivingRoute(
 
             return {
               geometry: route.geometry,
+              navigationSteps: normalizeMapboxSteps(route.legs ?? []),
               distanceMeters,
               durationSeconds: adjustedDuration,
               durationMinutes: adjustedDuration / 60,
@@ -90,7 +103,7 @@ export async function fetchDrivingRoute(
 
       // Try Ola Maps
       if (OLA_API_KEY) {
-        const url = `https://api.olamaps.io/routing/v1/directions?origin=${startLat},${startLng}&destination=${endLat},${endLng}&api_key=${OLA_API_KEY}`;
+        const url = `https://api.olamaps.io/routing/v1/directions?origin=${startLat},${startLng}&destination=${endLat},${endLng}&mode=${mode}&steps=true&language=en&api_key=${OLA_API_KEY}`;
         const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, signal: options?.signal });
         
         if (res.ok) {
@@ -102,7 +115,6 @@ export async function fetchDrivingRoute(
             const distanceMeters = leg?.distance || 0;
             const adjustedDuration = kashmirAdjusted ? rawDuration * KASHMIR_DURATION_FACTOR : rawDuration;
 
-            const polyline = require("@mapbox/polyline");
             const coords = polyline.decode(route.overview_polyline).map((c: number[]) => [c[1], c[0]]);
 
             return {
@@ -110,6 +122,7 @@ export async function fetchDrivingRoute(
                 type: "LineString",
                 coordinates: coords
               },
+              navigationSteps: normalizeOlaSteps(route.legs ?? []),
               distanceMeters,
               durationSeconds: adjustedDuration,
               durationMinutes: adjustedDuration / 60,
@@ -126,7 +139,7 @@ export async function fetchDrivingRoute(
   }
 
   // Client-side calls the API proxy to avoid CORS problems
-  const url = `/api/routing/directions?start=${start[0]},${start[1]}&end=${end[0]},${end[1]}`;
+  const url = `/api/routing/directions?start=${start[0]},${start[1]}&end=${end[0]},${end[1]}&vehicleType=${encodeURIComponent(options?.vehicleType ?? "car")}`;
 
   try {
     const res = await fetch(url, { signal: options?.signal });

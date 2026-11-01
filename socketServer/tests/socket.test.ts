@@ -42,6 +42,7 @@ let mongoServer: MongoMemoryServer;
 let server: any;
 let io: any;
 let User: any;
+let Booking: any;
 let clientSocket: any;
 let testPort: number;
 
@@ -64,6 +65,8 @@ beforeAll(async () => {
   
   const userMod = await import("../models/user.models.js");
   User = userMod.default;
+  const bookingMod = await import("../models/booking.models.js");
+  Booking = bookingMod.default;
 
   // 3. Listen on a random free port
   await new Promise<void>((resolve) => {
@@ -92,6 +95,27 @@ beforeEach(async () => {
     }
   }
 });
+
+async function createBookingParticipants() {
+  const rider = await User.create({
+    name: "Test Rider",
+    email: `rider-${new mongoose.Types.ObjectId()}@rydex.com`,
+    role: "user",
+  });
+  const driver = await User.create({
+    name: "Test Driver",
+    email: `driver-${new mongoose.Types.ObjectId()}@rydex.com`,
+    role: "partner",
+    partnerStatus: "approved",
+  });
+  const booking = await Booking.create({
+    user: rider._id,
+    driver: driver._id,
+    vehicle: new mongoose.Types.ObjectId(),
+    status: "started",
+  });
+  return { rider, driver, booking };
+}
 
 describe("WebSocket Realtime Integration Tests", () => {
   it("should update driver socketId and status on identity event", () => {
@@ -145,13 +169,16 @@ describe("WebSocket Realtime Integration Tests", () => {
     return new Promise<void>(async (resolve, reject) => {
       let clientSocket1: ClientSocket, clientSocket2: ClientSocket;
       try {
-        const bookingId = new mongoose.Types.ObjectId().toString();
+        const { rider, driver, booking } = await createBookingParticipants();
+        const bookingId = booking._id.toString();
 
         clientSocket1 = Client(socketUrl());
         clientSocket1.on("connect", () => {
           clientSocket2 = Client(socketUrl());
           clientSocket2.on("connect", () => {
+            clientSocket1.emit("identity", rider._id.toString());
             clientSocket1.emit("join-booking", bookingId);
+            clientSocket2.emit("identity", driver._id.toString());
             clientSocket2.emit("join-booking", bookingId);
 
             setTimeout(() => {
@@ -397,13 +424,16 @@ describe("WebSocket Realtime Integration Tests", () => {
     return new Promise<void>(async (resolve, reject) => {
       let clientSocket1: ClientSocket, clientSocket2: ClientSocket;
       try {
-        const bookingId = new mongoose.Types.ObjectId().toString();
+        const { rider, driver, booking } = await createBookingParticipants();
+        const bookingId = booking._id.toString();
 
         clientSocket1 = Client(socketUrl());
         clientSocket1.on("connect", () => {
           clientSocket2 = Client(socketUrl());
           clientSocket2.on("connect", () => {
+            clientSocket1.emit("identity", rider._id.toString());
             clientSocket1.emit("join-booking", bookingId);
+            clientSocket2.emit("identity", driver._id.toString());
             clientSocket2.emit("join-booking", bookingId);
 
             setTimeout(() => {
@@ -441,13 +471,16 @@ describe("WebSocket Realtime Integration Tests", () => {
     return new Promise<void>(async (resolve, reject) => {
       let clientSocket1: ClientSocket, clientSocket2: ClientSocket;
       try {
-        const bookingId = new mongoose.Types.ObjectId().toString();
+        const { rider, driver, booking } = await createBookingParticipants();
+        const bookingId = booking._id.toString();
 
         clientSocket1 = Client(socketUrl());
         clientSocket1.on("connect", () => {
           clientSocket2 = Client(socketUrl());
           clientSocket2.on("connect", () => {
+            clientSocket1.emit("identity", rider._id.toString());
             clientSocket1.emit("join-booking", bookingId);
+            clientSocket2.emit("identity", driver._id.toString());
             clientSocket2.emit("join-booking", bookingId);
 
             setTimeout(() => {

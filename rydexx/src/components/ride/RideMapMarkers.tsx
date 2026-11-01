@@ -33,10 +33,12 @@ export function DriverMarker({
   bearing,
   etaMinutes,
   label = "Driver",
+  vehicleType = "car",
 }: {
   bearing: number;
   etaMinutes: number;
   label?: string;
+  vehicleType?: string;
 }) {
   const etaLabel =
     etaMinutes > 0 ? `${Math.ceil(etaMinutes)} min` : "Arriving";
@@ -54,33 +56,54 @@ export function DriverMarker({
 
       <div
         className="relative"
-        style={{ 
-          transform: `rotate(${bearing}deg)`,
-          transition: "transform 2s cubic-bezier(0.2, 0.8, 0.2, 1)"
-        }}
+        style={{ transform: `rotate(${bearing}deg)` }}
       >
         {/* Glow rings */}
         <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-xl scale-[2.5]" />
         <div className="absolute inset-0 rounded-full border border-emerald-500/30 scale-[1.7] animate-ping" style={{ animationDuration: '3s' }} />
         
-        {/* Sleek Vehicle SVG */}
         <svg width="48" height="48" viewBox="0 0 100 100" className="drop-shadow-[0_0_15px_rgba(16,185,129,0.5)] relative z-10">
           {/* Shadow */}
           <ellipse cx="50" cy="55" rx="18" ry="30" fill="rgba(0,0,0,0.4)" filter="blur(4px)" />
-          {/* Car Body Base */}
-          <rect x="36" y="20" width="28" height="60" rx="10" fill="#09090b" stroke="#10b981" strokeWidth="1.5" />
-          {/* Windshield */}
-          <path d="M40 40 L60 40 L56 30 L44 30 Z" fill="#18181b" stroke="#059669" strokeWidth="1" />
-          {/* Rear Window */}
-          <path d="M40 60 L60 60 L56 70 L44 70 Z" fill="#18181b" />
-          {/* Headlights */}
-          <circle cx="41" cy="23" r="2.5" fill="#34d399" filter="drop-shadow(0 0 5px #34d399)" />
-          <circle cx="59" cy="23" r="2.5" fill="#34d399" filter="drop-shadow(0 0 5px #34d399)" />
-          {/* Taillights */}
-          <rect x="39" y="76" width="6" height="2" rx="1" fill="#ef4444" />
-          <rect x="55" y="76" width="6" height="2" rx="1" fill="#ef4444" />
-          {/* Roof */}
-          <rect x="42" y="42" width="16" height="16" rx="4" fill="#18181b" />
+          {vehicleType === "bike" ? (
+            <g fill="none" stroke="#10b981" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="50" cy="19" r="10" fill="#09090b" />
+              <circle cx="50" cy="81" r="10" fill="#09090b" />
+              <path d="M50 19 36 46 50 62 50 81M36 46 64 46 50 62 64 81M37 46 28 38M61 46 70 37" />
+              <path d="M43 38h14l7 12H36z" fill="#09090b" />
+              <circle cx="43" cy="20" r="2" fill="#34d399" stroke="none" />
+            </g>
+          ) : vehicleType === "auto" ? (
+            <g stroke="#10b981" strokeWidth="2.5" strokeLinejoin="round">
+              <path d="M35 29 43 20h14l8 9v39l-8 10H43l-8-10z" fill="#09090b" />
+              <path d="M40 31h20v19H40z" fill="#18181b" />
+              <path d="M42 53h16v17H42z" fill="#064e3b" />
+              <circle cx="32" cy="69" r="6" fill="#09090b" />
+              <circle cx="68" cy="69" r="6" fill="#09090b" />
+              <circle cx="50" cy="20" r="3" fill="#34d399" />
+            </g>
+          ) : vehicleType === "truck" || vehicleType === "loading" ? (
+            <g stroke="#10b981" strokeWidth="2.5" strokeLinejoin="round">
+              <path d="M34 10h32v46H34z" fill="#09090b" />
+              <path d="M36 60h28l-5 22H41z" fill="#09090b" />
+              <path d="M39 17h22v16H39z" fill="#18181b" />
+              <rect x="41" y="38" width="18" height="11" rx="2" fill="#064e3b" />
+              <circle cx="38" cy="77" r="5" fill="#09090b" />
+              <circle cx="62" cy="77" r="5" fill="#09090b" />
+              <path d="M41 12h6M53 12h6" stroke="#34d399" strokeWidth="3" />
+            </g>
+          ) : (
+            <g>
+              <rect x="36" y="20" width="28" height="60" rx="10" fill="#09090b" stroke="#10b981" strokeWidth="1.5" />
+              <path d="M40 40 L60 40 L56 30 L44 30 Z" fill="#18181b" stroke="#059669" strokeWidth="1" />
+              <path d="M40 60 L60 60 L56 70 L44 70 Z" fill="#18181b" />
+              <circle cx="41" cy="23" r="2.5" fill="#34d399" filter="drop-shadow(0 0 5px #34d399)" />
+              <circle cx="59" cy="23" r="2.5" fill="#34d399" filter="drop-shadow(0 0 5px #34d399)" />
+              <rect x="39" y="76" width="6" height="2" rx="1" fill="#ef4444" />
+              <rect x="55" y="76" width="6" height="2" rx="1" fill="#ef4444" />
+              <rect x="42" y="42" width="16" height="16" rx="4" fill="#18181b" />
+            </g>
+          )}
         </svg>
       </div>
     </div>

@@ -11,7 +11,6 @@ import {
   routeToGeoJSON,
   type LatLng,
 } from "@/lib/mapboxRouting";
-import { useSmoothCoords } from "@/hooks/useSmoothCoords";
 import {
   PickupMarker,
   DropMarker,
@@ -37,7 +36,7 @@ import {
 
 import { getMapProps, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
 
-export type RideMapPhase = "arriving" | "ongoing" | "completed" | "searching";
+export type RideMapPhase = "arriving" | "arrived" | "ongoing" | "completed" | "searching";
 
 type Props = {
   driverLocation: LatLng | null;
@@ -54,6 +53,8 @@ type Props = {
   }) => void;
   onPositionUpdate?: (lat: number, lng: number) => void;
   isDriver?: boolean;
+  vehicleType?: string;
+  driverHeading?: number | null;
 };
 
 function FitRouteBounds({
@@ -71,7 +72,9 @@ function FitRouteBounds({
   useEffect(() => {
     if (!map || !active || points.length < 2) return;
 
-    const key = `${phase}-${points.map((p) => p.join(",")).join("|")}`;
+    // Live GPS points change frequently. Fit once per phase so fitBounds does
+    // not fight the follow camera on every location update.
+    const key = phase;
     if (fittedRef.current === key) return;
     fittedRef.current = key;
 
@@ -105,24 +108,90 @@ function FollowDriver({
 }) {
   const { current: map } = useMap();
   const lastFlyRef = useRef(0);
+  const latitude = position?.[0];
+  const longitude = position?.[1];
 
   useEffect(() => {
-    if (!map || !position || !enabled) return;
+    if (!map || latitude === undefined || longitude === undefined || !enabled) return;
     const now = Date.now();
     if (now - lastFlyRef.current < 2200) return;
     lastFlyRef.current = now;
 
     const zoom = Math.max(map.getZoom(), 15.2);
     map.easeTo({
-      center: [position[1], position[0]],
+      center: [longitude, latitude],
       zoom,
       pitch: 58,
-      duration: 1200,
+      duration: 650,
       essential: true,
     });
-  }, [map, position?.[0], position?.[1], enabled]);
+  }, [map, latitude, longitude, enabled]);
 
   return null;
+}
+
+function AnimatedDriverMarker({
+  target,
+  durationMs,
+  bearing,
+  etaMinutes,
+  label,
+  vehicleType,
+}: {
+  target: LatLng;
+  durationMs: number;
+  bearing: number;
+  etaMinutes: number;
+  label: string;
+  vehicleType: string;
+}) {
+  const targetLatitude = target[0];
+  const targetLongitude = target[1];
+  const [position, setPosition] = useState(target);
+  const [displayBearing, setDisplayBearing] = useState(bearing);
+  const positionRef = useRef(position);
+  const bearingRef = useRef(bearing);
+  const frameRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    const from = positionRef.current;
+    const fromBearing = bearingRef.current;
+    const startedAt = performance.now();
+    const bearingDelta = ((bearing - fromBearing + 540) % 360) - 180;
+    const longitudeDelta = ((targetLongitude - from[1] + 540) % 360) - 180;
+
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - startedAt) / Math.max(250, durationMs));
+      const eased = 1 - (1 - t) ** 2;
+      const next: LatLng = [
+        from[0] + (targetLatitude - from[0]) * eased,
+        from[1] + longitudeDelta * eased,
+      ];
+      const nextBearing = (fromBearing + bearingDelta * eased + 360) % 360;
+      positionRef.current = next;
+      bearingRef.current = nextBearing;
+      setPosition(next);
+      setDisplayBearing(nextBearing);
+      if (t < 1) frameRef.current = requestAnimationFrame(tick);
+    };
+
+    frameRef.current = requestAnimationFrame(tick);
+    return () => {
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    };
+  }, [targetLatitude, targetLongitude, bearing, durationMs]);
+
+  return (
+    <Marker longitude={position[1]} latitude={position[0]} anchor="center">
+      <DriverMarker
+        bearing={displayBearing}
+        etaMinutes={etaMinutes}
+        label={label}
+        vehicleType={vehicleType}
+      />
+    </Marker>
+  );
 }
 
 export default function LiveRideMap({
@@ -135,32 +204,46 @@ export default function LiveRideMap({
   onStats,
   onPositionUpdate,
   isDriver = false,
+  vehicleType = "car",
+  driverHeading,
 }: Props) {
   const mapRef = useRef<MapRef | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [routePD, setRoutePD] = useState<GeoJSON.Feature | null>(null);
+  const [baselineRoute, setBaselineRoute] = useState<Awaited<ReturnType<typeof fetchDrivingRoute>>>(null);
   const [routeActive, setRouteActive] = useState<GeoJSON.Feature | null>(null);
+  const [activeRoutePhase, setActiveRoutePhase] = useState<RideMapPhase | null>(null);
+  const [activeRouteSteps, setActiveRouteSteps] = useState<NonNullable<Awaited<ReturnType<typeof fetchDrivingRoute>>>["navigationSteps"]>([]);
   const [etaPickup, setEtaPickup] = useState(0);
   const [etaDrop, setEtaDrop] = useState(0);
   const [bearing, setBearing] = useState(0);
   const [showSimControls, setShowSimControls] = useState(false);
 
-  const smoothDriver = useSmoothCoords(driverLocation, smoothDuration);
+  // Keep live GPS in the parent render loop at the location update cadence.
+  // The vehicle marker interpolates independently so it does not re-render the
+  // entire map and navigation HUD on every animation frame.
+  const smoothDriver = driverLocation;
   const prevDriverRef = useRef<LatLng | null>(null);
+  const routePhaseRef = useRef(status);
   const routeAbortRef = useRef<AbortController | null>(null);
   const lastRouteFetchRef = useRef(0);
   const lastRoutePosRef = useRef<LatLng | null>(null);
 
   const onStatsRef = useRef(onStats);
-  onStatsRef.current = onStats;
+  useEffect(() => {
+    onStatsRef.current = onStats;
+  }, [onStats]);
+
+  const visibleRouteActive = activeRoutePhase === status && driverLocation ? routeActive : null;
+  const visibleRouteSteps = activeRoutePhase === status && driverLocation ? activeRouteSteps : [];
 
   // Active leg coordinates (geojson geometry) for simulation path
   const activeLegCoords = useMemo(() => {
-    if (routeActive && routeActive.geometry && routeActive.geometry.type === "LineString") {
-      return routeActive.geometry.coordinates as [number, number][];
+    if (visibleRouteActive?.geometry && visibleRouteActive.geometry.type === "LineString") {
+      return visibleRouteActive.geometry.coordinates as [number, number][];
     }
     return undefined;
-  }, [routeActive]);
+  }, [visibleRouteActive]);
 
   const {
     currentPosition: simPosition,
@@ -186,7 +269,7 @@ export default function LiveRideMap({
   const {
     nextTurnStep: realNextTurnStep,
     nextTurnDistance: realNextTurnDistance,
-  } = useRealNavigation(smoothDriver, activeLegCoords, !isDriver || voiceMuted);
+  } = useRealNavigation(smoothDriver, activeLegCoords, !isDriver || voiceMuted, visibleRouteSteps);
 
   const activeNextTurnStep = isSimActive ? nextTurnStep : realNextTurnStep;
   const activeNextTurnDistance = isSimActive ? nextTurnDistance : realNextTurnDistance;
@@ -213,7 +296,10 @@ export default function LiveRideMap({
   }, [simPosition, isSimActive, onPositionUpdate]);
 
   // Dynamic values that switch between live GPS updates and simulator updates
-  const displayPosition = (isSimActive && simPosition) ? [simPosition[1], simPosition[0]] as LatLng : smoothDriver;
+  const displayPosition = useMemo(
+    () => (isSimActive && simPosition ? [simPosition[1], simPosition[0]] as LatLng : smoothDriver),
+    [isSimActive, simPosition, smoothDriver],
+  );
   const displayBearing = (isSimActive && simPosition) ? simBearing : bearing;
   const currentSpeed = isSimActive ? speedKmh : (driverSpeedKmh || 0);
 
@@ -241,7 +327,7 @@ export default function LiveRideMap({
   }, [simPosition, activeLegCoords]);
   const displayEta = isSimActive
     ? Math.round(etaRemainingSeconds / 60)
-    : (status === "arriving" ? etaPickup : etaDrop);
+    : status === "arriving" ? etaPickup : status === "ongoing" ? etaDrop : 0;
 
   const boundsPoints = useMemo(() => {
     if (status === "arriving") {
@@ -264,23 +350,23 @@ export default function LiveRideMap({
     const ac = new AbortController();
     void fetchDrivingRoute([pickupLocation, dropLocation], {
       signal: ac.signal,
+      vehicleType,
     }).then((r) => {
-      if (r) setRoutePD(routeToGeoJSON(r.geometry));
+      setBaselineRoute(r);
+      setRoutePD(r ? routeToGeoJSON(r.geometry) : null);
     });
     return () => ac.abort();
-  }, [pickupLocation, dropLocation]);
+  }, [pickupLocation, dropLocation, vehicleType]);
 
   const refreshDriverRoutes = useCallback(
     async (driver: LatLng, force = false) => {
       const now = Date.now();
+      if (status !== "arriving" && status !== "ongoing") return;
       const moved =
         lastRoutePosRef.current &&
-        distanceMeters(lastRoutePosRef.current, driver) > 45;
-      if (
-        !force &&
-        !moved &&
-        now - lastRouteFetchRef.current < 12000
-      ) {
+        distanceMeters(lastRoutePosRef.current, driver) > 60;
+      const elapsed = now - lastRouteFetchRef.current;
+      if (!force && (elapsed < 8000 || (!moved && elapsed < 20000))) {
         return;
       }
 
@@ -291,49 +377,55 @@ export default function LiveRideMap({
       const ac = new AbortController();
       routeAbortRef.current = ac;
 
-      const [toPickup, toDrop] = await Promise.all([
-        fetchDrivingRoute([driver, pickupLocation], { signal: ac.signal }),
-        fetchDrivingRoute([driver, dropLocation], { signal: ac.signal }),
-      ]);
+      const target = status === "arriving" ? pickupLocation : dropLocation;
+      const activeRoute = await fetchDrivingRoute([driver, target], {
+        signal: ac.signal,
+        vehicleType,
+      });
 
       if (ac.signal.aborted) return;
+      if (!activeRoute) return;
 
-      if (status === "arriving" && toPickup) {
-        setRouteActive(routeToGeoJSON(toPickup.geometry));
-        setEtaPickup(toPickup.durationMinutes);
-      } else if (status === "ongoing" && toDrop) {
-        setRouteActive(routeToGeoJSON(toDrop.geometry));
-        setEtaDrop(toDrop.durationMinutes);
-      }
+      setRouteActive(routeToGeoJSON(activeRoute.geometry));
+      setActiveRouteSteps(activeRoute.navigationSteps ?? []);
+      setActiveRoutePhase(status);
+      if (status === "arriving") setEtaPickup(activeRoute.durationMinutes);
+      else setEtaDrop(activeRoute.durationMinutes);
 
-      if (toPickup && toDrop) {
-        onStatsRef.current?.({
-          distanceToPickup: toPickup.distanceKm,
-          durationToPickup: toPickup.durationMinutes,
-          distanceToDrop: toDrop.distanceKm,
-          durationToDrop: toDrop.durationMinutes,
-        });
-      }
+      onStatsRef.current?.({
+        distanceToPickup: status === "arriving" ? activeRoute.distanceKm : 0,
+        durationToPickup: status === "arriving" ? activeRoute.durationMinutes : 0,
+        distanceToDrop: status === "ongoing" ? activeRoute.distanceKm : baselineRoute?.distanceKm ?? 0,
+        durationToDrop: status === "ongoing" ? activeRoute.durationMinutes : baselineRoute?.durationMinutes ?? 0,
+      });
     },
-    [pickupLocation, dropLocation, status],
+    [pickupLocation, dropLocation, status, baselineRoute, vehicleType],
   );
 
   useEffect(() => {
-    if (!driverLocation) return;
+    const phaseChanged = routePhaseRef.current !== status;
+    routePhaseRef.current = status;
+    if ((status !== "arriving" && status !== "ongoing") || !driverLocation) return;
+    let bearingFrame: number | undefined;
+    const routeFrame = requestAnimationFrame(() => {
+      void refreshDriverRoutes(driverLocation, phaseChanged);
+    });
     if (prevDriverRef.current) {
-      setBearing(bearingDegrees(prevDriverRef.current, driverLocation));
+      const movedMeters = distanceMeters(prevDriverRef.current, driverLocation);
+      if (movedMeters > 3) {
+        const gpsBearing = bearingDegrees(prevDriverRef.current, driverLocation);
+        const nextBearing = Number.isFinite(driverHeading) ? driverHeading! : gpsBearing;
+        bearingFrame = requestAnimationFrame(() => setBearing(nextBearing));
+      }
+    } else if (Number.isFinite(driverHeading)) {
+      bearingFrame = requestAnimationFrame(() => setBearing(driverHeading!));
     }
     prevDriverRef.current = driverLocation;
-    void refreshDriverRoutes(driverLocation);
-  }, [driverLocation, refreshDriverRoutes]);
-
-  useEffect(() => {
-    if (driverLocation) {
-      void refreshDriverRoutes(driverLocation, true);
-    } else {
-      setRouteActive(null);
-    }
-  }, [status, driverLocation, refreshDriverRoutes]);
+    return () => {
+      cancelAnimationFrame(routeFrame);
+      if (bearingFrame !== undefined) cancelAnimationFrame(bearingFrame);
+    };
+  }, [driverLocation, driverHeading, status, refreshDriverRoutes]);
 
   // Auto-pan/rotate camera to follow the simulated vehicle marker in real-time
   useEffect(() => {
@@ -353,6 +445,7 @@ export default function LiveRideMap({
     mapLoaded && !!displayPosition && status !== "completed" && status !== "searching";
   
   const followDriverEnabled = followDriver && !isSimActive;
+  const canSimulate = process.env.NODE_ENV !== "production" && isDriver;
 
   const handleExitSimulation = () => {
     stopSimulation();
@@ -441,8 +534,8 @@ export default function LiveRideMap({
         )}
 
         {/* Active leg (driver → pickup or drop) */}
-        {routeActive && (
-          <Source id="route-active" type="geojson" data={routeActive}>
+        {visibleRouteActive && (
+          <Source id="route-active" type="geojson" data={visibleRouteActive}>
             <Layer
               id="route-active-glow"
               type="line"
@@ -505,17 +598,14 @@ export default function LiveRideMap({
         </Marker>
 
         {displayPosition && status !== "searching" && (
-          <Marker
-            longitude={displayPosition[1]}
-            latitude={displayPosition[0]}
-            anchor="center"
-          >
-            <DriverMarker
-              bearing={displayBearing}
-              etaMinutes={displayEta}
-              label={isSimActive ? "Simulated" : (status === "ongoing" ? "En route" : "Driver")}
-            />
-          </Marker>
+          <AnimatedDriverMarker
+            target={displayPosition}
+            durationMs={smoothDuration}
+            bearing={displayBearing}
+            etaMinutes={displayEta}
+            label={isSimActive ? "Simulated" : status === "arrived" ? "At pickup" : status === "ongoing" ? "En route" : "Driver"}
+            vehicleType={vehicleType}
+          />
         )}
       </Map>
 
@@ -633,7 +723,7 @@ export default function LiveRideMap({
       )}
 
       {/* Floating Simulation Trigger Button */}
-      {!showSimControls && status !== "completed" && status !== "searching" && activeLegCoords && (
+      {canSimulate && !showSimControls && status !== "completed" && status !== "searching" && activeLegCoords && (
         <button
           onClick={handleStartSimulation}
           className="absolute bottom-[240px] md:bottom-4 right-4 z-40 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 text-white px-4 py-2.5 rounded-2xl shadow-xl flex items-center gap-2 text-xs font-bold transition-all hover:scale-105"

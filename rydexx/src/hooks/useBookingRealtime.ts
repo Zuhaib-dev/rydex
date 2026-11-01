@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useSession } from "next-auth/react";
 import { getSocket } from "@/lib/socket";
 import {
   mergeBookingPatch,
@@ -37,6 +38,8 @@ export function useBookingRealtime<T extends object>({
   role = "user",
   onReconnect,
 }: UseBookingRealtimeOptions<T>) {
+  const { data: session } = useSession();
+  const userId = session?.user?.id;
   const lastEventIdRef = useRef<string | null>(null);
   const prevStatusRef = useRef<string | undefined>(undefined);
   const prevPickupOtpRef = useRef<string | undefined>(undefined);
@@ -60,6 +63,7 @@ export function useBookingRealtime<T extends object>({
     const socket = getSocket();
 
     const joinRoom = () => {
+      if (userId) socket.emit("identity", userId);
       socket.emit("join-booking", bookingId);
     };
 
@@ -143,5 +147,5 @@ export function useBookingRealtime<T extends object>({
       socket.off("booking-sync", onSync);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [bookingId, enabled, role, setBooking]);
+  }, [bookingId, enabled, role, setBooking, userId]);
 }

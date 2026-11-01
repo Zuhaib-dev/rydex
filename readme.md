@@ -219,7 +219,19 @@ Versions shown here are major lines; the package manifests are the source of tru
 
 ### Configure
 
+Install the repository-level tooling first, then install each service’s dependencies:
+
+```bash
+# Repo root: installs Husky and enables the Git hooks
+npm install
+
+cd rydexx && npm install
+cd ../socketServer && npm install
+```
+
 Create `rydexx/.env.local` and `socketServer/.env` from the variable names referenced in each service. Keep real credentials out of commits. The socket service needs its MongoDB URL, client origins, port, and internal-service configuration; optional integrations can be omitted when not being used.
+
+The Husky `pre-commit` hook runs `npm run check` from the repo root. That command runs frontend lint, frontend unit tests, and socket-service unit tests. You can run the same checks manually with `npm run check`.
 
 ### Run both services
 
