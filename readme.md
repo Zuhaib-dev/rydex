@@ -231,7 +231,7 @@ cd ../socketServer && npm install
 
 Create `rydexx/.env.local` and `socketServer/.env` from the variable names referenced in each service. Keep real credentials out of commits. Set the same strong `SOCKET_INTERNAL_SECRET` in both services; it signs short-lived socket sessions and protects internal socket emits. Smart Pass tokens use `PASS_SECRET_KEY` in the socket service when configured (a random 32-byte key encoded as 64 hexadecimal characters); otherwise the key is derived from `SOCKET_INTERNAL_SECRET`. The socket service also needs its MongoDB URL, client origins, and port; optional integrations can be omitted when not being used.
 
-The Husky `pre-commit` hook runs `npm run check` from the repo root. That command runs frontend lint, frontend unit tests, and socket-service unit tests. You can run the same checks manually with `npm run check`.
+The Husky `pre-commit` hook checks staged changes: it lints staged frontend files and typechecks the frontend when frontend source is staged, and builds the socket service when socket TypeScript is staged. The broader `npm run check` command runs the full frontend lint, frontend unit tests, and socket-service unit tests; run it manually or rely on CI for the full suite.
 
 ### Run both services
 
