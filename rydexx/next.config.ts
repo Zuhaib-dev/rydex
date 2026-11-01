@@ -2,7 +2,9 @@ import type { NextConfig } from "next";
 import withPWA from "@ducanh2912/next-pwa";
 
 const nextConfig: NextConfig = {
-  turbopack: {},
+  // The repository root has its own lockfile for Husky. Keep app module
+  // resolution rooted here so Turbopack finds this service's dependencies.
+  turbopack: { root: process.cwd() },
   images: {
     remotePatterns: [
       {
