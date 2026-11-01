@@ -79,6 +79,7 @@ export async function POST(req: Request) {
   const { partnerAmount, adminCommission } = applyCommissionSplit(booking.fare);
 
   booking.paymentStatus = "paid"
+  booking.paymentMethod = "online"
   booking.status = "confirmed"
 
   booking.adminCommission = adminCommission
@@ -90,6 +91,7 @@ export async function POST(req: Request) {
     bookingId: booking._id,
     status: "confirmed",
     paymentStatus: booking.paymentStatus,
+    paymentMethod: booking.paymentMethod,
   })
 
   return Response.json({

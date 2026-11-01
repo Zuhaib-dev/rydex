@@ -20,6 +20,8 @@ export type PaymentStatus =
   | "failed"
   | "pass";
 
+export type PaymentMethod = "cash" | "online" | "wallet" | "pass";
+
 export interface IBooking extends Document {
   user: Types.ObjectId;
   driver: Types.ObjectId;
@@ -57,6 +59,7 @@ export interface IBooking extends Document {
 
   status: BookingStatus;
   paymentStatus: PaymentStatus;
+  paymentMethod?: PaymentMethod;
 
   paymentDeadline?: Date;
   arrivingAt?: Date;
@@ -150,6 +153,10 @@ partnerAmount: {
     paymentStatus: {
       type: String,
       default: "pending",
+    },
+    paymentMethod: {
+      type: String,
+      enum: ["cash", "online", "wallet", "pass"],
     },
 
     paymentDeadline: Date,

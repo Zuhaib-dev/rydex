@@ -8,6 +8,7 @@ export type BookingClientPayload = {
   at?: number;
   status?: string;
   paymentStatus?: string;
+  paymentMethod?: string;
   pickupOtp?: string;
   dropOtp?: string;
   pickupOtpExpires?: string | Date | null;
@@ -60,6 +61,7 @@ export function serializeBookingForClient(booking: Record<string, unknown>): Boo
     bookingId: String(booking._id),
     status: booking.status as string | undefined,
     paymentStatus: booking.paymentStatus as string | undefined,
+    paymentMethod: booking.paymentMethod as string | undefined,
     ...(pickupOtp ? { pickupOtp } : {}),
     ...(dropOtp ? { dropOtp } : {}),
     pickupOtpExpires: booking.pickupOtpExpires as string | Date | null | undefined,

@@ -4,6 +4,7 @@ import connectDb from "@/lib/db"
 import Booking from "@/models/booking.model"
 import { auth } from "@/lib/auth"
 import { paymentCreateSchema } from "@/lib/validations/payment"
+import { emitBookingUpdated } from "@/lib/bookingEvents"
 
 
 
@@ -59,7 +60,13 @@ export async function POST(req: Request) {
   })
 
   booking.status = "awaiting_payment"
+  booking.paymentMethod = "online"
   await booking.save()
+  await emitBookingUpdated(booking, {
+    status: booking.status,
+    paymentStatus: booking.paymentStatus,
+    paymentMethod: booking.paymentMethod,
+  })
 
   return NextResponse.json({
     orderId: order.id,

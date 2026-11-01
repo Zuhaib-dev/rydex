@@ -54,7 +54,8 @@ export async function POST(
       await emitBookingUpdated(populated, {
         bookingId: booking._id,
         status: "confirmed",
-        paymentStatus: "paid"
+        paymentStatus: "paid",
+        paymentMethod: "wallet",
       });
     }
 

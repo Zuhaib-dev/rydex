@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import Image from "next/image";
 
 export function PickupMarker() {
   return (
@@ -42,18 +43,23 @@ export function VehicleGlyph({
   const type = vehicleType.toLowerCase();
   const common = { fill: "#09090b", stroke: color, strokeWidth: 3, strokeLinejoin: "round" as const };
 
+  if (type === "bike") {
+    return (
+      <Image
+        src="/markers/motorcycle-topdown.webp"
+        alt=""
+        aria-hidden="true"
+        width={Math.round(size * 0.87)}
+        height={Math.round(size * 1.72)}
+        draggable={false}
+        className="pointer-events-none object-contain drop-shadow-[0_2px_5px_rgba(0,0,0,0.65)]"
+      />
+    );
+  }
+
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" className="drop-shadow-[0_0_10px_rgba(0,0,0,0.55)]">
-      {type === "bike" ? (
-        <g stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-          <ellipse cx="50" cy="17" rx="10" ry="7" fill="#09090b" />
-          <ellipse cx="50" cy="83" rx="10" ry="7" fill="#09090b" />
-          <path d="M50 23v54M50 31 38 24M50 31l12-7M50 34 41 45l9 10 9-10-9-11ZM41 45l-8 15M59 45l8 15M50 55l-5 18M50 55l5 18" fill="none" />
-          <path d="M42 36q8-7 16 0l5 12q-13 8-26 0z" fill="#18181b" />
-          <path d="M44 29h12M38 24l-5-4M62 24l5-4" fill="none" />
-          <circle cx="50" cy="28" r="2.5" fill="#fef3c7" stroke="none" />
-        </g>
-      ) : type === "auto" ? (
+      {type === "auto" ? (
         <g {...common}>
           <path d="M50 10 65 21l9 18v36L60 88H40L26 75V39l9-18z" />
           <path d="M38 25h24l7 15H31z" fill="#27272a" />

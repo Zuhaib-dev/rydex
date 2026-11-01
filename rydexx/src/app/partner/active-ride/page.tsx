@@ -49,6 +49,7 @@ export type BookingStatus =
   | "expired";
 
 export type PaymentStatus = "pending" | "paid" | "cash" | "failed" | "pass";
+export type PaymentMethod = "cash" | "online" | "wallet" | "pass";
 
 export interface IBooking {
   _id: string;
@@ -64,6 +65,7 @@ export interface IBooking {
   fare: number;
   status: BookingStatus;
   paymentStatus: PaymentStatus;
+  paymentMethod?: PaymentMethod;
   pickupOtp?: string;
   dropOtp?: string;
   paymentDeadline?: Date;
@@ -144,13 +146,25 @@ const STATUS_LABEL: Record<
   },
 };
 
-const PAYMENT_BADGE: Record<PaymentStatus, { label: string; cls: string }> = {
-  pending: { label: "Pending", cls: "bg-amber-100 text-amber-700" },
-  paid: { label: "Paid", cls: "bg-emerald-100 text-emerald-700" },
-  cash: { label: "Cash", cls: "bg-zinc-100 text-zinc-700" },
-  pass: { label: "Smart Pass", cls: "bg-indigo-100 text-indigo-700" },
-  failed: { label: "Failed", cls: "bg-red-100 text-red-700" },
-};
+function getPaymentSummary(ride: Pick<IBooking, "paymentMethod" | "paymentStatus" | "fare">) {
+  const method = ride.paymentMethod ?? (ride.paymentStatus === "cash" ? "cash" : ride.paymentStatus === "pass" ? "pass" : undefined);
+  if (method === "cash") {
+    return ride.paymentStatus === "cash"
+      ? { label: `Cash · Collect ₹${ride.fare}`, cls: "bg-amber-100 text-amber-800" }
+      : { label: `Cash · ₹${ride.fare} due`, cls: "bg-amber-100 text-amber-800" };
+  }
+  if (method === "online") {
+    return ride.paymentStatus === "paid"
+      ? { label: "Online · Paid", cls: "bg-emerald-100 text-emerald-800" }
+      : { label: "Online · Payment pending", cls: "bg-blue-100 text-blue-800" };
+  }
+  if (method === "wallet") {
+    return { label: ride.paymentStatus === "paid" ? "Wallet · Paid" : "Wallet · Payment pending", cls: "bg-violet-100 text-violet-800" };
+  }
+  if (method === "pass") return { label: "Smart Pass · Covered", cls: "bg-indigo-100 text-indigo-800" };
+  if (ride.paymentStatus === "paid") return { label: "Paid", cls: "bg-emerald-100 text-emerald-800" };
+  return { label: "Payment choice pending", cls: "bg-zinc-100 text-zinc-700" };
+}
 
 const TERMINAL = ["completed", "cancelled", "rejected", "expired"];
 const PEEK_H = 220;
@@ -1167,10 +1181,9 @@ function PanelContent({
               {booking.paymentStatus && (
                 <div className="flex items-center gap-2 mt-1.5">
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${PAYMENT_BADGE[booking.paymentStatus as PaymentStatus]?.cls ?? "bg-zinc-700 text-zinc-300"}`}
+                    className={`text-[10px] px-2.5 py-1 rounded-full font-bold ${getPaymentSummary(booking).cls}`}
                   >
-                    {PAYMENT_BADGE[booking.paymentStatus as PaymentStatus]
-                      ?.label ?? booking.paymentStatus}
+                    {getPaymentSummary(booking).label}
                   </span>
                 </div>
               )}
@@ -1427,10 +1440,9 @@ function CompletedScreen({ booking }: { booking: IBooking }) {
             <div className="flex items-center justify-between text-xs border-t border-zinc-800 pt-3">
               <span className="text-zinc-500">Payment Status</span>
               <span
-                className={`px-2.5 py-1 rounded-full font-semibold text-[11px] ${PAYMENT_BADGE[booking.paymentStatus]?.cls ?? "bg-zinc-700 text-zinc-300"}`}
+                className={`px-2.5 py-1 rounded-full font-semibold text-[11px] ${getPaymentSummary(booking).cls}`}
               >
-                {PAYMENT_BADGE[booking.paymentStatus]?.label ??
-                  booking.paymentStatus}
+                {getPaymentSummary(booking).label}
               </span>
             </div>
           </div>

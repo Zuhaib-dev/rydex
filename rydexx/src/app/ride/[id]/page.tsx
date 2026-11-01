@@ -341,6 +341,18 @@ export default function RidePage() {
     fetchBooking();
   }, [id]);
 
+  // If the app was reopened while payment was still in progress, resume the
+  // checkout flow instead of leaving the rider on a half-ready tracking view.
+  useEffect(() => {
+    if (
+      booking?.status === "awaiting_payment" &&
+      booking.paymentStatus !== "cash" &&
+      booking.paymentStatus !== "pass"
+    ) {
+      router.replace(`/checkout?bookingId=${booking._id}`);
+    }
+  }, [booking?._id, booking?.paymentStatus, booking?.status, router]);
+
   const driverInitialLoc = booking?.driver?.location?.coordinates
     ? ([booking.driver.location.coordinates[1], booking.driver.location.coordinates[0]] as [number, number])
     : null;

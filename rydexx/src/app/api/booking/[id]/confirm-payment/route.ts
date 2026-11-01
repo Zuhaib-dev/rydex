@@ -19,6 +19,9 @@ export async function POST(
 
   const { id } = await context.params;
   const { method } = await req.json();
+  if (method !== "cash" && method !== "pass") {
+    return NextResponse.json({ message: "Unsupported payment method" }, { status: 400 });
+  }
 
   const booking = await Booking.findById(id).populate("driver vehicle");
 
@@ -53,6 +56,7 @@ export async function POST(
 
   booking.status = "confirmed";
   booking.paymentStatus = method === "cash" ? "cash" : method === "pass" ? "pass" : "paid";
+  booking.paymentMethod = method;
   booking.paymentDeadline = undefined;
 
   if (method === "cash" || method === "pass") {
@@ -67,6 +71,7 @@ export async function POST(
     bookingId: booking._id,
     status: "confirmed",
     paymentStatus: booking.paymentStatus,
+    paymentMethod: booking.paymentMethod,
   });
 
   return NextResponse.json({ success: true });

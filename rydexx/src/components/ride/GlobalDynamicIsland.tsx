@@ -92,6 +92,12 @@ export default function GlobalDynamicIsland() {
       if (!res.ok) return;
       const data = await res.json();
       if (data.booking) {
+        // Restore the full live ride screen after a refresh or cold app start.
+        // Checkout remains a deliberate stop so the rider can finish payment.
+        if (!pathname.startsWith("/ride/")) {
+          router.replace(`/ride/${data.booking._id}`);
+          return;
+        }
         setBooking(data.booking);
       }
     } catch (err) {
@@ -103,7 +109,7 @@ export default function GlobalDynamicIsland() {
     if (!isHiddenPage) {
       fetchActiveRide();
     }
-  }, [isHiddenPage, pathname]);
+  }, [isHiddenPage, pathname, router]);
 
   useBookingRealtime<BookingState>({
     bookingId: booking?._id,
