@@ -136,16 +136,6 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
         return;
       }
 
-      await logSocketEvent(
-        "user_connected",
-        `User identified on socket: ${userId} (${user.role})`,
-        "info",
-        "auth",
-        userId,
-        userId,
-        "User"
-      );
-
       const now = new Date();
       const updateFields: Record<string, any> = {
         socketId: socket.id,
@@ -182,6 +172,18 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
       }
 
       await User.updateOne({ _id: userId }, updateFields);
+
+      // Presence should become visible immediately; audit logging is secondary
+      // and must not delay the partner's online state.
+      void logSocketEvent(
+        "user_connected",
+        `User identified on socket: ${userId} (${user.role})`,
+        "info",
+        "auth",
+        userId,
+        userId,
+        "User"
+      );
     });
 
     socket.on("join-admin", async () => {
