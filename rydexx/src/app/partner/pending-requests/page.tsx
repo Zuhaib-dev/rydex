@@ -13,7 +13,10 @@ const fetcher = (url: string) => fetch(url).then(res => res.json());
 
 export default function Requests() {
   const router = useRouter();
-  const { data, mutate } = useSWR("/api/partner/bookings/pending", fetcher, { refreshInterval: 8000 });
+  const { data, mutate } = useSWR("/api/partner/bookings/pending", fetcher, {
+    refreshInterval: 30_000,
+    revalidateOnFocus: true,
+  });
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const requests = data?.bookings || [];
 
@@ -49,7 +52,7 @@ export default function Requests() {
 
   return (
     <div className="space-y-6">
-      <PageHead code="REQ / 01" title="Pending Requests" subtitle={`${requests.length} dispatch tickets in queue · auto-refresh 8s`} />
+      <PageHead code="REQ / 01" title="Pending Requests" subtitle={`${requests.length} dispatch tickets in queue · instant updates`} />
       <Panel code="QUEUE / 01" title="Inbound · Live">
         {/* Desktop / tablet table */}
         <div className="hidden md:block">

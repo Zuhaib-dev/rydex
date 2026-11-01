@@ -33,7 +33,10 @@ export default function PartnerDashboardLayout({ children }: { children: React.R
   const pathname = usePathname();
   
   // Global polling for pending requests
-  const { data } = useSWR("/api/partner/bookings/pending", fetcher, { refreshInterval: 8000 });
+  const { data } = useSWR("/api/partner/bookings/pending", fetcher, {
+    refreshInterval: 30_000,
+    revalidateOnFocus: true,
+  });
   const pendingRequests = data?.bookings || [];
   const prevCount = useRef(0);
 

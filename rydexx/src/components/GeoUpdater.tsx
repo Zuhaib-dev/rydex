@@ -7,7 +7,8 @@ import { useSharedLocation } from "@/hooks/useSharedLocation";
 
 function GeoUpdater({ userId }: { userId: string | undefined }) {
   const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
-  const lastSentRef = useRef<number>(0);
+  const lastSentAtRef = useRef(0);
+  const lastFixTimestampRef = useRef(0);
   const { position } = useSharedLocation();
 
   useEffect(() => {
@@ -18,47 +19,42 @@ function GeoUpdater({ userId }: { userId: string | undefined }) {
     const identify = () => {
       socketRef.current?.emit("identity", userId);
       socketRef.current?.emit("partner-availability", { available: true });
+      socketRef.current?.emit("partner-heartbeat");
     };
 
     identify();
     socketRef.current.on("connect", identify);
+    const heartbeat = setInterval(() => {
+      if (socketRef.current?.connected) socketRef.current.emit("partner-heartbeat");
+    }, 15_000);
 
     return () => {
-      socketRef.current?.emit("partner-availability", { available: false });
+      clearInterval(heartbeat);
       socketRef.current?.off("connect", identify);
     };
   }, [userId]);
 
-  const posRef = useRef(position);
   useEffect(() => {
-    posRef.current = position;
-  }, [position]);
+    if (!userId || !position) return;
+    const timestamp = position.timestamp || Date.now();
+    const age = Date.now() - timestamp;
+    if (
+      timestamp <= lastFixTimestampRef.current ||
+      age < -5_000 || age > 20_000 ||
+      Date.now() - lastSentAtRef.current < PARTNER_GEO_PUSH_INTERVAL_MS
+    ) return;
 
-  useEffect(() => {
-    if (!userId) return;
-
-    // Send heartbeat immediately on mount if we have a position
-    if (posRef.current) {
-      socketRef.current?.emit("update-location", {
-        userId,
-        latitude: posRef.current.coords.latitude,
-        longitude: posRef.current.coords.longitude,
-      });
-    }
-
-    // Set interval to send heartbeats continuously even if position doesn't change
-    const interval = setInterval(() => {
-      const pos = posRef.current;
-      if (!pos) return;
-      socketRef.current?.emit("update-location", {
-        userId,
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-      });
-    }, PARTNER_GEO_PUSH_INTERVAL_MS);
-
-    return () => clearInterval(interval);
-  }, [userId]);
+    const socket = socketRef.current;
+    if (!socket?.connected) return;
+    socket.emit("update-location", {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      accuracy: position.coords.accuracy,
+      at: timestamp,
+    });
+    lastFixTimestampRef.current = timestamp;
+    lastSentAtRef.current = Date.now();
+  }, [position, userId]);
 
   return null;
 }

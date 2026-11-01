@@ -20,6 +20,7 @@ import {
 import axios from "axios";
 import toast from "react-hot-toast";
 import SmoothAdminMarker from "@/components/map/SmoothAdminMarker";
+import { VehicleGlyph } from "@/components/ride/RideMapMarkers";
 import { getMapProps, MAP_PROVIDER, OLA_MAPS_API_KEY } from "@/lib/mapConfig";
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -129,7 +130,8 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
     "/api/admin/map/live-data",
     fetcher,
     {
-      refreshInterval: 5000,
+      // Socket events are the fast path; this is the reconciliation fallback.
+      refreshInterval: 15_000,
       revalidateOnFocus: true,
       dedupingInterval: 1200,
     },
@@ -147,12 +149,15 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
   });
 
   const drivers: Driver[] = liveDataRes?.data?.drivers || [];
-  const activeRides: ActiveRide[] = liveDataRes?.data?.activeRides?.filter((r: ActiveRide) => r.status !== "requested") || [];
-  const pendingRides: ActiveRide[] = liveDataRes?.data?.activeRides?.filter((r: ActiveRide) => r.status === "requested") || [];
+  const allOpenRides: ActiveRide[] = liveDataRes?.data?.activeRides || [];
+  const activeRides: ActiveRide[] = allOpenRides.filter((r) => r.status !== "requested");
+  const pendingRides: ActiveRide[] = allOpenRides.filter((r) => r.status === "requested");
   const surgeZones: SurgeZone[] = liveDataRes?.data?.surgeZones || [];
   const searchLogs: SearchLogPoint[] = heatmapDataRes?.data || [];
 
-  const activeRideDriverIds = useMemo(() => new Set(activeRides.map((ride) => String(ride.driver))), [activeRides]);
+  // A requested ride already reserves its assigned partner while waiting for
+  // acceptance; the tower must not offer that partner for another dispatch.
+  const activeRideDriverIds = useMemo(() => new Set(allOpenRides.map((ride) => String(ride.driver))), [allOpenRides]);
   const sosRides = useMemo(() => activeRides.filter((r) => r.sosTriggered === true), [activeRides]);
   const sosDriverIds = useMemo(() => new Set(sosRides.map(r => String(r.driver))), [sosRides]);
   const hasSos = sosRides.length > 0;
@@ -989,9 +994,13 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
                 const isOnRide = activeRideDriverIds.has(String(driver._id));
                 const isSosRide = sosDriverIds.has(String(driver._id));
                 const isSelected = selectedDriverId === driver._id;
+                const locationAgeMs = driver.lastLocationAt
+                  ? Date.now() - new Date(driver.lastLocationAt).getTime()
+                  : Infinity;
+                const isLocationStale = !driver.isOnline || locationAgeMs > 45_000;
 
-                const strokeColor = isSosRide ? "#ef4444" : isSelected ? "#fbbf24" : isOnRide ? "#3b82f6" : "#10b981";
-                const glowColor = isSosRide ? "rgba(239,68,68,0.5)" : isSelected ? "rgba(251,191,36,0.5)" : isOnRide ? "rgba(59,130,246,0.5)" : "rgba(16,185,129,0.3)";
+                const strokeColor = isLocationStale ? "#a1a1aa" : isSosRide ? "#ef4444" : isSelected ? "#fbbf24" : isOnRide ? "#3b82f6" : "#10b981";
+                const glowColor = isLocationStale ? "rgba(161,161,170,0.35)" : isSosRide ? "rgba(239,68,68,0.5)" : isSelected ? "rgba(251,191,36,0.5)" : isOnRide ? "rgba(59,130,246,0.5)" : "rgba(16,185,129,0.3)";
 
                 return (
                   <SmoothAdminMarker 
@@ -1021,18 +1030,15 @@ export default function AdminLiveMap({ isFullScreen = false }: { isFullScreen?: 
                         <div className={`absolute inset-0 rounded-full border scale-[1.7] animate-ping ${isSosRide ? 'border-red-500/40' : 'border-amber-400/40'}`} style={{ animationDuration: '2s' }} />
                       )}
 
-                      {/* Sleek Vehicle SVG */}
-                      <svg width="40" height="40" viewBox="0 0 100 100" className="relative z-10" style={{ filter: `drop-shadow(0 0 10px ${glowColor})` }}>
-                        <ellipse cx="50" cy="55" rx="18" ry="30" fill="rgba(0,0,0,0.5)" filter="blur(4px)" />
-                        <rect x="36" y="20" width="28" height="60" rx="10" fill="#09090b" stroke={strokeColor} strokeWidth="2" />
-                        <path d="M40 40 L60 40 L56 30 L44 30 Z" fill="#18181b" stroke={strokeColor} strokeWidth="1" />
-                        <path d="M40 60 L60 60 L56 70 L44 70 Z" fill="#18181b" />
-                        <circle cx="41" cy="23" r="2.5" fill={strokeColor} filter={`drop-shadow(0 0 4px ${strokeColor})`} />
-                        <circle cx="59" cy="23" r="2.5" fill={strokeColor} filter={`drop-shadow(0 0 4px ${strokeColor})`} />
-                        <rect x="39" y="76" width="6" height="2" rx="1" fill="#ef4444" />
-                        <rect x="55" y="76" width="6" height="2" rx="1" fill="#ef4444" />
-                        <rect x="42" y="42" width="16" height="16" rx="4" fill="#18181b" />
-                      </svg>
+                      <div className="relative z-10" style={{ filter: `drop-shadow(0 0 10px ${glowColor})` }}>
+                        <VehicleGlyph vehicleType={driver.vehicleType} color={strokeColor} size={42} />
+                      </div>
+
+                      {isLocationStale && (
+                        <span className="absolute -top-3 -left-3 z-50 rounded-full border border-zinc-500/40 bg-zinc-950/90 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wider text-zinc-300">
+                          Stale
+                        </span>
+                      )}
 
                       {isSosRide && (
                         <div className="absolute -top-3 -right-3 z-50">

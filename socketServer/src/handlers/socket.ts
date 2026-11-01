@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io";
 import mongoose from "mongoose";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import User from "../../models/user.models.js";
 import Booking from "../../models/booking.models.js";
 import Pass from "../../models/pass.models.js";
@@ -10,6 +11,8 @@ import { notifyAdminMapThrottled, notifyPublicAvailabilityThrottled } from "../s
 import { incrementCronConnectionCount } from "../services/cron.js";
 
 const activeAudioBroadcasts = new Map<string, { token: string, expires: number }>();
+const LIVE_LOCATION_MAX_AGE_MS = 45_000;
+const MAX_LOCATION_ACCURACY_METERS = 150;
 
 // Declare typed interfaces for Socket events
 export interface ServerToClientEvents {
@@ -35,14 +38,15 @@ export interface ServerToClientEvents {
 export interface ClientToServerEvents {
   identity: (userId: string) => void;
   "join-admin": () => void;
-  "join-booking": (bookingId: string) => void;
+  "join-booking": (bookingId: string, acknowledge?: (joined: boolean) => void) => void;
   "leave-booking": (bookingId: string) => void;
   "driver-location-update": (data: { bookingId: string; latitude: number; longitude: number; status?: string; driverId?: string; speedKmh?: number; heading?: number | null; accuracy?: number; at?: number }) => void;
   "chat-message": (msg: { rideId: string; text: string; sender: string }) => void;
   "chat-typing": (data: { rideId: string; sender: "user" | "driver"; isTyping: boolean }) => void;
   "chat-read": (data: { rideId: string; sender: "user" | "driver" }) => void;
-  "update-location": (data: { latitude: number; longitude: number }) => void;
+  "update-location": (data: { latitude: number; longitude: number; accuracy?: number; speedKmh?: number; heading?: number | null; at?: number }) => void;
   "partner-availability": (data: { available: boolean }) => void;
+  "partner-heartbeat": () => void;
   "route-deviation": (data: { bookingId: string; driverId?: string; latitude: number; longitude: number }) => void;
   "join-validator": () => void;
   "verify-pass": (token: string) => void;
@@ -58,17 +62,72 @@ export interface SocketData {
 
 export interface SocketWithUser extends Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData> {
   userId?: string;
+  authenticated?: boolean;
+}
+
+function verifySocketToken(token: unknown, secret: string) {
+  if (typeof token !== "string") return null;
+  const [payload, signature, extra] = token.split(".");
+  if (!payload || !signature || extra) return null;
+
+  const expected = createHmac("sha256", secret).update(payload).digest();
+  let received: Buffer;
+  try {
+    received = Buffer.from(signature, "base64url");
+  } catch {
+    return null;
+  }
+  if (expected.length !== received.length || !timingSafeEqual(expected, received)) return null;
+
+  try {
+    const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
+      sub?: unknown;
+      exp?: unknown;
+    };
+    if (
+      typeof claims.sub !== "string" || !/^[0-9a-fA-F]{24}$/.test(claims.sub) ||
+      typeof claims.exp !== "number" || claims.exp <= Math.floor(Date.now() / 1000)
+    ) return null;
+    return claims.sub;
+  } catch {
+    return null;
+  }
 }
 
 export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) {
+  io.use((rawSocket, next) => {
+    const socket = rawSocket as SocketWithUser;
+    if (socket.handshake.auth?.socketAuthError) {
+      next(new Error("Socket authentication service unavailable"));
+      return;
+    }
+    const token = socket.handshake.auth?.token;
+    if (token === undefined || token === null || token === "") {
+      socket.authenticated = false;
+      next(); // Public availability events can use an anonymous connection.
+      return;
+    }
+
+    const secret = process.env.SOCKET_INTERNAL_SECRET;
+    const userId = secret ? verifySocketToken(token, secret) : null;
+    if (!userId) {
+      next(new Error("Invalid or expired socket session"));
+      return;
+    }
+    socket.userId = userId;
+    socket.authenticated = true;
+    next();
+  });
+
   io.on("connection", (socket: SocketWithUser) => {
     incrementCronConnectionCount();
 
     socket.on("identity", async (userId: string) => {
-      socket.userId = userId;
+      // The ID is only a claim; the signed handshake is the authority.
+      if (!socket.authenticated || !socket.userId || userId !== socket.userId) return;
       socket.join(`user-${userId}`);
 
-      const user = await User.findById(userId).select("role location isPartnerBlocked").lean();
+      const user = await User.findById(userId).select("role location lastLocationAt isPartnerBlocked").lean();
       if (!user) return;
 
       if (user.isPartnerBlocked) {
@@ -104,10 +163,8 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
         updateFields.isPartnerAvailable = true;
 
         const hasCoordinates = user.location?.coordinates && user.location.coordinates.length === 2;
-        if (hasCoordinates) {
-          updateFields.lastLocationAt = now;
-          updateFields.lastLocationUpdate = now;
-
+        const locationAge = user.lastLocationAt ? now.getTime() - new Date(user.lastLocationAt).getTime() : Infinity;
+        if (hasCoordinates && locationAge >= 0 && locationAge <= LIVE_LOCATION_MAX_AGE_MS) {
           const [longitude, latitude] = user.location.coordinates;
           // Seed driver location in GeoSet immediately so they are instantly discoverable
           await redisPub.geoadd("driver:locations:active", longitude, latitude, userId);
@@ -136,16 +193,36 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
       }
     });
 
+    socket.on("partner-heartbeat", async () => {
+      if (!socket.userId) return;
+      try {
+        const partner = await User.findOne({
+          _id: socket.userId,
+          role: "partner",
+          partnerStatus: "approved",
+          isPartnerBlocked: { $ne: true },
+        }).select("_id").lean();
+        if (!partner) return;
+
+        // Keep presence alive without pretending an old GPS fix is new.
+        await redisPub.set(`presence:driver:${socket.userId}`, "online", "EX", 60);
+      } catch (err) {
+        console.error("Partner presence heartbeat failed:", err);
+      }
+    });
+
     socket.on("join-validator", async () => {
       if (!socket.userId) return;
       socket.join("validator");
     });
 
     socket.on("audio-broadcast-start", (token: string) => {
+      if (!socket.userId) return;
       activeAudioBroadcasts.set(socket.id, { token, expires: Date.now() + 5000 });
     });
 
     socket.on("audio-receive-trigger", () => {
+      if (!socket.userId) return;
       const now = Date.now();
       for (const [id, broadcast] of activeAudioBroadcasts.entries()) {
           if (broadcast.expires > now) {
@@ -208,21 +285,35 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
       }
     });
 
-    socket.on("join-booking", async (bookingId: string) => {
-      if (!bookingId || typeof bookingId !== "string" || !/^[0-9a-fA-F]{24}$/.test(bookingId)) return;
-      if (!socket.userId) return;
+    socket.on("join-booking", async (bookingId: string, acknowledge?: (joined: boolean) => void) => {
+      const reply = (joined: boolean) => {
+        if (typeof acknowledge === "function") acknowledge(joined);
+      };
+      if (!bookingId || typeof bookingId !== "string" || !/^[0-9a-fA-F]{24}$/.test(bookingId)) {
+        reply(false);
+        return;
+      }
+      if (!socket.userId) {
+        reply(false);
+        return;
+      }
       try {
         const booking = await Booking.findOne({
           _id: bookingId,
           $or: [{ user: socket.userId }, { driver: socket.userId }],
         }).select("driver").lean();
-        if (!booking) return;
-        socket.join(`booking-${bookingId}`);
-        if (String(booking.driver) === String(socket.userId)) {
-          socket.join(`booking-driver-${bookingId}`);
+        if (!booking) {
+          reply(false);
+          return;
         }
+        await socket.join(`booking-${bookingId}`);
+        if (String(booking.driver) === String(socket.userId)) {
+          await socket.join(`booking-driver-${bookingId}`);
+        }
+        reply(true);
       } catch (err) {
         console.error("Failed to authorize booking room join:", err);
+        reply(false);
       }
     });
 
@@ -242,7 +333,16 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
         typeof data.longitude !== "number" || !Number.isFinite(data.longitude) || Math.abs(data.longitude) > 180
       ) return;
 
-      const at = Date.now();
+      const receivedAt = Date.now();
+      const fixAt = typeof data.at === "number" && Number.isFinite(data.at) ? data.at : receivedAt;
+      if (fixAt > receivedAt + 5_000 || receivedAt - fixAt > 20_000) return;
+      if (
+        typeof data.accuracy === "number" &&
+        Number.isFinite(data.accuracy) &&
+        data.accuracy > MAX_LOCATION_ACCURACY_METERS
+      ) return;
+
+      const at = receivedAt;
       const speedKmh = typeof data.speedKmh === "number" && Number.isFinite(data.speedKmh)
         ? Math.max(0, Math.min(160, data.speedKmh))
         : undefined;
@@ -308,6 +408,14 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
     });
 
     socket.on("route-deviation", async (data) => {
+      if (
+        !socket.userId ||
+        !data?.bookingId ||
+        !socket.rooms.has(`booking-driver-${data.bookingId}`) ||
+        (data.driverId && data.driverId !== socket.userId) ||
+        !Number.isFinite(data.latitude) || Math.abs(data.latitude) > 90 ||
+        !Number.isFinite(data.longitude) || Math.abs(data.longitude) > 180
+      ) return;
       console.warn(`[Route Deviation] Driver ${data.driverId} went off route on booking ${data.bookingId} at lat:${data.latitude}, lng:${data.longitude}`);
       io.to("admin-dashboard").emit("system-telemetry-update", {
         type: "ROUTE_DEVIATION",
@@ -321,21 +429,35 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
     });
 
     socket.on("chat-message", (msg) => {
+      if (!socket.userId || !msg?.rideId || !socket.rooms.has(`booking-${msg.rideId}`)) return;
+      const sender = socket.rooms.has(`booking-driver-${msg.rideId}`) ? "driver" : "user";
       console.log("chat to room:", `booking-${msg.rideId}`);
-      io.to(`booking-${msg.rideId}`).emit("chat-message", msg);
+      io.to(`booking-${msg.rideId}`).emit("chat-message", { ...msg, sender });
     });
 
     socket.on("chat-typing", (data) => {
-      io.to(`booking-${data.rideId}`).emit("chat-typing", data);
+      if (!socket.userId || !data?.rideId || !socket.rooms.has(`booking-${data.rideId}`)) return;
+      const sender = socket.rooms.has(`booking-driver-${data.rideId}`) ? "driver" : "user";
+      io.to(`booking-${data.rideId}`).emit("chat-typing", { ...data, sender });
     });
 
     socket.on("chat-read", (data) => {
-      io.to(`booking-${data.rideId}`).emit("chat-read", data);
+      if (!socket.userId || !data?.rideId || !socket.rooms.has(`booking-${data.rideId}`)) return;
+      const sender = socket.rooms.has(`booking-driver-${data.rideId}`) ? "driver" : "user";
+      io.to(`booking-${data.rideId}`).emit("chat-read", { ...data, sender });
     });
 
-    socket.on("update-location", async ({ latitude, longitude }) => {
+    socket.on("update-location", async ({ latitude, longitude, accuracy, at }) => {
       if (!socket.userId) return;
-      if (typeof latitude !== "number" || typeof longitude !== "number") return;
+      if (
+        typeof latitude !== "number" || !Number.isFinite(latitude) || Math.abs(latitude) > 90 ||
+        typeof longitude !== "number" || !Number.isFinite(longitude) || Math.abs(longitude) > 180
+      ) return;
+
+      const receivedAt = Date.now();
+      const fixAt = typeof at === "number" && Number.isFinite(at) ? at : receivedAt;
+      if (fixAt > receivedAt + 5_000 || receivedAt - fixAt > 20_000) return;
+      if (typeof accuracy === "number" && Number.isFinite(accuracy) && accuracy > MAX_LOCATION_ACCURACY_METERS) return;
 
       // Rate Limit Check: Max 10 location updates per 5 seconds (average 2/sec)
       const timestamp = Date.now();
@@ -359,9 +481,9 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
         console.error("Rate Limiter error on location update:", err);
       }
 
-      const now = new Date();
+      const now = new Date(receivedAt);
       const user = await User.findByIdAndUpdate(
-        socket.userId,
+        { _id: socket.userId, role: "partner" },
         {
           location: {
             type: "Point",
@@ -414,6 +536,14 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
     socket.on("partner-availability", async ({ available }) => {
       if (!socket.userId) return;
 
+      const partner = await User.findOne({
+        _id: socket.userId,
+        role: "partner",
+        partnerStatus: "approved",
+        isPartnerBlocked: { $ne: true },
+      }).select("_id").lean();
+      if (!partner) return;
+
       const isAvailable = Boolean(available);
 
       if (isAvailable) {
@@ -442,23 +572,22 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
         }
 
         const user = await User.findById(socket.userId).select("role").lean();
-        const update: Record<string, any> = {
-          socketId: null,
-          isPartnerAvailable: false,
-        };
-
         if (user?.role === "partner") {
-          update.isOnline = false;
-          // Remove presence key on clean disconnect
-          try {
-            await redisPub.del(`presence:driver:${socket.userId}`);
-            await redisPub.zrem("driver:locations:active", socket.userId);
-          } catch {}
+          // Socket.IO can briefly disconnect during a network handoff, or one
+          // tab can close while another stays open. Keep partner presence until
+          // the Redis heartbeat expires instead of hiding the marker at once.
+          await User.updateOne(
+            { _id: socket.userId, socketId: socket.id },
+            { $set: { socketId: null } },
+          );
+        } else {
+          await User.updateOne(
+            { _id: socket.userId, socketId: socket.id },
+            { $set: { socketId: null } },
+          );
         }
 
         if (mongoose.connection.readyState === 1) {
-          await User.updateOne({ _id: socket.userId }, update);
-
           await logSocketEvent(
             "user_disconnected",
             `User identified socket disconnected: ${socket.userId}`,
@@ -470,10 +599,6 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
           );
         }
 
-        if (user?.role === "partner") {
-          notifyAdminMapThrottled();
-          notifyPublicAvailabilityThrottled("disconnect");
-        }
       } catch (err: any) {
         if (err.message !== "Client must be connected before running operations") {
           console.error("[disconnect] Error during user socket cleanup:", err);

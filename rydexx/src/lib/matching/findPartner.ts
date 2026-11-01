@@ -15,6 +15,7 @@ import {
 } from "./geo";
 
 const ACTIVE_DRIVER_STATUSES = [
+  "requested",
   "awaiting_payment",
   "confirmed",
   "arriving",
@@ -48,51 +49,42 @@ type FindOptions = {
 async function getBusyPartnerIds(candidateIds: mongoose.Types.ObjectId[]) {
   if (!candidateIds.length) return new Set<string>();
 
+  const redisBusySet = new Set<string>();
+  let redisClient: ReturnType<typeof getRedisClient> | null = null;
   try {
-    const redis = getRedisClient();
-    const pipeline = redis.pipeline();
+    redisClient = getRedisClient();
+    const pipeline = redisClient.pipeline();
     candidateIds.forEach((id) => pipeline.get(`driver:busy:${String(id)}`));
     const results = await pipeline.exec();
 
     if (results) {
-      const busySet = new Set<string>();
       candidateIds.forEach((id, index) => {
         const [err, val] = results[index] as [Error | null, string | null];
         if (!err && val) {
-          busySet.add(String(id));
+          redisBusySet.add(String(id));
         }
       });
-      // If Redis succeeds, verify busy status against MongoDB to prevent ghost busy states
-      if (busySet.size > 0) {
-        const actualBusy = await Booking.distinct("driver", {
-          driver: { $in: Array.from(busySet) },
-          status: { $in: [...ACTIVE_DRIVER_STATUSES] },
-        });
-        const actualBusySet = new Set(actualBusy.map((id) => String(id)));
-
-        // Clean up false positives in Redis asynchronously
-        busySet.forEach((id) => {
-          if (!actualBusySet.has(id)) {
-            redis.del(`driver:busy:${id}`).catch(() => {});
-          }
-        });
-
-        return actualBusySet;
-      }
-
-      return busySet;
     }
   } catch (err) {
-    console.warn("[getBusyPartnerIds] Redis failed, falling back to MongoDB:", err);
+    console.warn("[getBusyPartnerIds] Redis lookup failed; checking booking state:", err);
   }
 
-  // MongoDB fallback
+  // MongoDB is authoritative. A missing or expired Redis lock must never let
+  // an already assigned partner get a second booking.
   const busy = await Booking.distinct("driver", {
     driver: { $in: candidateIds },
     status: { $in: [...ACTIVE_DRIVER_STATUSES] },
   });
 
-  return new Set(busy.map((id) => String(id)));
+  const actualBusySet = new Set(busy.map((id) => String(id)));
+  if (redisClient) {
+    for (const id of redisBusySet) {
+      if (!actualBusySet.has(id)) {
+        void redisClient.del(`driver:busy:${id}`).catch(() => {});
+      }
+    }
+  }
+  return actualBusySet;
 }
 
 async function fetchVehiclesForPartners(
@@ -247,14 +239,7 @@ async function getNearbyIdsFromMongo(
     partnerStatus: "approved",
     isPartnerBlocked: { $ne: true },
     ...(excludeObjectIds.length ? { _id: { $nin: excludeObjectIds } } : {}),
-    $or: [
-      { lastLocationAt: { $gte: locationCutoff } },
-      {
-        lastLocationAt: { $exists: false },
-        updatedAt: { $gte: locationCutoff },
-        "location.coordinates.0": { $exists: true },
-      },
-    ],
+    lastLocationAt: { $gte: locationCutoff },
     location: {
       $near: {
         $geometry: {
@@ -319,14 +304,7 @@ export async function findClosestEligiblePartner(
     isPartnerAvailable: { $ne: false },
     partnerStatus: "approved",
     isPartnerBlocked: { $ne: true },
-    $or: [
-      { lastLocationAt: { $gte: locationCutoff } },
-      {
-        lastLocationAt: { $exists: false },
-        updatedAt: { $gte: locationCutoff },
-        "location.coordinates.0": { $exists: true },
-      },
-    ],
+    lastLocationAt: { $gte: locationCutoff },
   })
     .select("_id mobileNumber name location ratingAverage ratingCount updatedAt isPremiumPartner activeVehicleId")
     .lean();
@@ -401,8 +379,8 @@ export async function findClosestEligiblePartner(
           continue;
         }
       } catch (err) {
-        console.warn("[findPartner] Redis lock failed, proceeding without lock:", err);
-        // Don't block matching if Redis lock is unavailable — continue without it
+        console.error("[findPartner] Redis lock failed; refusing an unsafe dispatch:", err);
+        return null;
       }
     }
 
@@ -476,14 +454,7 @@ export async function countEligiblePartners(
     isPartnerAvailable: { $ne: false },
     partnerStatus: "approved",
     isPartnerBlocked: { $ne: true },
-    $or: [
-      { lastLocationAt: { $gte: locationCutoff } },
-      {
-        lastLocationAt: { $exists: false },
-        updatedAt: { $gte: locationCutoff },
-        "location.coordinates.0": { $exists: true },
-      },
-    ],
+    lastLocationAt: { $gte: locationCutoff },
   })
     .select("_id activeVehicleId")
     .lean();

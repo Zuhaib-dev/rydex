@@ -42,6 +42,9 @@ export function setupRedisSub(onSocketEmit?: (payload: any) => Promise<void>) {
       const driverId = message.split(":")[2];
       console.log(`Presence heartbeat expired for driver ${driverId}. Mark offline.`);
       try {
+        // Expiry notifications may be queued while a reconnect refreshes the
+        // same key. Recheck Redis before applying the stale event to MongoDB.
+        if (await redisPub.exists(`presence:driver:${driverId}`)) return;
         const updateResult = await User.updateOne(
           { _id: driverId },
           {
@@ -126,4 +129,4 @@ export function setupRedisSub(onSocketEmit?: (payload: any) => Promise<void>) {
     }
   });
 }
- 
+

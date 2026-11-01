@@ -295,6 +295,34 @@ export default function DriverRidePage() {
 
   /* ── GPS — only for active rides, uses shared location to avoid throttling ── */
   const { position: rawPosition, speedKmh, headingDegrees } = useSharedLocation();
+  const latestGpsRef = useRef({
+    position: rawPosition,
+    speedKmh,
+    headingDegrees,
+  });
+
+  useEffect(() => {
+    latestGpsRef.current = { position: rawPosition, speedKmh, headingDegrees };
+  }, [rawPosition, speedKmh, headingDegrees]);
+
+  const sendLatestLocation = () => {
+    const currentBooking = bookingRef.current;
+    const { position, speedKmh: currentSpeed, headingDegrees: currentHeading } = latestGpsRef.current;
+    if (!currentBooking?._id || TERMINAL.includes(currentBooking.status) || !position) return;
+
+    const socket = getSocket();
+    if (!socket.connected) return;
+    socket.emit("driver-location-update", {
+      bookingId: currentBooking._id,
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      status: currentBooking.status,
+      speedKmh: currentSpeed,
+      heading: currentHeading,
+      accuracy: position.coords.accuracy,
+      at: position.timestamp || Date.now(),
+    });
+  };
 
   useEffect(() => {
     const b = bookingRef.current;
@@ -319,7 +347,7 @@ export default function DriverRidePage() {
     }
 
     setDriverPos([lat, lng]);
-    socket.emit("driver-location-update", {
+    const locationUpdate = {
       bookingId: b._id,
       latitude: lat,
       longitude: lng,
@@ -327,8 +355,16 @@ export default function DriverRidePage() {
       speedKmh,
       heading: headingDegrees,
       accuracy: rawPosition.coords.accuracy,
-      at: Date.now(),
-    });
+      at: rawPosition.timestamp || Date.now(),
+    };
+    const emitLocation = () => {
+      if (socket.connected) socket.emit("driver-location-update", locationUpdate);
+    };
+    emitLocation();
+    socket.on("connect", emitLocation);
+    return () => {
+      socket.off("connect", emitLocation);
+    };
   }, [rawPosition, speedKmh, headingDegrees, booking?._id, booking?.status]);
 
   useBookingRealtime<IBooking>({
@@ -337,7 +373,10 @@ export default function DriverRidePage() {
     setBooking,
     role: "partner",
     onToast: (t) => setRealtimeToast({ ...t, id: Date.now() }),
-    onReconnect: () => fetchActiveBooking(true),
+    onReconnect: () => {
+      fetchActiveBooking(true);
+      sendLatestLocation();
+    },
     onStatusChange: (nextStatus) => {
       if (nextStatus === "started") {
         setOtpVerified(true);

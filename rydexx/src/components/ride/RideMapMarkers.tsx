@@ -29,6 +29,66 @@ export function DropMarker() {
   );
 }
 
+/** Small, top-down vehicle silhouettes shared by rider and dispatch maps. */
+export function VehicleGlyph({
+  vehicleType = "car",
+  color = "#10b981",
+  size = 48,
+}: {
+  vehicleType?: string;
+  color?: string;
+  size?: number;
+}) {
+  const type = vehicleType.toLowerCase();
+  const common = { fill: "#09090b", stroke: color, strokeWidth: 3, strokeLinejoin: "round" as const };
+
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" className="drop-shadow-[0_0_10px_rgba(0,0,0,0.55)]">
+      {type === "bike" ? (
+        <g stroke={color} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+          <ellipse cx="50" cy="17" rx="10" ry="7" fill="#09090b" />
+          <ellipse cx="50" cy="83" rx="10" ry="7" fill="#09090b" />
+          <path d="M50 23v54M50 31 38 24M50 31l12-7M50 34 41 45l9 10 9-10-9-11ZM41 45l-8 15M59 45l8 15M50 55l-5 18M50 55l5 18" fill="none" />
+          <path d="M42 36q8-7 16 0l5 12q-13 8-26 0z" fill="#18181b" />
+          <path d="M44 29h12M38 24l-5-4M62 24l5-4" fill="none" />
+          <circle cx="50" cy="28" r="2.5" fill="#fef3c7" stroke="none" />
+        </g>
+      ) : type === "auto" ? (
+        <g {...common}>
+          <path d="M50 10 65 21l9 18v36L60 88H40L26 75V39l9-18z" />
+          <path d="M38 25h24l7 15H31z" fill="#27272a" />
+          <path d="M33 46h34v19H33z" fill="#064e3b" />
+          <path d="M38 70h24l-5 10H43z" fill="#18181b" />
+          <circle cx="29" cy="68" r="5" fill="#18181b" stroke={color} strokeWidth="2" />
+          <circle cx="71" cy="68" r="5" fill="#18181b" stroke={color} strokeWidth="2" />
+          <path d="M42 15h16" stroke={color} strokeWidth="4" />
+        </g>
+      ) : type === "truck" || type === "loading" ? (
+        <g {...common}>
+          <path d="M30 8h40v48H30z" />
+          <path d="M34 14h32v25H34z" fill="#27272a" />
+          <path d="M34 44h32v8H34z" fill="#064e3b" />
+          <path d="M34 58h32l-5 26H39z" fill="#18181b" />
+          <circle cx="35" cy="78" r="5" fill="#09090b" stroke={color} strokeWidth="2" />
+          <circle cx="65" cy="78" r="5" fill="#09090b" stroke={color} strokeWidth="2" />
+          <path d="M41 10h18" stroke={color} strokeWidth="4" />
+        </g>
+      ) : (
+        <g {...common}>
+          <path d="M34 12h32q9 4 10 16v44q-2 15-12 17H36q-10-2-12-17V28q1-12 10-16z" />
+          <path d="m32 30 5-11h26l5 11v14H32z" fill="#27272a" />
+          <path d="M31 49h38v18H31z" fill="#064e3b" />
+          <path d="m35 72 5 9h20l5-9z" fill="#27272a" />
+          <path d="M29 23 22 19M71 23l7-4" fill="none" stroke={color} strokeWidth="3" />
+          <circle cx="34" cy="17" r="3" fill="#fef3c7" stroke="none" />
+          <circle cx="66" cy="17" r="3" fill="#fef3c7" stroke="none" />
+          <path d="M31 83h9M60 83h9" stroke="#ef4444" strokeWidth="4" />
+        </g>
+      )}
+    </svg>
+  );
+}
+
 export function DriverMarker({
   bearing,
   etaMinutes,
@@ -62,49 +122,9 @@ export function DriverMarker({
         <div className="absolute inset-0 rounded-full bg-emerald-500/20 blur-xl scale-[2.5]" />
         <div className="absolute inset-0 rounded-full border border-emerald-500/30 scale-[1.7] animate-ping" style={{ animationDuration: '3s' }} />
         
-        <svg width="48" height="48" viewBox="0 0 100 100" className="drop-shadow-[0_0_15px_rgba(16,185,129,0.5)] relative z-10">
-          {/* Shadow */}
-          <ellipse cx="50" cy="55" rx="18" ry="30" fill="rgba(0,0,0,0.4)" filter="blur(4px)" />
-          {vehicleType === "bike" ? (
-            <g fill="none" stroke="#10b981" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="50" cy="19" r="10" fill="#09090b" />
-              <circle cx="50" cy="81" r="10" fill="#09090b" />
-              <path d="M50 19 36 46 50 62 50 81M36 46 64 46 50 62 64 81M37 46 28 38M61 46 70 37" />
-              <path d="M43 38h14l7 12H36z" fill="#09090b" />
-              <circle cx="43" cy="20" r="2" fill="#34d399" stroke="none" />
-            </g>
-          ) : vehicleType === "auto" ? (
-            <g stroke="#10b981" strokeWidth="2.5" strokeLinejoin="round">
-              <path d="M35 29 43 20h14l8 9v39l-8 10H43l-8-10z" fill="#09090b" />
-              <path d="M40 31h20v19H40z" fill="#18181b" />
-              <path d="M42 53h16v17H42z" fill="#064e3b" />
-              <circle cx="32" cy="69" r="6" fill="#09090b" />
-              <circle cx="68" cy="69" r="6" fill="#09090b" />
-              <circle cx="50" cy="20" r="3" fill="#34d399" />
-            </g>
-          ) : vehicleType === "truck" || vehicleType === "loading" ? (
-            <g stroke="#10b981" strokeWidth="2.5" strokeLinejoin="round">
-              <path d="M34 10h32v46H34z" fill="#09090b" />
-              <path d="M36 60h28l-5 22H41z" fill="#09090b" />
-              <path d="M39 17h22v16H39z" fill="#18181b" />
-              <rect x="41" y="38" width="18" height="11" rx="2" fill="#064e3b" />
-              <circle cx="38" cy="77" r="5" fill="#09090b" />
-              <circle cx="62" cy="77" r="5" fill="#09090b" />
-              <path d="M41 12h6M53 12h6" stroke="#34d399" strokeWidth="3" />
-            </g>
-          ) : (
-            <g>
-              <rect x="36" y="20" width="28" height="60" rx="10" fill="#09090b" stroke="#10b981" strokeWidth="1.5" />
-              <path d="M40 40 L60 40 L56 30 L44 30 Z" fill="#18181b" stroke="#059669" strokeWidth="1" />
-              <path d="M40 60 L60 60 L56 70 L44 70 Z" fill="#18181b" />
-              <circle cx="41" cy="23" r="2.5" fill="#34d399" filter="drop-shadow(0 0 5px #34d399)" />
-              <circle cx="59" cy="23" r="2.5" fill="#34d399" filter="drop-shadow(0 0 5px #34d399)" />
-              <rect x="39" y="76" width="6" height="2" rx="1" fill="#ef4444" />
-              <rect x="55" y="76" width="6" height="2" rx="1" fill="#ef4444" />
-              <rect x="42" y="42" width="16" height="16" rx="4" fill="#18181b" />
-            </g>
-          )}
-        </svg>
+        <div className="relative z-10">
+          <VehicleGlyph vehicleType={vehicleType} size={48} />
+        </div>
       </div>
     </div>
   );

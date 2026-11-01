@@ -20,7 +20,7 @@ export async function GET() {
 
     // 1. Fetch active rides (including all active ride statuses)
     const activeRides = await Booking.find({
-      status: { $in: ["requested", "confirmed", "arriving", "arrived", "started"] }
+      status: { $in: ["requested", "awaiting_payment", "confirmed", "arriving", "arrived", "started"] }
     }).select("pickupLocation dropLocation driver status user vehicleType sosTriggered sosTriggeredAt").lean();
 
     const activeDriverIds = activeRides
@@ -36,7 +36,7 @@ export async function GET() {
         { isOnline: true },
         { _id: { $in: activeDriverIds } }
       ]
-    }).select("name email mobileNumber location image socketId lastLocationAt _id activeVehicleId currentVehicleType").lean();
+    }).select("name email mobileNumber location image socketId lastLocationAt isOnline isPartnerAvailable _id activeVehicleId currentVehicleType").lean();
 
     // Fetch only active vehicles for these drivers to know their current vehicleType (car, bike, truck, etc.)
     const activeVehicleIds = drivers

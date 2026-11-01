@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from "vitest";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import mongoose from "mongoose";
+import { createHmac } from "node:crypto";
 import { io as Client, Socket as ClientSocket } from "socket.io-client";
 import RedisMock from "ioredis-mock";
 
@@ -47,6 +48,20 @@ let clientSocket: any;
 let testPort: number;
 
 const socketUrl = () => `http://127.0.0.1:${testPort}`;
+
+function socketToken(userId: string) {
+  const secret = process.env.SOCKET_INTERNAL_SECRET || "";
+  const payload = Buffer.from(JSON.stringify({
+    sub: userId,
+    exp: Math.floor(Date.now() / 1000) + 60,
+  })).toString("base64url");
+  const signature = createHmac("sha256", secret).update(payload).digest("base64url");
+  return `${payload}.${signature}`;
+}
+
+function authenticatedSocket(userId: string) {
+  return Client(socketUrl(), { auth: { token: socketToken(userId) } });
+}
 
 beforeAll(async () => {
   // 1. Setup in-memory MongoDB
@@ -122,16 +137,18 @@ describe("WebSocket Realtime Integration Tests", () => {
     return new Promise<void>(async (resolve, reject) => {
       try {
         // Create user in in-memory DB
+        const staleLocationAt = new Date(Date.now() - 120_000);
         const testUser = await User.create({
           name: "Test Driver",
           email: "driver@rydex.com",
           role: "partner",
           isOnline: false,
           partnerStatus: "approved",
+          lastLocationAt: staleLocationAt,
         });
 
         // Connect socket client
-        clientSocket = Client(socketUrl());
+        clientSocket = authenticatedSocket(testUser._id.toString());
 
         clientSocket.on("connect", () => {
           // Emit identity event to link socket to user
@@ -144,9 +161,26 @@ describe("WebSocket Realtime Integration Tests", () => {
               expect(dbUser.isOnline).toBe(true);
               expect(dbUser.socketId).toBe(clientSocket.id);
               expect(dbUser.isPartnerAvailable).toBe(true);
+              expect(dbUser.lastLocationAt?.getTime()).toBe(staleLocationAt.getTime());
 
               clientSocket.on("disconnect", () => {
-                setTimeout(resolve, 100);
+                void (async () => {
+                  try {
+                    for (let attempt = 0; attempt < 40; attempt++) {
+                      const afterDisconnect = await User.findById(testUser._id);
+                      if (afterDisconnect.socketId == null) {
+                        expect(afterDisconnect.isOnline).toBe(true);
+                        expect(afterDisconnect.isPartnerAvailable).toBe(true);
+                        resolve();
+                        return;
+                      }
+                      await new Promise((done) => setTimeout(done, 25));
+                    }
+                    throw new Error("Socket disconnect cleanup did not finish");
+                  } catch (err) {
+                    reject(err);
+                  }
+                })();
               });
               clientSocket.disconnect();
             } catch (err) {
@@ -172,46 +206,55 @@ describe("WebSocket Realtime Integration Tests", () => {
         const { rider, driver, booking } = await createBookingParticipants();
         const bookingId = booking._id.toString();
 
-        clientSocket1 = Client(socketUrl());
+        clientSocket1 = authenticatedSocket(rider._id.toString());
         clientSocket1.on("connect", () => {
-          clientSocket2 = Client(socketUrl());
+          clientSocket2 = authenticatedSocket(driver._id.toString());
           clientSocket2.on("connect", () => {
             clientSocket1.emit("identity", rider._id.toString());
-            clientSocket1.emit("join-booking", bookingId);
             clientSocket2.emit("identity", driver._id.toString());
-            clientSocket2.emit("join-booking", bookingId);
+            let joinedCount = 0;
+            const handleJoined = (joined: boolean) => {
+              try {
+                expect(joined).toBe(true);
+                joinedCount++;
+                if (joinedCount !== 2) return;
+                clientSocket2.on("chat-message", (msg: any) => {
+                  try {
+                    expect(msg.text).toBe("Hello Driver!");
+                    expect(msg.sender).toBe("user");
 
-            setTimeout(() => {
-              clientSocket2.on("chat-message", (msg: any) => {
-                try {
-                  expect(msg.text).toBe("Hello Driver!");
-                  expect(msg.sender).toBe("user");
-                  
-                  let disconnectedCount = 0;
-                  const onDisconnect = () => {
-                    disconnectedCount++;
-                    if (disconnectedCount === 2) {
-                      setTimeout(resolve, 100);
-                    }
-                  };
-                  clientSocket1.on("disconnect", onDisconnect);
-                  clientSocket2.on("disconnect", onDisconnect);
+                    let disconnectedCount = 0;
+                    const onDisconnect = () => {
+                      disconnectedCount++;
+                      if (disconnectedCount === 2) {
+                        setTimeout(resolve, 100);
+                      }
+                    };
+                    clientSocket1.on("disconnect", onDisconnect);
+                    clientSocket2.on("disconnect", onDisconnect);
 
-                  clientSocket1.disconnect();
-                  clientSocket2.disconnect();
-                } catch (err) {
-                  clientSocket1.disconnect();
-                  clientSocket2.disconnect();
-                  reject(err);
-                }
-              });
+                    clientSocket1.disconnect();
+                    clientSocket2.disconnect();
+                  } catch (err) {
+                    clientSocket1.disconnect();
+                    clientSocket2.disconnect();
+                    reject(err);
+                  }
+                });
 
-              clientSocket1.emit("chat-message", {
-                rideId: bookingId,
-                text: "Hello Driver!",
-                sender: "user",
-              });
-            }, 100);
+                clientSocket1.emit("chat-message", {
+                  rideId: bookingId,
+                  text: "Hello Driver!",
+                  sender: "user",
+                });
+              } catch (err) {
+                clientSocket1.disconnect();
+                clientSocket2.disconnect();
+                reject(err);
+              }
+            };
+            clientSocket1.emit("join-booking", bookingId, handleJoined);
+            clientSocket2.emit("join-booking", bookingId, handleJoined);
           });
         });
       } catch (err) {
@@ -282,7 +325,7 @@ describe("WebSocket Realtime Integration Tests", () => {
 
         const spy = vi.spyOn(User, "findByIdAndUpdate");
 
-        tempClientSocket = Client(socketUrl());
+        tempClientSocket = authenticatedSocket(testDriver._id.toString());
         tempClientSocket.on("connect", () => {
           tempClientSocket.emit("identity", testDriver._id.toString());
 
@@ -331,7 +374,7 @@ describe("WebSocket Realtime Integration Tests", () => {
           isPartnerBlocked: true,
         });
 
-        blockedClientSocket = Client(socketUrl());
+        blockedClientSocket = authenticatedSocket(testUser._id.toString());
         blockedClientSocket.on("connect", () => {
           blockedClientSocket.emit("identity", testUser._id.toString());
         });
@@ -368,7 +411,7 @@ describe("WebSocket Realtime Integration Tests", () => {
           role: "user",
         });
 
-        activeClientSocket = Client(socketUrl());
+        activeClientSocket = authenticatedSocket(testUser._id.toString());
         activeClientSocket.on("connect", () => {
           activeClientSocket.emit("identity", testUser._id.toString());
         });
@@ -427,16 +470,18 @@ describe("WebSocket Realtime Integration Tests", () => {
         const { rider, driver, booking } = await createBookingParticipants();
         const bookingId = booking._id.toString();
 
-        clientSocket1 = Client(socketUrl());
+        clientSocket1 = authenticatedSocket(rider._id.toString());
         clientSocket1.on("connect", () => {
-          clientSocket2 = Client(socketUrl());
+          clientSocket2 = authenticatedSocket(driver._id.toString());
           clientSocket2.on("connect", () => {
             clientSocket1.emit("identity", rider._id.toString());
-            clientSocket1.emit("join-booking", bookingId);
             clientSocket2.emit("identity", driver._id.toString());
-            clientSocket2.emit("join-booking", bookingId);
-
-            setTimeout(() => {
+            let joinedCount = 0;
+            const handleJoined = (joined: boolean) => {
+              try {
+                expect(joined).toBe(true);
+                joinedCount++;
+                if (joinedCount !== 2) return;
               clientSocket2.on("chat-typing", (data: any) => {
                 try {
                   expect(data.rideId).toBe(bookingId);
@@ -458,7 +503,14 @@ describe("WebSocket Realtime Integration Tests", () => {
                 sender: "user",
                 isTyping: true,
               });
-            }, 100);
+              } catch (err) {
+                clientSocket1.disconnect();
+                clientSocket2.disconnect();
+                reject(err);
+              }
+            };
+            clientSocket1.emit("join-booking", bookingId, handleJoined);
+            clientSocket2.emit("join-booking", bookingId, handleJoined);
           });
         });
       } catch (err) {
@@ -474,16 +526,18 @@ describe("WebSocket Realtime Integration Tests", () => {
         const { rider, driver, booking } = await createBookingParticipants();
         const bookingId = booking._id.toString();
 
-        clientSocket1 = Client(socketUrl());
+        clientSocket1 = authenticatedSocket(rider._id.toString());
         clientSocket1.on("connect", () => {
-          clientSocket2 = Client(socketUrl());
+          clientSocket2 = authenticatedSocket(driver._id.toString());
           clientSocket2.on("connect", () => {
             clientSocket1.emit("identity", rider._id.toString());
-            clientSocket1.emit("join-booking", bookingId);
             clientSocket2.emit("identity", driver._id.toString());
-            clientSocket2.emit("join-booking", bookingId);
-
-            setTimeout(() => {
+            let joinedCount = 0;
+            const handleJoined = (joined: boolean) => {
+              try {
+                expect(joined).toBe(true);
+                joinedCount++;
+                if (joinedCount !== 2) return;
               clientSocket2.on("chat-read", (data: any) => {
                 try {
                   expect(data.rideId).toBe(bookingId);
@@ -503,7 +557,14 @@ describe("WebSocket Realtime Integration Tests", () => {
                 rideId: bookingId,
                 sender: "user",
               });
-            }, 100);
+              } catch (err) {
+                clientSocket1.disconnect();
+                clientSocket2.disconnect();
+                reject(err);
+              }
+            };
+            clientSocket1.emit("join-booking", bookingId, handleJoined);
+            clientSocket2.emit("join-booking", bookingId, handleJoined);
           });
         });
       } catch (err) {

@@ -17,7 +17,9 @@ export default function SmoothAdminMarker({
   isActiveRide?: boolean;
 }) {
   // Use a smooth duration depending on if it's on a ride or idle
-  const smoothLoc = useSmoothCoords([latitude, longitude], isActiveRide ? 3500 : 4500);
+  // GPS packets arrive every few seconds. A multi-second easing duration makes
+  // the marker trail behind every packet, so keep interpolation short and catch up.
+  const smoothLoc = useSmoothCoords([latitude, longitude], isActiveRide ? 1200 : 1000);
   const [bearing, setBearing] = useState(0);
   const prevRef = useRef<LatLng | null>(null);
 
@@ -49,7 +51,7 @@ export default function SmoothAdminMarker({
       <div 
         style={{ 
           transform: `rotate(${bearing}deg)`, 
-          transition: "transform 2s cubic-bezier(0.2, 0.8, 0.2, 1)" 
+          transition: "transform 350ms cubic-bezier(0.2, 0.8, 0.2, 1)"
         }}
       >
         {/* Anti-rotate the SOS/status indicators if they exist inside children, or just let them rotate.

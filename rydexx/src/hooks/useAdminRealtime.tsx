@@ -15,6 +15,7 @@ import type {
   AdminDashboardScope,
   AdminDashboardUpdatePayload,
 } from "@/lib/adminEvents";
+import { useSession } from "next-auth/react";
 
 export type AdminConnectionStatus =
   | "connecting"
@@ -47,6 +48,8 @@ function debounce<T extends (...args: never[]) => void>(fn: T, ms: number) {
 }
 
 export function AdminRealtimeProvider({ children }: { children: ReactNode }) {
+  const { data: session, status: sessionStatus } = useSession();
+  const userId = session?.user?.id;
   const [connectionStatus, setConnectionStatus] =
     useState<AdminConnectionStatus>("connecting");
   const [lastUpdateAt, setLastUpdateAt] = useState<number | null>(null);
@@ -61,10 +64,16 @@ export function AdminRealtimeProvider({ children }: { children: ReactNode }) {
     const socket = getSocket();
 
     const joinAdmin = () => {
-      socket.emit("join-admin");
+      // The socket server only allows admins into this room after identity is
+      // resolved. The identity handler joins admins to admin-dashboard itself.
+      if (userId) socket.emit("identity", userId);
     };
 
     const handleConnect = () => {
+      if (sessionStatus !== "authenticated" || !userId) {
+        setConnectionStatus("connecting");
+        return;
+      }
       setConnectionStatus("connected");
       joinAdmin();
     };
@@ -82,10 +91,8 @@ export function AdminRealtimeProvider({ children }: { children: ReactNode }) {
       listenersRef.current.forEach((listener) => listener(payload));
     };
 
-    if (socket.connected) {
-      handleConnect();
-    } else {
-      setConnectionStatus("connecting");
+    if (socket.connected && sessionStatus === "authenticated" && userId) {
+      queueMicrotask(handleConnect);
     }
 
     socket.on("connect", handleConnect);
@@ -99,7 +106,7 @@ export function AdminRealtimeProvider({ children }: { children: ReactNode }) {
       socket.off("reconnect_attempt", handleReconnectAttempt);
       socket.off("admin-dashboard-update", handleAdminUpdate);
     };
-  }, []);
+  }, [sessionStatus, userId]);
 
   const value = useMemo(
     () => ({ connectionStatus, lastUpdateAt, subscribe }),
@@ -129,7 +136,10 @@ export function useAdminRealtimeRefresh(
 ) {
   const { subscribe } = useAdminRealtime();
   const onRefreshRef = useRef(onRefresh);
-  onRefreshRef.current = onRefresh;
+
+  useEffect(() => {
+    onRefreshRef.current = onRefresh;
+  }, [onRefresh]);
 
   useEffect(() => {
     if (!enabled) return;

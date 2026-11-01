@@ -62,9 +62,11 @@ export function useBookingRealtime<T extends object>({
 
     const socket = getSocket();
 
-    const joinRoom = () => {
+    const joinRoom = (onJoined?: () => void) => {
       if (userId) socket.emit("identity", userId);
-      socket.emit("join-booking", bookingId);
+      socket.emit("join-booking", bookingId, (joined: boolean) => {
+        if (joined) onJoined?.();
+      });
     };
 
     const applyPatch = (raw: BookingClientPayload) => {
@@ -122,8 +124,7 @@ export function useBookingRealtime<T extends object>({
     const onSync = (data: BookingClientPayload) => applyPatch(data);
 
     const handleConnect = () => {
-      joinRoom();
-      onReconnectRef.current?.();
+      joinRoom(() => onReconnectRef.current?.());
     };
 
     const handleFocus = () => {
