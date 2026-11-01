@@ -289,7 +289,7 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
           }
 
           // One atomic ledger entry per booking prevents overspending and replay
-          // of a QR token for the same ride.
+          // of a  QR token for the same ride.
           const consumedPass = await Pass.findOneAndUpdate(
             {
               _id: pass._id,
