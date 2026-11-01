@@ -2,16 +2,18 @@
 
 # `socketServer` — Rydex Real-time Engine
 
-### Node.js · Express · Socket.IO · Firebase · Redis · MongoDB
+### Node.js · TypeScript · Express 5 · Socket.IO · Firebase · Redis · MongoDB
 
-[![Node.js](https://img.shields.io/badge/Node.js-24.x-339933?style=flat-square&logo=node.js)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-TypeScript-339933?style=flat-square&logo=node.js)](https://nodejs.org/)
 [![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?style=flat-square&logo=socket.io)](https://socket.io/)
-[![Express](https://img.shields.io/badge/Express-4.x-000000?style=flat-square&logo=express)](https://expressjs.com/)
+[![Express](https://img.shields.io/badge/Express-5.x-000000?style=flat-square&logo=express)](https://expressjs.com/)
 [![Firebase](https://img.shields.io/badge/Firebase-Admin-FFCA28?style=flat-square&logo=firebase)](https://firebase.google.com/)
 [![Redis](https://img.shields.io/badge/Redis-4.x-DC382D?style=flat-square&logo=redis)](https://redis.io/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Mongoose-47A248?style=flat-square&logo=mongodb)](https://mongoosejs.com/)
 
 *The nervous system of Rydex. Handles all real-time events — GPS coordinates, booking dispatches, in-ride chat, push notifications via FCM, and the matchmaker cascade timer.*
+
+[Project overview](../readme.md) · [Frontend and API](../rydexx/README.md)
 
 </div> 
 
@@ -66,7 +68,7 @@ graph LR
     IO <--> DB
     IO <--> REDIS
     MM -->|POST /cascade| API
-    TM -->|triggers after 20s| MM
+    TM -->|triggers after 40s| MM
     FCM -->|sendPushNotification| FIREBASE
     FIREBASE -->|Push Notification| U
     FIREBASE -->|Push Notification| P
@@ -78,7 +80,7 @@ graph LR
 
 ```
 socketServer/
-├── index.ts                          # Entry point (Express + Socket.IO setup)
+├── index.ts                          # TypeScript entry point (Express + Socket.IO setup)
 │   ├── Express app setup
 │   ├── MongoDB connection
 │   ├── CORS & middleware config
@@ -253,19 +255,19 @@ sequenceDiagram
 
     API->>SS: POST /emit {event: "new-booking", userId: driverId}
     SS->>P: Emit "new-booking"
-    SS->>TM: Set timer (bookingId → 20s timeout)
+    SS->>TM: Set timer (bookingId → 40s timeout)
 
-    alt Driver accepts within 20s
+    alt Driver accepts within 40s
         P->>API: POST /booking/:id/accept
         API->>SS: POST /emit {event: "booking-updated", data: {status: "confirmed"}}
         SS->>TM: Clear timer (status ≠ "requested")
     end
 
-    alt Driver ignores (20s pass)
+    alt Driver ignores (40s pass)
         TM->>API: POST /api/booking/:id/cascade {driverId}
         API->>API: Find next driver (MongoDB $near)
         API->>SS: POST /emit {event: "new-booking", userId: nextDriverId}
-        SS->>TM: New 20s timer for new driver
+        SS->>TM: New 40s timer for new driver
     end
 ```
 
@@ -472,7 +474,7 @@ NEXT_BASE_URL=https://your-nextjs-app.netlify.app
 
 ```json
 {
-  "express": "^4.x",
+  "express": "^5.x",
   "socket.io": "^4.x",
   "mongoose": "^9.x",
   "axios": "^1.x",
@@ -481,7 +483,7 @@ NEXT_BASE_URL=https://your-nextjs-app.netlify.app
 }
 ```
 
-> No TypeScript here — kept intentionally simple as a lean Node.js service. The only responsibility is connection management, event routing, and timer orchestration.
+The service is implemented in TypeScript and compiled with `tsc`; `index.ts` is the development entry point and `dist/index.js` is the production entry point. See [`package.json`](./package.json) for the exact dependency versions and scripts.
 
 ---
 

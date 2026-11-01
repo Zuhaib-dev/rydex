@@ -9,7 +9,13 @@
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-06B6D4?style=flat-square&logo=tailwindcss)](https://tailwindcss.com/)
 [![PWA](https://img.shields.io/badge/PWA-Enabled-5A0FC8?style=flat-square&logo=pwa)](https://web.dev/progressive-web-apps/)
 
+[Project overview](../readme.md) · [Realtime service](../socketServer/README.md)
+
 </div>
+
+<p align="center">
+  <img src="public/ogimage.webp" alt="Rydex app preview" width="780" />
+</p>
 
 --- 
 
@@ -20,7 +26,11 @@ This is the main application — the **Next.js 16 App Router** project that serv
 - The **user booking flow** (vehicle select → map → fare → checkout)
 - The **partner dashboard** (live requests, earnings charts, KYC)
 - The **admin control center** (live map, approvals, surge zones)
-- **40+ REST API routes** (all under `/src/app/api/`)
+- API route groups for auth, bookings, dispatch, payments, passes, wallet, chat, notifications, partner operations, and admin tools (under `/src/app/api/`)
+
+### Current product surface
+
+Alongside core ride booking, the current app includes smart-pass purchase and QR/NFC/audio validation flows, wallet balance and top-ups, coupon validation and administration, saved places, partner demand and recommendations, settlements, and expanded admin operations for audit logs, health metrics, SOS resolution, and dispatch. The live route tree in `src/app/` and API handlers in `src/app/api/` are the source of truth for what is currently wired.
 
 ---
 
@@ -56,7 +66,7 @@ rydexx/
 │   │   │   └── book/                   # Vehicle booking wizard
 │   │   ├── video-kyc/                  # Video KYC session page
 │   │   │
-│   │   └── api/                        # ← All API routes (40+)
+│   │   └── api/                        # API route groups (auth, bookings, wallet, passes, admin, ...)
 │   │       ├── auth/                   # Register, verify-email, NextAuth, WebAuthn passkey
 │   │       │   ├── webauthn/
 │   │       │   │   ├── register/
