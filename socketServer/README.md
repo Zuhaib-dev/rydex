@@ -397,6 +397,7 @@ MONGODB_URL=mongodb+srv://<user>:<pass>@cluster.mongodb.net/rydex
 NEXT_BASE_URL=http://localhost:3000
 CLIENT_URL=http://localhost:3000
 SOCKET_INTERNAL_SECRET=<secret-for-internal-endpoints>
+PASS_SECRET_KEY=<optional-64-hex-character-random-32-byte-key; defaults to a key derived from SOCKET_INTERNAL_SECRET>
 
 # Firebase Cloud Messaging (Optional - push notifications disabled if not set)
 FIREBASE_ADMIN_JSON_PATH=./firebase-admin.json

@@ -49,7 +49,7 @@ export interface ClientToServerEvents {
   "partner-heartbeat": () => void;
   "route-deviation": (data: { bookingId: string; driverId?: string; latitude: number; longitude: number }) => void;
   "join-validator": () => void;
-  "verify-pass": (token: string) => void;
+  "verify-pass": (data: { token: string; bookingId: string }) => void;
   "request-pass-token": (data: { passId: string }) => void;
   "audio-broadcast-start": (token: string) => void;
   "audio-receive-trigger": () => void;
@@ -234,34 +234,131 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
       }
     });
 
-    socket.on("verify-pass", async (token: string) => {
+    socket.on("verify-pass", async (data: { token: string; bookingId: string }) => {
       if (!socket.userId) return;
 
-      const payload = PassTokenService.verifyToken(token);
+      const payload = PassTokenService.verifyToken(data?.token);
       if (!payload) {
         socket.emit("validation:failure", { message: "Invalid or expired ticket token." });
         return;
       }
+      if (!/^[0-9a-fA-F]{24}$/.test(data?.bookingId || "")) {
+        socket.emit("validation:failure", { message: "Open pass validation from an active ride." });
+        return;
+      }
       try {
+        const validator = await User.findOne({
+          _id: socket.userId,
+          role: "partner",
+          partnerStatus: "approved",
+          isPartnerBlocked: { $ne: true },
+        }).select("_id").lean();
+        if (!validator) {
+          socket.emit("validation:failure", { message: "Only approved partners can validate passes." });
+          return;
+        }
+
+        const bookingFilter = {
+          _id: data.bookingId,
+          driver: socket.userId,
+          user: payload.u,
+          paymentStatus: "pass",
+        };
+        const booking = await Booking.findOne(bookingFilter).lean();
+        if (!booking || (booking.status !== "awaiting_payment" && booking.status !== "completed")) {
+          socket.emit("validation:failure", { message: "This pass does not match an active ride for this rider." });
+          return;
+        }
+
         const pass = await Pass.findOne({ _id: payload.p, userId: payload.u });
         if (!pass) {
            socket.emit("validation:failure", { message: "Pass not found." });
            return;
         }
-        if (!pass.isActive || pass.expiresAt < new Date()) {
-           socket.emit("validation:failure", { message: "Pass is inactive or expired." });
-           return;
-        }
-        if (pass.balance <= 0) {
-           socket.emit("validation:failure", { message: "Insufficient rides remaining." });
-           return;
+        const alreadyRedeemed = pass.redeemedBookingIds?.some((id: mongoose.Types.ObjectId) => String(id) === data.bookingId) ?? false;
+        let remainingBalance = pass.balance;
+        if (!alreadyRedeemed) {
+          const now = new Date();
+          if (!pass.isActive || pass.expiresAt <= now) {
+            socket.emit("validation:failure", { message: "Pass is inactive or expired." });
+            return;
+          }
+          if (pass.balance <= 0) {
+            socket.emit("validation:failure", { message: "Insufficient rides remaining." });
+            return;
+          }
+
+          // One atomic ledger entry per booking prevents overspending and replay
+          // of a QR token for the same ride.
+          const consumedPass = await Pass.findOneAndUpdate(
+            {
+              _id: pass._id,
+              userId: payload.u,
+              isActive: true,
+              expiresAt: { $gt: now },
+              balance: { $gt: 0 },
+              redeemedBookingIds: { $ne: data.bookingId },
+              redeemedTokenIds: { $ne: payload.j },
+            },
+            {
+              $inc: { balance: -1 },
+              $addToSet: {
+                redeemedBookingIds: data.bookingId,
+                redeemedTokenIds: payload.j,
+              },
+            },
+            { new: true },
+          );
+          if (!consumedPass) {
+            // A parallel scan of this same booking may have won the atomic
+            // update. Treat that as an idempotent retry, but reject reuse for
+            // any different booking.
+            const latestPass = await Pass.findOne({
+              _id: pass._id,
+              userId: payload.u,
+              redeemedBookingIds: data.bookingId,
+            });
+            if (!latestPass) {
+              socket.emit("validation:failure", { message: "Pass is no longer active or has no rides remaining." });
+              return;
+            }
+            remainingBalance = latestPass.balance;
+          } else {
+            remainingBalance = consumedPass.balance;
+            if (remainingBalance === 0) {
+              await Pass.updateOne({ _id: consumedPass._id, balance: 0 }, { $set: { isActive: false } });
+            }
+          }
         }
 
-        pass.balance -= 1;
-        await pass.save();
+        const completedAt = booking.passRedeemedAt && booking.status === "completed"
+          ? booking.completedAt ?? booking.passRedeemedAt
+          : new Date();
+        const completedBooking = booking.status === "completed" && String(booking.passId) === String(pass._id)
+          ? booking
+          : await Booking.findOneAndUpdate(
+              { ...bookingFilter, status: "awaiting_payment" },
+              { $set: { status: "completed", completedAt, passId: pass._id, passRedeemedAt: completedAt } },
+              { new: true },
+            );
+        if (!completedBooking) {
+          socket.emit("validation:failure", { message: "Pass was validated, but the ride changed. Please retry validation." });
+          return;
+        }
 
-        socket.emit("validation:success", { passId: String(pass._id), newBalance: pass.balance, message: "Ticket Verified!" });
-        io.to(`user-${payload.u}`).emit("validation:success", { passId: String(pass._id), newBalance: pass.balance, message: "Ticket Verified!" });
+        const result = { passId: String(pass._id), newBalance: remainingBalance, message: "Ticket Verified!" };
+        socket.emit("validation:success", result);
+        io.to(`user-${payload.u}`).emit("validation:success", result);
+        const bookingUpdate = {
+          bookingId: data.bookingId,
+          status: "completed",
+          paymentStatus: "pass",
+          paymentMethod: "pass",
+          completedAt: completedAt.toISOString(),
+          at: Date.now(),
+        };
+        io.to(`booking-${data.bookingId}`).emit("booking-updated", bookingUpdate);
+        notifyAdminMapThrottled();
 
       } catch(e) {
         console.error("Validation error:", e);
@@ -273,8 +370,8 @@ export function setupSocketHandlers(io: Server<ClientToServerEvents, ServerToCli
       if (!socket.userId) return;
       try {
         const pass = await Pass.findOne({ _id: data.passId, userId: socket.userId });
-        if (!pass || !pass.isActive || pass.balance <= 0) {
-           socket.emit("pass-token-error", { message: "Pass unavailable or exhausted." });
+        if (!pass || !pass.isActive || pass.balance <= 0 || pass.expiresAt <= new Date()) {
+           socket.emit("pass-token-error", { message: "Pass unavailable, expired, or exhausted." });
            return;
         }
         const token = PassTokenService.generateToken(socket.userId, data.passId);

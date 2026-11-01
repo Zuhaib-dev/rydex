@@ -6,13 +6,38 @@ import { useNfc } from "@/hooks/useNfc";
 import { useAudioChirp } from "@/hooks/useAudioChirp";
 import { QRCodeSVG } from "qrcode.react";
 import { motion, AnimatePresence } from "motion/react";
-import { Loader2, ShieldCheck, CreditCard, X, QrCode, Radio, SmartphoneNfc, AlertCircle, CheckCircle, ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Loader2, ShieldCheck, CreditCard, QrCode, Radio, SmartphoneNfc, AlertCircle, CheckCircle } from "lucide-react";
 import { PageHead, Panel } from "@/components/partner/shared";
 
+type PassRecord = {
+  _id: string;
+  type: string;
+  balance: number;
+  isActive: boolean;
+  expiresAt: string;
+};
+
+type RazorpayPaymentResponse = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayOptions = {
+  key?: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+  handler: (response: RazorpayPaymentResponse) => void | Promise<void>;
+};
+
+type RazorpayInstance = { open: () => void };
+type WindowWithRazorpay = Window & { Razorpay?: new (options: RazorpayOptions) => RazorpayInstance };
+
 export default function PassPage() {
-  const router = useRouter();
-  const [passes, setPasses] = useState<any[]>([]);
+  const [passes, setPasses] = useState<PassRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [buying, setBuying] = useState(false);
 
@@ -22,6 +47,11 @@ export default function PassPage() {
   const [isVerified, setIsVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeMode, setActiveMode] = useState<"qr" | "nfc" | "audio">("qr");
+
+  const activePasses = passes.filter((pass) =>
+    pass.isActive && pass.balance > 0 && new Date(pass.expiresAt).getTime() > Date.now()
+  );
+  const pastPasses = passes.filter((pass) => !activePasses.some((activePass) => activePass._id === pass._id));
 
   const socket = getSocket();
   const nfc = useNfc();
@@ -85,9 +115,9 @@ export default function PassPage() {
     return () => clearInterval(interval);
   }, [isBoarding, isVerified, requestToken, activePassId]);
 
-  const loadRazorpayScript = () => {
+  const loadRazorpayScript = (): Promise<boolean> => {
     return new Promise((resolve) => {
-      if ((window as any).Razorpay) return resolve(true);
+      if ((window as WindowWithRazorpay).Razorpay) return resolve(true);
       const script = document.createElement("script");
       script.src = "https://checkout.razorpay.com/v1/checkout.js";
       script.onload = () => resolve(true);
@@ -113,7 +143,7 @@ export default function PassPage() {
         name: "RYDEX Passes",
         description: "7-Day Commuter Pass",
         order_id: order.orderId,
-        handler: async (response: any) => {
+        handler: async (response: RazorpayPaymentResponse) => {
           const verify = await fetch("/api/pass/purchase/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -127,10 +157,12 @@ export default function PassPage() {
           }
         }
       };
-      const rzp = new (window as any).Razorpay(options);
+      const Razorpay = (window as WindowWithRazorpay).Razorpay;
+      if (!Razorpay) throw new Error("Razorpay checkout is unavailable");
+      const rzp = new Razorpay(options);
       rzp.open();
-    } catch (err: any) {
-      alert("Purchase failed: " + err.message);
+    } catch (err: unknown) {
+      alert("Purchase failed: " + (err instanceof Error ? err.message : "Unknown error"));
     } finally {
       setBuying(false);
     }
@@ -152,10 +184,10 @@ export default function PassPage() {
         subtitle="Manage your active subscriptions" 
       />
 
-      {passes.filter(p => p.balance > 0).length > 0 && (
+      {activePasses.length > 0 && (
         <Panel code="SUB / 01" title="Active Subscriptions">
           <div className="space-y-4 p-6">
-            {passes.filter(p => p.balance > 0).map(pass => (
+            {activePasses.map(pass => (
               <div 
                 key={pass._id}
                 className="border border-border bg-secondary/10 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6"
@@ -171,7 +203,7 @@ export default function PassPage() {
                     <p className="text-[10px] text-signal uppercase tracking-widest mt-1 font-bold">Rides Left</p>
                   </div>
                   <button 
-                    onClick={() => { setActivePassId(pass._id); setIsBoarding(true); }}
+                    onClick={() => { setError(null); setToken(null); setActivePassId(pass._id); setIsBoarding(true); }}
                     className="brick px-6 py-4 font-mono text-xs tracking-[0.2em] uppercase hover:bg-signal transition-colors flex items-center justify-center gap-2 whitespace-nowrap"
                   >
                     Tap to Board
@@ -183,10 +215,13 @@ export default function PassPage() {
         </Panel>
       )}
 
-      {passes.filter(p => p.balance <= 0).length > 0 && (
+      {pastPasses.length > 0 && (
         <Panel code="HST / 01" title="Past Passes">
           <div className="divide-y divide-border">
-            {passes.filter(p => p.balance <= 0).map(pass => (
+            {pastPasses.map(pass => {
+              const expired = new Date(pass.expiresAt).getTime() <= Date.now();
+              const status = expired ? "Expired" : pass.balance <= 0 ? "Exhausted" : "Inactive";
+              return (
               <div 
                 key={pass._id}
                 className="p-6 flex items-center justify-between bg-background opacity-60 grayscale"
@@ -196,10 +231,11 @@ export default function PassPage() {
                   <p className="text-muted-foreground font-mono text-[10px] mt-1 tracking-widest uppercase">Ended: {new Date(pass.expiresAt).toLocaleDateString()}</p>
                 </div>
                 <div className="text-right">
-                  <span className="bg-secondary/50 text-muted-foreground px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] font-bold border border-border">Exhausted</span>
+                  <span className="bg-secondary/50 text-muted-foreground px-3 py-1.5 text-[10px] uppercase tracking-[0.2em] font-bold border border-border">{status}</span>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </Panel>
       )}

@@ -6,9 +6,38 @@ import { useNfc } from "@/hooks/useNfc";
 import { useAudioListener } from "@/hooks/useAudioListener";
 import { Html5Qrcode } from "html5-qrcode";
 import { motion, AnimatePresence } from "motion/react";
-import { CheckCircle, XCircle, Volume2, SmartphoneNfc, QrCode, ShieldCheck } from "lucide-react";
+import { CheckCircle, XCircle, Volume2, SmartphoneNfc, QrCode } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { PageHead, Panel } from "@/components/partner/shared";
+
+type WindowWithPrefixedAudioContext = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
+function createAudioContext() {
+  const AudioContextConstructor = window.AudioContext ??
+    (window as WindowWithPrefixedAudioContext).webkitAudioContext;
+  return AudioContextConstructor ? new AudioContextConstructor() : null;
+}
+
+function playValidationTone(isSuccess: boolean) {
+  const audioCtx = createAudioContext();
+  if (!audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const duration = isSuccess ? 0.3 : 0.5;
+  osc.type = isSuccess ? "sine" : "sawtooth";
+  osc.frequency.setValueAtTime(isSuccess ? 800 : 150, audioCtx.currentTime);
+  if (isSuccess) {
+    osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+  }
+  gain.gain.setValueAtTime(1, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
 
 function ValidatorContent() {
   const router = useRouter();
@@ -22,12 +51,18 @@ function ValidatorContent() {
   const socket = getSocket();
   const nfc = useNfc();
   const audio = useAudioListener();
+  const { startListening, stopListening } = audio;
 
   const handleTokenScanned = useCallback((token: string) => {
     if (status === "verifying") return;
+    if (!bookingId) {
+      setStatus("error");
+      setMessage("Open pass validation from an active ride.");
+      return;
+    }
     setStatus("verifying");
-    socket.emit("verify-pass", token);
-  }, [status, socket]);
+    socket.emit("verify-pass", { token, bookingId });
+  }, [status, socket, bookingId]);
 
   useEffect(() => {
     socket.emit("join-validator");
@@ -36,20 +71,7 @@ function ValidatorContent() {
       setStatus("success");
       setMessage(`${data.message} - ${data.newBalance} rides left`);
       
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
-      
-      gain.gain.setValueAtTime(1, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-      
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.3);
+      playValidationTone(true);
 
       if (bookingId) {
         try {
@@ -75,19 +97,7 @@ function ValidatorContent() {
       setStatus("error");
       setMessage(data.message);
       
-      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-      
-      gain.gain.setValueAtTime(1, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-      
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.5);
+      playValidationTone(false);
 
       setTimeout(() => setStatus("idle"), 4000);
     };
@@ -142,12 +152,12 @@ function ValidatorContent() {
 
   useEffect(() => {
     if (activeTab === "audio") {
-      audio.startListening(handleTokenScanned);
+      startListening(handleTokenScanned);
       return () => {
-        audio.stopListening();
+        stopListening();
       };
     }
-  }, [activeTab, audio.startListening, audio.stopListening, handleTokenScanned]);
+  }, [activeTab, startListening, stopListening, handleTokenScanned]);
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto p-4 sm:p-8 relative">

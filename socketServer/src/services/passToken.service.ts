@@ -1,18 +1,26 @@
 import crypto from 'crypto';
 
-// Use a 32-byte (256-bit) secret key for AES-256-GCM
-// In production, this MUST come from an environment variable.
-const SECRET_KEY = process.env.PASS_SECRET_KEY 
-  ? Buffer.from(process.env.PASS_SECRET_KEY, 'hex') 
-  : crypto.createHash('sha256').update('super-secret-dev-key').digest();
-
 const ALGORITHM = 'aes-256-gcm';
-const TOKEN_EXPIRY_MS = 30000; // 30 seconds
+const TOKEN_EXPIRY_MS = 15000;
+
+function getSecretKey() {
+  const configuredKey = process.env.PASS_SECRET_KEY;
+  if (configuredKey) {
+    return /^[\da-fA-F]{64}$/.test(configuredKey) ? Buffer.from(configuredKey, 'hex') : null;
+  }
+
+  // Reuse the already-required private service secret with domain separation
+  // when deployments have not configured a dedicated pass key.
+  const internalSecret = process.env.SOCKET_INTERNAL_SECRET;
+  if (!internalSecret || internalSecret.length < 32) return null;
+  return crypto.createHmac('sha256', internalSecret).update('rydex:smart-pass-token:v1').digest();
+}
 
 export interface TokenPayload {
   u: string; // userId
   p: string; // passId
   t: number; // timestamp
+  j: string; // single-use token id
 }
 
 export class PassTokenService {
@@ -23,14 +31,18 @@ export class PassTokenService {
    * @returns A base64url encoded encrypted token.
    */
   static generateToken(userId: string, passId: string): string {
+    const secretKey = getSecretKey();
+    if (!secretKey) throw new Error('Configure a 64-character hexadecimal PASS_SECRET_KEY or a strong SOCKET_INTERNAL_SECRET.');
+
     const payload: TokenPayload = {
       u: userId,
       p: passId,
       t: Date.now(),
+      j: crypto.randomBytes(16).toString('base64url'),
     };
 
     const iv = crypto.randomBytes(12);
-    const cipher = crypto.createCipheriv(ALGORITHM, SECRET_KEY, iv);
+    const cipher = crypto.createCipheriv(ALGORITHM, secretKey, iv);
 
     const payloadString = JSON.stringify(payload);
     let encrypted = cipher.update(payloadString, 'utf8', 'base64url');
@@ -52,6 +64,8 @@ export class PassTokenService {
    */
   static verifyToken(token: string): TokenPayload | null {
     try {
+      const secretKey = getSecretKey();
+      if (!secretKey) return null;
       // Aggressively extract only the token parts.
       const match = token.match(/([A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+)/);
       if (!match) return null;
@@ -64,7 +78,7 @@ export class PassTokenService {
       const authTag = Buffer.from(parts[1], 'base64url');
       const encrypted = parts[2];
 
-      const decipher = crypto.createDecipheriv(ALGORITHM, SECRET_KEY, iv);
+      const decipher = crypto.createDecipheriv(ALGORITHM, secretKey, iv);
       decipher.setAuthTag(authTag);
 
       let decrypted = decipher.update(encrypted, 'base64url', 'utf8');
@@ -73,7 +87,11 @@ export class PassTokenService {
       const payload: TokenPayload = JSON.parse(decrypted);
 
       // Verify expiration
-      if (Date.now() - payload.t > TOKEN_EXPIRY_MS) {
+      if (
+        typeof payload.j !== 'string' || !payload.j ||
+        !Number.isFinite(payload.t) || Date.now() - payload.t >= TOKEN_EXPIRY_MS ||
+        payload.t > Date.now() + 5_000
+      ) {
         console.warn('Token expired');
         return null;
       }

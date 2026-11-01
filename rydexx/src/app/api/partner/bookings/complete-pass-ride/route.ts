@@ -17,6 +17,15 @@ export async function POST(req: Request) {
     if (String(booking.driver._id ?? booking.driver) !== String(session.user.id)) return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     if (booking.paymentStatus !== "pass") return NextResponse.json({ message: "Invalid payment method for this operation" }, { status: 400 });
 
+    // The socket validator records the pass redemption before this endpoint can
+    // complete the ride. This endpoint is idempotent for the validated ride.
+    if (booking.status === "completed" && booking.passId && booking.passRedeemedAt) {
+      return NextResponse.json({ success: true, message: "Pass ride already completed." });
+    }
+    if (booking.status !== "awaiting_payment" || !booking.passId || !booking.passRedeemedAt) {
+      return NextResponse.json({ message: "A valid pass must be scanned before ride completion." }, { status: 409 });
+    }
+
     booking.status = "completed";
     await booking.save();
 

@@ -60,6 +60,8 @@ export interface IBooking extends Document {
   status: BookingStatus;
   paymentStatus: PaymentStatus;
   paymentMethod?: PaymentMethod;
+  passId?: Types.ObjectId;
+  passRedeemedAt?: Date;
 
   paymentDeadline?: Date;
   arrivingAt?: Date;
@@ -158,6 +160,8 @@ partnerAmount: {
       type: String,
       enum: ["cash", "online", "wallet", "pass"],
     },
+    passId: { type: Schema.Types.ObjectId, ref: "Pass" },
+    passRedeemedAt: Date,
 
     paymentDeadline: Date,
     arrivingAt: Date,

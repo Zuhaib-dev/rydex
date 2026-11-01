@@ -6,6 +6,8 @@ export interface IPass extends Document {
   balance: number;
   isActive: boolean;
   expiresAt: Date;
+  redeemedBookingIds: mongoose.Types.ObjectId[];
+  redeemedTokenIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -17,6 +19,8 @@ const PassSchema = new Schema<IPass>(
     balance: { type: Number, required: true, default: 0 },
     isActive: { type: Boolean, default: true },
     expiresAt: { type: Date, required: true },
+    redeemedBookingIds: { type: [{ type: Schema.Types.ObjectId, ref: "Booking" }], default: [] },
+    redeemedTokenIds: { type: [String], default: [] },
   },
   { timestamps: true }
 );

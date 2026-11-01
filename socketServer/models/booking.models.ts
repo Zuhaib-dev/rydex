@@ -5,6 +5,10 @@ export interface IBooking extends Document {
   driver: mongoose.Types.ObjectId;
   vehicle: mongoose.Types.ObjectId;
   status: string;
+  paymentStatus: string;
+  passId?: mongoose.Types.ObjectId;
+  passRedeemedAt?: Date;
+  completedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -19,6 +23,10 @@ const BookingSchema = new Schema<IBooking>(
       default: "requested",
       index: true,
     },
+    paymentStatus: { type: String, default: "pending" },
+    passId: { type: Schema.Types.ObjectId, ref: "Pass" },
+    passRedeemedAt: Date,
+    completedAt: Date,
   },
   { timestamps: true }
 );
